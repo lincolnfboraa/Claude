@@ -31,9 +31,10 @@ section{scroll-margin-top:90px}
 .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
 
 /* fundo: manchas azuis desfocadas em movimento + pontinhos + granulado */
-.bg{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:var(--bg)}
+.bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--bg)}
+main,footer{position:relative;z-index:1}
 .dotgrid{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.16) 1px,transparent 1.6px);background-size:20px 20px;-webkit-mask-image:radial-gradient(ellipse 85% 60% at 50% 38%,#000 15%,transparent 75%);mask-image:radial-gradient(ellipse 85% 60% at 50% 38%,#000 15%,transparent 75%)}
-.blob{position:absolute;filter:blur(64px);-webkit-filter:blur(64px);
+.blob{position:absolute;will-change:transform;filter:blur(64px);-webkit-filter:blur(64px);
   background:
    radial-gradient(ellipse 46% 42% at 36% 40%,rgba(62,115,245,.95),rgba(42,92,228,.5) 55%,transparent 100%),
    radial-gradient(ellipse 40% 46% at 68% 64%,rgba(48,98,232,.7),rgba(30,72,205,.32) 55%,transparent 100%)}
