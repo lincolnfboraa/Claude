@@ -38,13 +38,13 @@ main,footer{position:relative;z-index:1}
   background:
    radial-gradient(ellipse 46% 42% at 36% 40%,rgba(62,115,245,.95),rgba(42,92,228,.5) 55%,transparent 100%),
    radial-gradient(ellipse 40% 46% at 68% 64%,rgba(48,98,232,.7),rgba(30,72,205,.32) 55%,transparent 100%)}
-.b1{width:44vmax;height:40vmax;left:-20vmax;top:22vh;opacity:.8;animation:d1 16s ease-in-out infinite alternate}
-.b2{width:38vmax;height:42vmax;right:-22vmax;top:-12vmax;opacity:.6;animation:d2 20s ease-in-out infinite alternate}
-.b3{width:46vmax;height:38vmax;left:0;bottom:-22vmax;opacity:.65;animation:d3 24s ease-in-out infinite alternate}
+.b1{width:57.2vmax;height:52vmax;left:-20vmax;top:22vh;opacity:.8;animation:d1 16s ease-in-out infinite alternate}
+.b2{width:49.4vmax;height:54.6vmax;right:-22vmax;top:-12vmax;opacity:.6;animation:d2 20s ease-in-out infinite alternate}
+.b3{width:59.8vmax;height:49.4vmax;left:0;bottom:-22vmax;opacity:.65;animation:d3 24s ease-in-out infinite alternate}
 @keyframes d1{to{transform:translate(18vmax,12vmax) rotate(150deg) scale(1.15)}}
 @keyframes d2{to{transform:translate(-18vmax,16vmax) rotate(-120deg) scale(.9)}}
 @keyframes d3{to{transform:translate(16vmax,-14vmax) rotate(110deg) scale(1.1)}}
-.grain{position:absolute;inset:0;opacity:.85;mix-blend-mode:overlay;background-size:180px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.grain{position:absolute;inset:0;opacity:1;mix-blend-mode:overlay;background-size:180px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 
 /* entrada ao rolar */
 .js .rv{opacity:0;transform:translateY(26px);filter:blur(8px);transition:opacity .9s var(--ease),transform .9s var(--ease),filter .9s var(--ease);transition-delay:var(--d,0s)}
