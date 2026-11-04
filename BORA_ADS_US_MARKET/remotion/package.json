@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render BoraFirst8 out/bora_first8_v3.mp4"
+    "render": "remotion render V4-Blocks2-3 out/bora_v4_blocks2-3_preview.mp4"
   },
   "dependencies": {
     "@remotion/cli": "4.0.540",
