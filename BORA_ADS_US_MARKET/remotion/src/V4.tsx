@@ -1,6 +1,6 @@
 import React from 'react';
-import {AbsoluteFill, Audio, Easing, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {C, Catalog, FONT, PhoneFrame, StatusBar, fill} from './brand';
+import {AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {C, CATALOG, FONT, PhoneFrame, SCREEN, StatusBar, fill} from './brand';
 
 /*
  V4 | preview dos blocos 2 e 3 (frame 0 = 1,5s do filme, 105 frames = 3,5s)
@@ -77,31 +77,92 @@ const Inbox: React.FC = () => {
   );
 };
 
-export const V4Blocks23: React.FC = () => {
+/* ---------- página do catálogo: print (topo) + gravação real alinhada pixel a pixel ---------- */
+// linha 0 do recorte da gravação = linha 1582 do print (alinhamento medido por template matching)
+const REC_AT = 1582, PAGE_BG = '#F8EFE4', TOP = 74;
+const SCROLL_START = 105, SWITCH = 123, REC_FRAMES = 38; // frames locais da cena do celular
+
+const Page: React.FC<{f: number}> = ({f}) => {
+  const k = SCREEN.w / CATALOG.w;
+  const X = kf(f, [SCROLL_START, SWITCH], [0, REC_AT], eInOut); // scroll em px do print
+  const img = (src: string, top: number) => (
+    <Img src={staticFile(src)} style={{position: 'absolute', left: 0, width: '100%', top}} />
+  );
+  return (
+    <div style={{...fill, background: PAGE_BG, overflow: 'hidden'}}>
+      {f < SWITCH ? (
+        <>
+          {img('ferretts_rec_still.png', TOP + (REC_AT - X) * k)}
+          {img(CATALOG.src, TOP - X * k)}
+        </>
+      ) : f < SWITCH + REC_FRAMES ? (
+        <Sequence from={SWITCH} layout="none">
+          <OffthreadVideo src={staticFile('ferretts_rec_2x.mp4')} muted style={{position: 'absolute', left: 0, width: '100%', top: TOP}} />
+        </Sequence>
+      ) : (
+        img('ferretts_rec_end.png', TOP)
+      )}
+      <div style={{position: 'absolute', top: 0, left: 0, right: 0, height: TOP, background: PAGE_BG}} />
+      <div style={{position: 'absolute', bottom: 0, left: 0, right: 0, height: 170, background: `linear-gradient(rgba(248,239,228,0), ${PAGE_BG} 75%)`}} />
+    </div>
+  );
+};
+
+/* ---------- cena do celular: blocos 2, 3 e 4 num único plano (frame 0 = 1,5s do filme) ---------- */
+export const PhoneScene: React.FC = () => {
   const f = useCurrentFrame();
-  // câmera: close nas mensagens > recua até o celular inteiro (base fora do quadro)
-  // um único celular, sempre centralizado e de frente: leve aproximação na dor, recuo suave na virada
-  // celular grande do início ao fim; leve recuo na virada, punch no impacto e push-in lento com o catálogo
   const punch = f >= CATALOG_COVERS ? 0.035 * Math.exp(-(f - CATALOG_COVERS) / 4) : 0;
-  const s = kf(f, [0, 45, CATALOG_COVERS, 105], [1.2, 1.23, 1.12, 1.17]) + punch;
-  const ty = 0;
+  const s = kf(f, [0, 45, CATALOG_COVERS, 105, 161, 177], [1.2, 1.23, 1.12, 1.17, 1.19, 1.1]) + punch;
+  const ty = kf(f, [161, 177], [0, 300]);
   const sheet = kf(f, [48, CATALOG_COVERS], [1, 0], eInOut);
-    return (
+  const line = kf(f, [169, 181], [0, 1], eOut);
+  return (
     <AbsoluteFill style={{background: `radial-gradient(ellipse at 50% 30%, #0e3a5c, ${C.navy} 55%, ${C.deep})`, fontFamily: FONT}}>
       <AbsoluteFill style={{transform: `translateY(${ty}px) scale(${s})`}}>
         <PhoneFrame>
-          {/* estados exclusivos: notificações só até o catálogo cobrir a tela; catálogo só a partir da transição */}
           {f < CATALOG_COVERS && <Inbox />}
           {f >= TRANSITION_START && (
             <div style={{...fill, transform: `translateY(${sheet * 100}%)`, borderRadius: 60, overflow: 'hidden'}}>
-              <Catalog statusBar={false} />
+              <Page f={f} />
             </div>
           )}
-          {/* barra de status fixa do aparelho: troca de cor quando o catálogo chega ao topo */}
           <StatusBar color={sheet > 0.06 ? '#fff' : C.navy} />
         </PhoneFrame>
       </AbsoluteFill>
-      <Audio src={staticFile('score_v4_b23.wav')} />
+      {/* frase final: só depois que o scroll para */}
+      {f >= 169 && (
+        <div style={{position: 'absolute', top: 170, left: 60, right: 60, textAlign: 'center', color: '#fff',
+          font: `800 76px/1.08 ${FONT}`, letterSpacing: -2.2, opacity: line, transform: `translateY(${(1 - line) * 30}px)`}}>
+          Let customers <span style={{color: C.orange}}>browse</span><br />before they ask.
+        </div>
+      )}
     </AbsoluteFill>
   );
 };
+
+/* ---------- bloco 1: produto (0–1,5s, 5 takes de 9 frames no grid de 100 BPM) ---------- */
+const Shot: React.FC<{src: string; ox: number; oy: number; s: [number, number]; dx?: [number, number]; r?: [number, number]; e?: (t: number) => number}> = ({
+  src, ox, oy, s: sc, dx = [0, 0], r = [0, 0], e = eOut,
+}) => {
+  const f = useCurrentFrame();
+  const t = interpolate(f, [0, 9], [0, 1], {...clamp, easing: e});
+  const L = (a: [number, number]) => a[0] + (a[1] - a[0]) * t;
+  return (
+    <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
+      <Img src={staticFile(src)} style={{position: 'absolute', width: 1920, height: 1920, left: 540 - ox * 1920, top: 960 - oy * 1920,
+        transformOrigin: `${ox * 100}% ${oy * 100}%`, transform: `translateX(${L(dx)}px) scale(${L(sc)}) rotate(${L(r)}deg)`}} />
+    </AbsoluteFill>
+  );
+};
+
+export const V4Full: React.FC = () => (
+  <AbsoluteFill style={{background: '#000'}}>
+    <Sequence durationInFrames={9}><Shot src="b1_strawberry_dip.jpg" ox={0.45} oy={0.45} s={[1.15, 1.3]} /></Sequence>
+    <Sequence from={9} durationInFrames={9}><Shot src="b1_strawberry_drizzle.jpg" ox={0.5} oy={0.52} s={[1.2, 1.2]} dx={[70, -70]} e={(t) => t} /></Sequence>
+    <Sequence from={18} durationInFrames={9}><Shot src="b1_truffle_cut.jpg" ox={0.47} oy={0.52} s={[1.15, 1.35]} /></Sequence>
+    <Sequence from={27} durationInFrames={9}><Shot src="b1_brigadeiro_tray.jpg" ox={0.5} oy={0.55} s={[1.15, 1.2]} dx={[-50, 50]} e={(t) => t} /></Sequence>
+    <Sequence from={36} durationInFrames={9}><Shot src="b1_bonbon_box.jpg" ox={0.53} oy={0.5} s={[1.35, 1.08]} r={[6, 0]} /></Sequence>
+    <Sequence from={45}><PhoneScene /></Sequence>
+    <Audio src={staticFile('score_v4_full.wav')} />
+  </AbsoluteFill>
+);
