@@ -1,80 +1,147 @@
 import React from 'react';
-import {
-  AbsoluteFill, Audio, Easing, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig,
-} from 'remotion';
-import {C, Catalog, DotGrid, FONT, Phone, Placeholder, SelectionBox, fill} from './brand';
+import {AbsoluteFill, Audio, Easing, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {C, CATALOG, Catalog, DotGrid, FONT, PhoneFrame, SCREEN, fill} from './brand';
 
 const clamp = {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'} as const;
-const out = Easing.out(Easing.cubic);
+const eOut = Easing.out(Easing.cubic);
+const eInOut = Easing.inOut(Easing.cubic);
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/* ---------- CENA 01 | 0–3s | sem locução ---------- */
+/* ================= 0–1,5s | MONTAGEM (7 takes, cortes nas colcheias) ================= */
 
-// A: macro chocolate, speed ramp (entra rápido e desacelera)
-const FrameA = () => {
+// Foto de produto em tela cheia. (ox, oy) = ponto da imagem que fica no centro da tela.
+const Photo: React.FC<{ox: number; oy: number; s: [number, number]; r?: [number, number]; dx?: [number, number]; d: number}> = ({
+  ox, oy, s, r = [0, 0], dx = [0, 0], d,
+}) => {
   const f = useCurrentFrame();
-  const s = interpolate(f, [0, 12], [1.4, 1.16], {...clamp, easing: out});
+  const t = interpolate(f, [0, d], [0, 1], {...clamp, easing: eOut});
+  const size = 1920;
+  const sc = lerp(s[0], s[1], t);
   return (
-    <AbsoluteFill style={{background: '#000'}}>
-      <Img src={staticFile('truffles.jpg')} style={{...fill, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${s})`}} />
+    <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
+      <Img src={staticFile('truffles.jpg')} style={{position: 'absolute', width: size, height: size, left: 540 - ox * size, top: 960 - oy * size,
+        transformOrigin: `${ox * 100}% ${oy * 100}%`, transform: `translateX(${lerp(dx[0], dx[1], t)}px) scale(${sc}) rotate(${lerp(r[0], r[1], t)}deg)`}} />
+      <AbsoluteFill style={{background: 'radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(10,4,0,.55) 100%)'}} />
     </AbsoluteFill>
   );
 };
 
-// B: mão posicionando doce (ainda sem B-roll, usa punch-in no macro)
-const FrameB: React.FC<{ph: boolean}> = ({ph}) => {
+// Interface real em tela cheia, mesma lógica de enquadramento
+const UIShot: React.FC<{cx: [number, number]; cy: [number, number]; s: [number, number]; d: number; e?: (t: number) => number}> = ({cx, cy, s, d, e = eOut}) => {
   const f = useCurrentFrame();
-  const s = interpolate(f, [0, 12], [2.6, 2.3], {...clamp, easing: out});
-  const r = interpolate(f, [0, 12], [-4, 0], clamp);
+  const t = interpolate(f, [0, d], [0, 1], {...clamp, easing: e});
+  const sc = lerp(s[0], s[1], t), x = lerp(cx[0], cx[1], t), y = lerp(cy[0], cy[1], t);
   return (
-    <AbsoluteFill style={{background: '#000'}}>
-      <Img src={staticFile('truffles.jpg')} style={{...fill, width: '100%', height: '100%', objectFit: 'cover',
-        transformOrigin: '50% 60%', transform: `scale(${s}) rotate(${r}deg)`}} />
-      <Placeholder show={ph} label="B02 mão posicionando doce" />
+    <AbsoluteFill style={{background: C.beige, overflow: 'hidden'}}>
+      <Img src={staticFile(CATALOG.src)} style={{position: 'absolute', left: 0, top: 0, width: CATALOG.w, height: CATALOG.h,
+        transformOrigin: '0 0', transform: `translate(${540 - x * sc}px, ${960 - y * sc}px) scale(${sc})`}} />
     </AbsoluteFill>
   );
 };
 
-// C: celular com o catálogo
-const FrameC: React.FC<{ph: boolean}> = ({ph}) => {
+// pontos no print do catálogo
+const TRUFA = {x: 588, y: 1269}, BOMBOM = {x: 996, y: 1269}, HEADER = {x: 660, y: 330};
+
+const Montage = () => (
+  <>
+    {/* T1 plano geral das trufas, speed ramp */}
+    <Sequence durationInFrames={7}><Photo ox={0.5} oy={0.5} s={[1.35, 1.08]} d={7} /></Sequence>
+    {/* T2 detalhe da folha de ouro, movimento contrário */}
+    <Sequence from={7} durationInFrames={5}><Photo ox={0.47} oy={0.26} s={[2.0, 2.25]} dx={[60, -40]} d={5} /></Sequence>
+    {/* T3 macro da trufa partida */}
+    <Sequence from={12} durationInFrames={6}><Photo ox={0.6} oy={0.56} s={[2.1, 1.85]} r={[-3, 0]} d={6} /></Sequence>
+    {/* T4 match cut: a trufa vira o card "Trufa Tradicional" no catálogo */}
+    <Sequence from={18} durationInFrames={6}><UIShot cx={[TRUFA.x, TRUFA.x]} cy={[TRUFA.y, TRUFA.y]} s={[4.2, 3.0]} d={6} /></Sequence>
+    {/* T5 swipe lateral até o bombom de morango */}
+    <Sequence from={24} durationInFrames={6}><UIShot cx={[TRUFA.x + 140, BOMBOM.x]} cy={[TRUFA.y, BOMBOM.y]} s={[2.6, 2.6]} d={6} e={eInOut} /></Sequence>
+    {/* T6 marca do cliente no topo do catálogo */}
+    <Sequence from={30} durationInFrames={6}><UIShot cx={[HEADER.x, HEADER.x]} cy={[HEADER.y + 60, HEADER.y]} s={[2.0, 2.3]} d={6} /></Sequence>
+    {/* T7 abre para o catálogo inteiro */}
+    <Sequence from={36} durationInFrames={9}><UIShot cx={[660, 660]} cy={[1000, 1150]} s={[1.5, 0.82]} d={9} /></Sequence>
+  </>
+);
+
+/* ================= 1,5–2,5s | LOGO ================= */
+const Logo = () => {
+  const f = useCurrentFrame();
+  const reveal = interpolate(f, [0, 9], [100, 0], {...clamp, easing: eOut});
+  const s = interpolate(f, [0, 22], [1.07, 1], {...clamp, easing: eOut});
+  const outT = interpolate(f, [24, 30], [0, 1], {...clamp, easing: Easing.in(Easing.cubic)});
+  const sheen = interpolate(f, [4, 20], [-40, 140], clamp);
+  return (
+    <AbsoluteFill style={{background: `radial-gradient(circle at 50% 50%, #0d3a5c, ${C.navy} 60%)`, alignItems: 'center', justifyContent: 'center'}}>
+      <div style={{position: 'relative', width: 760, height: 292, transform: `scale(${s * (1 - 0.05 * outT)})`, opacity: 1 - outT,
+        clipPath: `inset(0 ${reveal}% 0 0)`}}>
+        <Img src={staticFile('bora_logo.png')} style={{width: 760}} />
+        <div style={{...fill, mixBlendMode: 'overlay',
+          background: `linear-gradient(105deg, transparent ${sheen - 20}%, rgba(255,255,255,.55) ${sheen}%, transparent ${sheen + 20}%)`}} />
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/* ================= 2,5–6s | GANCHO + MENSAGENS QUE VIRAM A TELA ================= */
+const msgs = [
+  {t: 5, x: 80, y: 690, text: 'How much is this?'},
+  {t: 14, x: 150, y: 830, text: 'Do you have a menu?'},
+  {t: 22, x: 90, y: 970, text: 'What flavors are available?'},
+  {t: 29, x: 170, y: 1110, text: 'Do you deliver this weekend?'},
+  {t: 35, x: 110, y: 1250, text: 'Price for 50 truffles?'},
+  {t: 40, x: 190, y: 1390, text: 'Can you send me the full list?'},
+].map((m) => ({...m, w: Math.min(840, 112 + m.text.length * 21.5), h: 104}));
+
+// frames locais (0 = 2,5s)
+const MERGE_START = 63, MERGE_END = 87, FRAME_IN = 81, SCREEN_ON = 85;
+
+const HookAndMerge = () => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
-  const p = spring({frame: f, fps, config: {damping: 18, stiffness: 180}});
+  const headIn = (line: number) => interpolate(f, [1 + line * 3, 11 + line * 3], [1, 0], {...clamp, easing: eOut});
+  const headOut = interpolate(f, [56, 66], [0, 1], {...clamp, easing: Easing.in(Easing.cubic)});
+  const press = f > 42 && f < 56 ? Math.sin(f * 2.4) * interpolate(f, [42, 56], [5, 0]) : 0;
+  const frameIn = interpolate(f, [FRAME_IN, FRAME_IN + 10], [0, 1], {...clamp, easing: eOut});
+  const wipe = interpolate(f, [SCREEN_ON, SCREEN_ON + 14], [100, 0], {...clamp, easing: eInOut});
+  const lines: React.ReactNode[] = [
+    <>Your customers</>,
+    <>shouldn't have to</>,
+    <><span style={{color: C.orange}}>DM you</span> just to</>,
+    <>see your products.</>,
+  ];
   return (
-    <AbsoluteFill style={{background: 'radial-gradient(circle at 50% 40%, #3b2316, #120a06 70%)', alignItems: 'center', justifyContent: 'center'}}>
-      <Phone style={{transform: `translateY(${(1 - p) * 500}px) rotate(${(1 - p) * -6}deg)`}}>
-        <Catalog scroll={interpolate(f, [0, 15], [0, 120], clamp)} />
-      </Phone>
-      <Placeholder show={ph} label="B03 mão segurando celular" />
-    </AbsoluteFill>
-  );
-};
+    <AbsoluteFill>
+      {/* headline aparece uma vez e sai antes da transição */}
+      <div style={{position: 'absolute', left: 80, right: 60, top: 200, font: `800 80px/1.06 ${FONT}`, letterSpacing: -2.5, color: '#fff',
+        opacity: 1 - headOut, transform: `translateY(${-headOut * 70}px)`}}>
+        {lines.map((l, i) => (
+          <div key={i} style={{overflow: 'hidden'}}>
+            <div style={{transform: `translateY(${headIn(i) * 105}%)`}}>{l}</div>
+          </div>
+        ))}
+      </div>
 
-// D: cards de produto em grid (Transition 07)
-const products = [
-  {img: 'p_brigadeiro.png', name: 'Brigadeiro'},
-  {img: 'p_trufa.png', name: 'Classic Truffle'},
-  {img: 'p_bombom.png', name: 'Strawberry Bonbon'},
-  {img: 'truffles.jpg', name: 'Gold Truffle'},
-];
-const FrameD = () => {
-  const f = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const collapse = interpolate(f, [12, 18], [1, 0], {...clamp, easing: Easing.in(Easing.cubic)});
-  return (
-    <AbsoluteFill style={{background: C.deep}}>
-      <DotGrid opacity={0.35} />
-      {products.map((p, i) => {
-        const col = i % 2, row = Math.floor(i / 2);
-        const tx = (col - 0.5) * 440, ty = (row - 0.5) * 520;
-        const s = spring({frame: f - i * 2, fps, config: {damping: 15, stiffness: 220}});
+      {/* celular entra em volta das mensagens já fundidas */}
+      <PhoneFrame style={{opacity: frameIn, transform: `scale(${1.04 - 0.04 * frameIn})`}}>
+        <div style={{...fill, clipPath: `inset(0 0 ${wipe}% 0)`}}><Catalog /></div>
+      </PhoneFrame>
+
+      {/* mensagens: aparecem, acumulam e se fundem na tela do celular */}
+      {msgs.map((m, i) => {
+        if (f < m.t) return null;
+        const pop = spring({frame: f - m.t, fps, config: {damping: 15, stiffness: 340}});
+        const k = interpolate(f, [MERGE_START + i * 1.5, MERGE_END - 6 + i * 1.5], [0, 1], {...clamp, easing: eInOut});
+        const gone = interpolate(f, [SCREEN_ON, SCREEN_ON + 4], [1, 0], clamp);
+        const x = lerp(m.x + press, SCREEN.x, k), y = lerp(m.y, SCREEN.y, k);
+        const w = lerp(m.w, SCREEN.w, k), h = lerp(m.h, SCREEN.h, k);
         return (
-          <div key={p.name} style={{position: 'absolute', left: 540 - 190, top: 960 - 230, width: 380, height: 460,
-            borderRadius: 36, background: C.beige, boxShadow: '0 30px 60px rgba(0,0,0,.35)',
-            transform: `translate(${tx * s * collapse}px, ${ty * s * collapse}px) scale(${s * (0.4 + 0.6 * collapse)}) rotate(${(1 - s) * (i % 2 ? 8 : -8)}deg)`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 34}}>
-            <Img src={staticFile(p.img)} style={{width: 290, height: 290, borderRadius: '50%', objectFit: 'cover', border: '6px solid #fff'}} />
-            <div style={{font: `700 34px ${FONT}`, color: C.navy, marginTop: 30}}>{p.name}</div>
-            <div style={{width: 60, height: 6, borderRadius: 3, background: C.orange, marginTop: 18}} />
+          <div key={i} style={{position: 'absolute', left: x, top: y, width: w, height: h, borderRadius: lerp(52, SCREEN.r, k),
+            borderBottomLeftRadius: lerp(12, SCREEN.r, k), background: C.beige, opacity: Math.min(1, pop * 1.6) * gone,
+            boxShadow: `0 ${lerp(16, 0, k)}px ${lerp(40, 0, k)}px rgba(0,0,0,.35)`,
+            transform: `scale(${lerp(pop, 1, k)})`, transformOrigin: 'left bottom', overflow: 'hidden'}}>
+            <div style={{position: 'absolute', left: 34, top: 0, height: 104, display: 'flex', alignItems: 'center', gap: 18, whiteSpace: 'nowrap',
+              font: `500 42px ${FONT}`, color: C.navy, opacity: 1 - Math.min(1, k * 3)}}>
+              <span style={{width: 14, height: 14, borderRadius: 7, background: C.orange}} />
+              {m.text}
+            </div>
           </div>
         );
       })}
@@ -82,129 +149,50 @@ const FrameD = () => {
   );
 };
 
-// E + F + G: navy, caixa laranja se desenha, símbolo Bora (0,3s), corte para o problema
-const FrameEF = () => {
-  const f = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const logo = spring({frame: f - 15, fps, config: {damping: 12, stiffness: 300}});
-  const wipe = interpolate(f, [27, 33], [1920, 0], {...clamp, easing: Easing.in(Easing.cubic)});
+/* ================= 6–8s | REVEAL PREMIUM ================= */
+const RevealLayer = () => {
+  const f = useCurrentFrame(); // 0 = 6s
+  const push = interpolate(f, [0, 60], [1, 1.06], {...clamp, easing: Easing.out(Easing.quad)});
+  const lift = interpolate(f, [0, 60], [0, -30], {...clamp, easing: Easing.out(Easing.quad)});
+  const scroll = interpolate(f, [14, 60], [0, 40], {...clamp, easing: eInOut});
+  const head = interpolate(f, [6, 18], [1, 0], {...clamp, easing: eOut});
   return (
-    <AbsoluteFill style={{background: C.navy}}>
-      <DotGrid />
-      <SelectionBox x={540 - 300} y={960 - 210} w={600} h={420} start={0} dur={11} />
-      <Img src={staticFile('bora_symbol.png')} style={{position: 'absolute', left: 540 - 125, top: 960 - 166, width: 250,
-        transform: `scale(${logo})`, opacity: logo}} />
-      <div style={{position: 'absolute', left: 0, right: 0, top: wipe, height: 1920, background: C.orange}} />
-    </AbsoluteFill>
-  );
-};
-
-/* ---------- CENA 02 | 3–7s | THE PROBLEM ---------- */
-
-const msgs: [number, string][] = [
-  [6, 'How much is this?'],
-  [24, 'Do you have a menu?'],
-  [40, 'What flavors are available?'],
-  [52, 'Do you deliver this weekend?'],
-  [61, 'Price for 50 truffles?'],
-  [68, 'Is the strawberry one still available?'],
-  [73, 'Can you send the full list?'],
-  [77, 'Hello??'],
-];
-
-const Headline: React.FC<{start: number; parts: [string, boolean][]; top?: number; color: string}> = ({start, parts, top = 200, color}) => {
-  const f = useCurrentFrame();
-  const p = interpolate(f, [start, start + 9], [0, 1], {...clamp, easing: out});
-  return (
-    <div style={{position: 'absolute', left: 80, right: 80, top, font: `800 76px/1.08 ${FONT}`, letterSpacing: -2, color,
-      opacity: p, transform: `translateY(${(1 - p) * 40}px)`}}>
-      {parts.map(([t, hi], i) => <span key={i} style={{color: hi ? C.orange : undefined}}>{t}</span>)}
-    </div>
-  );
-};
-
-const Problem = () => {
-  const f = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const shake = f > 76 && f < 92 ? Math.sin(f * 2.2) * interpolate(f, [76, 92], [9, 0]) : 0;
-  return (
-    <AbsoluteFill style={{background: C.beige}}>
-      <Headline start={0} color={C.navy} parts={[["Your customers shouldn't have to ", false], ['DM you', true], [' just to see your products.', false]]} />
-      <div style={{position: 'absolute', left: 80, right: 80, bottom: 220, top: 640, display: 'flex', flexDirection: 'column',
-        justifyContent: 'flex-end', gap: 22, transform: `translateX(${shake}px)`, overflow: 'hidden'}}>
-        {msgs.filter(([t]) => f >= t).map(([t, m], i) => {
-          const p = spring({frame: f - t, fps, config: {damping: 16, stiffness: 320}});
-          return (
-            <div key={m} style={{alignSelf: 'flex-start', maxWidth: 760, padding: '26px 34px', borderRadius: 34, borderBottomLeftRadius: 8,
-              background: '#fff', color: C.navy, font: `500 42px ${FONT}`, boxShadow: '0 12px 30px rgba(7,39,64,.12)',
-              transform: `scale(${p}) translateY(${(1 - p) * 30}px)`, transformOrigin: 'left bottom', opacity: Math.min(1, p * 1.5),
-              display: 'flex', alignItems: 'center', gap: 18}}>
-              <span style={{width: 14, height: 14, borderRadius: 7, background: i < 3 ? C.orange : '#c9bfb2', flex: 'none'}} />
-              {m}
-            </div>
-          );
-        })}
+    <AbsoluteFill>
+      <div style={{position: 'absolute', left: 80, right: 80, top: 210, font: `800 80px/1.06 ${FONT}`, letterSpacing: -2.5, color: '#fff'}}>
+        {[<>Give them a <span style={{color: C.orange}}>better way</span></>, <>to shop.</>].map((l, i) => (
+          <div key={i} style={{overflow: 'hidden'}}>
+            <div style={{transform: `translateY(${interpolate(f, [6 + i * 3, 18 + i * 3], [105, 0], {...clamp, easing: eOut})}%)`, opacity: 1 - head * 0.3}}>{l}</div>
+          </div>
+        ))}
       </div>
-    </AbsoluteFill>
-  );
-};
-
-/* ---------- CENA 03 (início) | 7s+ | THE PRODUCT REVEAL ---------- */
-
-const Reveal = () => {
-  const f = useCurrentFrame();
-  const {fps} = useVideoConfig();
-  const p = spring({frame: f - 4, fps, config: {damping: 20, stiffness: 120}});
-  const mask = interpolate(f, [10, 28], [100, 0], {...clamp, easing: Easing.inOut(Easing.cubic)});
-  const push = interpolate(f, [0, 44], [0.86, 0.96], clamp);
-  return (
-    <AbsoluteFill style={{background: C.navy}}>
-      <DotGrid />
-      <Headline start={18} top={170} color="#fff" parts={[['Give them a ', false], ['better way', true], [' to shop.', false]]} />
-      <AbsoluteFill style={{alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 0}}>
-        <div style={{transform: `translateY(${(1 - p) * 260 + 140}px) scale(${push})`, transformOrigin: '50% 100%'}}>
-          <Phone width={640}>
-            <div style={{...fill, clipPath: `inset(${mask}% 0 0 0)`}}><Catalog /></div>
-            <div style={{...fill, background: C.deep, clipPath: `inset(0 0 ${100 - mask}% 0)`}} />
-          </Phone>
-        </div>
+      <AbsoluteFill style={{transform: `translateY(${lift}px) scale(${push})`, transformOrigin: '50% 62%'}}>
+        <PhoneFrame><Catalog scroll={scroll} /></PhoneFrame>
       </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
-/* ---------- Problem > Reveal: Swipe World ---------- */
-const SwipeWorld = () => {
-  const f = useCurrentFrame(); // local, 0 = frame 90
-  const x = interpolate(f, [106, 120], [0, -1080], {...clamp, easing: Easing.inOut(Easing.cubic)});
+/* ================= composição ================= */
+const NavyStage = () => {
+  const f = useCurrentFrame(); // 0 = 2,5s
+  const glow = interpolate(f, [80, 110], [0, 1], clamp);
   return (
-    <AbsoluteFill>
-      <AbsoluteFill style={{transform: `translateX(${x}px)`}}><Problem /></AbsoluteFill>
-      <Sequence from={106}>
-        <AbsoluteFill style={{transform: `translateX(${x + 1080}px)`}}><Reveal /></AbsoluteFill>
-      </Sequence>
+    <AbsoluteFill style={{background: `radial-gradient(circle at 50% 35%, #0d3a5c, ${C.navy} 55%, ${C.deep} 100%)`}}>
+      <DotGrid opacity={0.22} />
+      <AbsoluteFill style={{opacity: glow * 0.55, background: `radial-gradient(ellipse 45% 35% at 50% 62%, ${C.orange}, transparent 70%)`}} />
     </AbsoluteFill>
   );
 };
 
-/* ---------- Som provisório (gerado, substituir pelo pack licenciado) ---------- */
-const sfx: [number, string, number?][] = [
-  [0, 'hit.wav', 0.8], [12, 'click.wav'], [24, 'click.wav'], [39, 'click.wav'], [41, 'click.wav'], [43, 'click.wav'],
-  [57, 'click.wav'], [57, 'whoosh.wav', 0.8], [72, 'hit.wav', 1], [84, 'swipe.wav', 0.7],
-  ...msgs.slice(0, 5).map(([t]) => [90 + t, 'notif.wav', 0.8] as [number, string, number]),
-  [194, 'swipe.wav', 0.8], [200, 'whoosh.wav', 0.7], [222, 'click.wav'],
-];
-
-export const First8: React.FC<{showPlaceholders: boolean}> = ({showPlaceholders: ph}) => (
+export const First8: React.FC = () => (
   <AbsoluteFill style={{background: '#000', fontFamily: FONT}}>
-    <Sequence from={0} durationInFrames={12}><FrameA /></Sequence>
-    <Sequence from={12} durationInFrames={12}><FrameB ph={ph} /></Sequence>
-    <Sequence from={24} durationInFrames={15}><FrameC ph={ph} /></Sequence>
-    <Sequence from={39} durationInFrames={18}><FrameD /></Sequence>
-    <Sequence from={57} durationInFrames={33}><FrameEF /></Sequence>
-    <Sequence from={90}><SwipeWorld /></Sequence>
-    {sfx.map(([t, s, v], i) => (
-      <Sequence key={i} from={t} durationInFrames={30}><Audio src={staticFile(s)} volume={v ?? 0.6} /></Sequence>
-    ))}
+    <Montage />
+    <Sequence from={45} durationInFrames={30}><Logo /></Sequence>
+    <Sequence from={75}>
+      <NavyStage />
+      <Sequence durationInFrames={105}><HookAndMerge /></Sequence>
+      <Sequence from={105}><RevealLayer /></Sequence>
+    </Sequence>
+    <Audio src={staticFile('score_v2.wav')} />
   </AbsoluteFill>
 );
