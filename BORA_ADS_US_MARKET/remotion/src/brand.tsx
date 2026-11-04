@@ -24,7 +24,7 @@ export const DotGrid: React.FC<{opacity?: number}> = ({opacity = 1}) => (
 
 /** Geometria do celular, compartilhada pela transição mensagens > tela */
 export const PHONE = {w: 680, cx: 540, cy: 960};
-export const phoneH = PHONE.w * 2.17;
+export const phoneH = PHONE.w * 2.06;
 export const bezel = PHONE.w * 0.035;
 export const SCREEN = {
   x: PHONE.cx - PHONE.w / 2 + bezel,
@@ -48,7 +48,24 @@ export const PhoneFrame: React.FC<{children: React.ReactNode; style?: React.CSSP
 
 /** Interface real do Ferrett's (print 1320x2420, sem barras do navegador) */
 export const CATALOG = {src: 'ferretts_catalog.png', w: 1320, h: 2420};
-export const Catalog: React.FC<{scroll?: number}> = ({scroll = 0}) => (
-  <Img src={staticFile(CATALOG.src)}
-    style={{width: '100%', position: 'absolute', top: 0, transform: `translateY(${-scroll}px)`, paddingTop: 64, background: C.beige}} />
+/** Barra de status igual nas duas telas: reforça que é o mesmo aparelho */
+export const StatusBar: React.FC<{color: string}> = ({color}) => (
+  <div style={{position: 'absolute', top: 0, left: 0, right: 0, height: 74, padding: '0 46px', display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', font: `600 24px ${FONT}`, color, zIndex: 2}}>
+    <span>9:41</span>
+    <span style={{display: 'flex', gap: 8, alignItems: 'center'}}>
+      {[10, 14, 18, 22].map((h) => <i key={h} style={{width: 5, height: h * 0.8, background: color, borderRadius: 2, display: 'block'}} />)}
+      <i style={{width: 38, height: 18, border: `2px solid ${color}`, borderRadius: 6, marginLeft: 6, display: 'block', position: 'relative'}}>
+        <b style={{position: 'absolute', inset: 2, right: 8, background: color, borderRadius: 2}} />
+      </i>
+    </span>
+  </div>
+);
+
+export const Catalog: React.FC<{scroll?: number; statusBar?: boolean}> = ({scroll = 0, statusBar = true}) => (
+  <div style={{...fill, background: C.beige}}>
+    <Img src={staticFile(CATALOG.src)} style={{width: '100%', position: 'absolute', top: 74, transform: `translateY(${-scroll}px)`}} />
+    <div style={{position: 'absolute', top: 0, left: 0, right: 0, height: 74, background: C.beige}} />
+    {statusBar && <StatusBar color={C.navy} />}
+  </div>
 );

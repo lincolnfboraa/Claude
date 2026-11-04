@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Easing, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
-import {C, Catalog, FONT, PhoneFrame, fill} from './brand';
+import {C, Catalog, FONT, PhoneFrame, StatusBar, fill} from './brand';
 
 /*
  V4 | preview dos blocos 2 e 3 (frame 0 = 1,5s do filme, 105 frames = 3,5s)
@@ -71,18 +71,20 @@ const Inbox: React.FC = () => {
 export const V4Blocks23: React.FC = () => {
   const f = useCurrentFrame();
   // câmera: close nas mensagens > recua até o celular inteiro (base fora do quadro)
-  const s = kf(f, [0, 45, 92, 105], [1.5, 1.56, 1.0, 1.0]);
-  const ty = kf(f, [0, 45, 92, 105], [330, 350, 400, 390]);
+  // um único celular, sempre centralizado e de frente: leve aproximação na dor, recuo suave na virada
+  const s = kf(f, [0, 45, 100], [1.2, 1.23, 0.94]);
+  const ty = 0;
   const sheet = kf(f, [48, 67], [1, 0], eInOut);
-  const settle = kf(f, [67, 75], [1, 0], eOut); // pequeno encaixe do catálogo
-  return (
+    return (
     <AbsoluteFill style={{background: `radial-gradient(ellipse at 50% 30%, #0e3a5c, ${C.navy} 55%, ${C.deep})`, fontFamily: FONT}}>
       <AbsoluteFill style={{transform: `translateY(${ty}px) scale(${s})`}}>
         <PhoneFrame>
           <Inbox />
-          <div style={{...fill, transform: `translateY(${sheet * 100 + settle * -0.8}%)`, borderRadius: 60, overflow: 'hidden'}}>
-            <Catalog />
+          <div style={{...fill, transform: `translateY(${sheet * 100}%)`, borderRadius: 60, overflow: 'hidden'}}>
+            <Catalog statusBar={false} />
           </div>
+          {/* barra de status fixa do aparelho: troca de cor quando o catálogo chega ao topo */}
+          <StatusBar color={sheet > 0.06 ? '#fff' : C.navy} />
         </PhoneFrame>
       </AbsoluteFill>
       <Audio src={staticFile('score_v4_b23.wav')} />
