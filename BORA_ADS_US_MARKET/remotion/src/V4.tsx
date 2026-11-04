@@ -62,8 +62,15 @@ const Inbox: React.FC = () => {
       {extra > 0 && (
         <div style={{position: 'absolute', left: 0, right: 0, top: 330 + 4 * (CARD_H + GAP) + 10, display: 'flex', justifyContent: 'center',
           opacity: 1 - out(4), transform: `translateY(${-out(4) * 700}px)`}}>
-          <div style={{padding: '14px 28px', borderRadius: 999, background: C.orange, color: '#fff', font: `700 28px ${FONT}`,
-            transform: `scale(${1 + 0.08 * Math.max(0, 1 - (f - EXTRA[extra - 1]) / 3)})`}}>+{extra} new messages</div>
+          {/* cada mensagem nova: pop do selo + anel laranja expandindo (sincronizado com o thump) */}
+          <div style={{position: 'relative'}}>
+            <div style={{position: 'absolute', inset: 0, borderRadius: 999, border: `4px solid ${C.orange}`,
+              opacity: 0.8 * Math.max(0, 1 - (f - EXTRA[extra - 1]) / 6),
+              transform: `scale(${1 + 0.45 * Math.min(1, (f - EXTRA[extra - 1]) / 6)})`}} />
+            <div style={{padding: '16px 32px', borderRadius: 999, background: C.orange, color: '#fff', font: `800 32px ${FONT}`,
+              boxShadow: '0 10px 30px rgba(255,94,22,.45)',
+              transform: `scale(${1 + (extra === EXTRA.length ? 0.32 : 0.2) * Math.max(0, 1 - (f - EXTRA[extra - 1]) / 4)})`}}>+{extra} new messages</div>
+          </div>
         </div>
       )}
     </AbsoluteFill>
@@ -74,7 +81,9 @@ export const V4Blocks23: React.FC = () => {
   const f = useCurrentFrame();
   // câmera: close nas mensagens > recua até o celular inteiro (base fora do quadro)
   // um único celular, sempre centralizado e de frente: leve aproximação na dor, recuo suave na virada
-  const s = kf(f, [0, 45, 100], [1.2, 1.23, 0.94]);
+  // celular grande do início ao fim; leve recuo na virada, punch no impacto e push-in lento com o catálogo
+  const punch = f >= CATALOG_COVERS ? 0.035 * Math.exp(-(f - CATALOG_COVERS) / 4) : 0;
+  const s = kf(f, [0, 45, CATALOG_COVERS, 105], [1.2, 1.23, 1.12, 1.17]) + punch;
   const ty = 0;
   const sheet = kf(f, [48, CATALOG_COVERS], [1, 0], eInOut);
     return (
