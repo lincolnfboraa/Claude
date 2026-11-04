@@ -23,7 +23,7 @@ export const DotGrid: React.FC<{opacity?: number}> = ({opacity = 1}) => (
 );
 
 /** Geometria do celular, compartilhada pela transição mensagens > tela */
-export const PHONE = {w: 680, cx: 540, cy: 1330};
+export const PHONE = {w: 680, cx: 540, cy: 960};
 export const phoneH = PHONE.w * 2.17;
 export const bezel = PHONE.w * 0.035;
 export const SCREEN = {
