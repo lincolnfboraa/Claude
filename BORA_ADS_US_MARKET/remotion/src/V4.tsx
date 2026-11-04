@@ -1,6 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, Audio, Easing, Img, OffthreadVideo, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {C, CATALOG, FONT, PhoneFrame, SCREEN, StatusBar, fill} from './brand';
+import {CATALOG_COVERS, PROBLEM_END, SOLUTION_START, layersAt} from './timeline';
 
 /*
  V4 | preview dos blocos 2 e 3 (frame 0 = 1,5s do filme, 105 frames = 3,5s)
@@ -23,7 +24,7 @@ const EXTRA = [30, 33, 35.5, 38, 40, 42, 44, 46]; // rajada final, vira o contad
 const CARD_H = 132, GAP = 14;
 // timeline: 0–45 notificações | 45–67 transição (sheet 48–67) | 67–105 só catálogo + câmera
 // timeline V5: 0–60 gancho | 60–84 transição | 84+ só catálogo
-const TRANSITION_START = 60, CATALOG_COVERS = 84;
+const TRANSITION_START = PROBLEM_END; // CATALOG_COVERS vem de timeline.ts
 
 const Inbox: React.FC = () => {
   const f = useCurrentFrame();
@@ -81,7 +82,7 @@ const Inbox: React.FC = () => {
 /* ---------- página do catálogo: print (topo) + gravação real alinhada pixel a pixel ---------- */
 // linha 0 do recorte da gravação = linha 1582 do print (alinhamento medido por template matching)
 const REC_AT = 1582, PAGE_BG = '#F8EFE4', TOP = 74;
-const SCROLL_START = 120, SWITCH = 140, REC_FRAMES = 38; // frames locais da cena do celular
+const SCROLL_START = SOLUTION_START, SWITCH = 140, REC_FRAMES = 38; // frames locais da cena do celular
 
 const Page: React.FC<{f: number}> = ({f}) => {
   const k = SCREEN.w / CATALOG.w;
@@ -117,14 +118,15 @@ export const PhoneScene: React.FC = () => {
   const s = kf(f, [0, 60, CATALOG_COVERS, 120, 240], [1.0, 1.03, 0.99, 1.02, 1.06]) + punch;
   const ty = 250;
   const sheet = kf(f, [63, CATALOG_COVERS], [1, 0], eInOut);
-  const hookIn = kf(f, [-5, 5], [0, 1], eOut), hookOut = kf(f, [58, 68], [0, 1], eIn);
-  const line = kf(f, [128, 140], [0, 1], eOut);
+  const hookIn = kf(f, [-5, 5], [0, 1], eOut), hookOut = kf(f, [PROBLEM_END - 8, PROBLEM_END - 1], [0, 1], eIn);
+  const line = kf(f, [SOLUTION_START, SOLUTION_START + 12], [0, 1], eOut);
+  const L = layersAt(f);
   return (
     <AbsoluteFill style={{background: `radial-gradient(ellipse at 50% 30%, #0e3a5c, ${C.navy} 55%, ${C.deep})`, fontFamily: FONT}}>
       <AbsoluteFill style={{transform: `translateY(${ty}px) scale(${s})`}}>
         <PhoneFrame>
-          {f < CATALOG_COVERS && <Inbox />}
-          {f >= TRANSITION_START && (
+          {L.notifications && <Inbox />}
+          {L.catalog && (
             <div style={{...fill, transform: `translateY(${sheet * 100}%)`, borderRadius: 60, overflow: 'hidden'}}>
               <Page f={f} />
             </div>
@@ -133,14 +135,14 @@ export const PhoneScene: React.FC = () => {
         </PhoneFrame>
       </AbsoluteFill>
       {/* GANCHO: some antes da transição */}
-      {f < 68 && (
+      {L.hookText && (
         <div style={{position: 'absolute', top: 120, left: 60, right: 60, textAlign: 'center', color: '#fff',
           font: `800 76px/1.08 ${FONT}`, letterSpacing: -2.2, opacity: hookIn * (1 - hookOut), transform: `translateY(${(1 - hookIn) * 30 - hookOut * 40}px)`}}>
           Still answering<br />the <span style={{color: C.orange}}>same questions</span><br />all day?
         </div>
       )}
       {/* SOLUÇÃO: entra com o catálogo já na tela e permanece até o fim */}
-      {f >= 128 && (
+      {L.solutionText && (
         <div style={{position: 'absolute', top: 170, left: 60, right: 60, textAlign: 'center', color: '#fff',
           font: `800 76px/1.08 ${FONT}`, letterSpacing: -2.2, opacity: line, transform: `translateY(${(1 - line) * 30}px)`}}>
           Let your customers<br /><span style={{color: C.orange}}>browse and order.</span>

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render Opening-V5 out/bora_opening_v5.mp4"
+    "render": "node --experimental-strip-types --no-warnings scripts/verify_timeline.mjs && remotion render Opening-V5 out/bora_opening_v5.mp4"
   },
   "dependencies": {
     "@remotion/cli": "4.0.540",
