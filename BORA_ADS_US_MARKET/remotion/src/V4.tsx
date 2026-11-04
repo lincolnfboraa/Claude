@@ -21,6 +21,8 @@ const msgs = [
 const EXTRA = [34, 36.5, 38.5, 40, 41.5, 42.5, 43.5, 44.3]; // rajada final, vira o contador
 
 const CARD_H = 132, GAP = 14;
+// timeline: 0–45 notificações | 45–67 transição (sheet 48–67) | 67–105 só catálogo + câmera
+const TRANSITION_START = 45, CATALOG_COVERS = 67;
 
 const Inbox: React.FC = () => {
   const f = useCurrentFrame();
@@ -74,15 +76,18 @@ export const V4Blocks23: React.FC = () => {
   // um único celular, sempre centralizado e de frente: leve aproximação na dor, recuo suave na virada
   const s = kf(f, [0, 45, 100], [1.2, 1.23, 0.94]);
   const ty = 0;
-  const sheet = kf(f, [48, 67], [1, 0], eInOut);
+  const sheet = kf(f, [48, CATALOG_COVERS], [1, 0], eInOut);
     return (
     <AbsoluteFill style={{background: `radial-gradient(ellipse at 50% 30%, #0e3a5c, ${C.navy} 55%, ${C.deep})`, fontFamily: FONT}}>
       <AbsoluteFill style={{transform: `translateY(${ty}px) scale(${s})`}}>
         <PhoneFrame>
-          <Inbox />
-          <div style={{...fill, transform: `translateY(${sheet * 100}%)`, borderRadius: 60, overflow: 'hidden'}}>
-            <Catalog statusBar={false} />
-          </div>
+          {/* estados exclusivos: notificações só até o catálogo cobrir a tela; catálogo só a partir da transição */}
+          {f < CATALOG_COVERS && <Inbox />}
+          {f >= TRANSITION_START && (
+            <div style={{...fill, transform: `translateY(${sheet * 100}%)`, borderRadius: 60, overflow: 'hidden'}}>
+              <Catalog statusBar={false} />
+            </div>
+          )}
           {/* barra de status fixa do aparelho: troca de cor quando o catálogo chega ao topo */}
           <StatusBar color={sheet > 0.06 ? '#fff' : C.navy} />
         </PhoneFrame>
