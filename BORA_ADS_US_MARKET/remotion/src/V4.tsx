@@ -14,25 +14,26 @@ const kf = (f: number, i: number[], o: number[], e = eInOut) => interpolate(f, i
 
 const msgs = [
   {t: -4, name: 'Emily R.', text: 'How much is the truffle box?', c: '#C8664B'},
-  {t: 15, name: 'Jason M.', text: 'Do you have strawberry?', c: '#3D7FC1'},
-  {t: 24, name: 'Sofia L.', text: 'Can you send me the menu?', c: '#6E9773'},
-  {t: 30, name: 'Mike T.', text: 'Price for 50 pieces?', c: '#9B7BC0'},
+  {t: 12, name: 'Jason M.', text: 'Do you have strawberry?', c: '#3D7FC1'},
+  {t: 20, name: 'Sofia L.', text: 'Can you send me the menu?', c: '#6E9773'},
+  {t: 26, name: 'Mike T.', text: 'Price for 50 pieces?', c: '#9B7BC0'},
 ];
-const EXTRA = [34, 36.5, 38.5, 40, 41.5, 42.5, 43.5, 44.3]; // rajada final, vira o contador
+const EXTRA = [30, 33, 35.5, 38, 40, 42, 44, 46]; // rajada final, vira o contador
 
 const CARD_H = 132, GAP = 14;
 // timeline: 0–45 notificações | 45–67 transição (sheet 48–67) | 67–105 só catálogo + câmera
-const TRANSITION_START = 45, CATALOG_COVERS = 67;
+// timeline V5: 0–60 gancho | 60–84 transição | 84+ só catálogo
+const TRANSITION_START = 60, CATALOG_COVERS = 84;
 
 const Inbox: React.FC = () => {
   const f = useCurrentFrame();
   const {fps} = useVideoConfig();
   const extra = EXTRA.filter((t) => f >= t).length;
-  const out = (i: number) => kf(f, [45 + i * 2, 60 + i * 2], [0, 1], eIn); // mais nova sai primeiro
+  const out = (i: number) => kf(f, [60 + i * 2, 75 + i * 2], [0, 1], eIn); // mais nova sai primeiro
   const arrived = msgs.filter((m) => f >= m.t);
   return (
     <AbsoluteFill style={{background: `linear-gradient(170deg, #0f3d60, ${C.navy} 50%, ${C.deep})`}}>
-      <div style={{position: 'absolute', top: 110, width: '100%', textAlign: 'center', color: '#fff', opacity: kf(f, [43, 49], [1, 0])}}>
+      <div style={{position: 'absolute', top: 110, width: '100%', textAlign: 'center', color: '#fff', opacity: kf(f, [58, 64], [1, 0])}}>
         <div style={{font: `700 120px/1 ${FONT}`, letterSpacing: -4}}>9:41</div>
       </div>
       {/* pilha: a mais nova entra no topo e empurra as outras */}
@@ -80,7 +81,7 @@ const Inbox: React.FC = () => {
 /* ---------- página do catálogo: print (topo) + gravação real alinhada pixel a pixel ---------- */
 // linha 0 do recorte da gravação = linha 1582 do print (alinhamento medido por template matching)
 const REC_AT = 1582, PAGE_BG = '#F8EFE4', TOP = 74;
-const SCROLL_START = 105, SWITCH = 123, REC_FRAMES = 38; // frames locais da cena do celular
+const SCROLL_START = 120, SWITCH = 140, REC_FRAMES = 38; // frames locais da cena do celular
 
 const Page: React.FC<{f: number}> = ({f}) => {
   const k = SCREEN.w / CATALOG.w;
@@ -112,10 +113,12 @@ const Page: React.FC<{f: number}> = ({f}) => {
 export const PhoneScene: React.FC = () => {
   const f = useCurrentFrame();
   const punch = f >= CATALOG_COVERS ? 0.035 * Math.exp(-(f - CATALOG_COVERS) / 4) : 0;
-  const s = kf(f, [0, 45, CATALOG_COVERS, 105, 161, 177], [1.2, 1.23, 1.12, 1.17, 1.19, 1.1]) + punch;
-  const ty = kf(f, [161, 177], [0, 300]);
-  const sheet = kf(f, [48, CATALOG_COVERS], [1, 0], eInOut);
-  const line = kf(f, [169, 181], [0, 1], eOut);
+  // enquadramento fixo: texto no topo, celular inteiro embaixo; só pequenas variações de escala
+  const s = kf(f, [0, 60, CATALOG_COVERS, 120, 240], [1.0, 1.03, 0.99, 1.02, 1.06]) + punch;
+  const ty = 250;
+  const sheet = kf(f, [63, CATALOG_COVERS], [1, 0], eInOut);
+  const hookIn = kf(f, [-5, 5], [0, 1], eOut), hookOut = kf(f, [58, 68], [0, 1], eIn);
+  const line = kf(f, [128, 140], [0, 1], eOut);
   return (
     <AbsoluteFill style={{background: `radial-gradient(ellipse at 50% 30%, #0e3a5c, ${C.navy} 55%, ${C.deep})`, fontFamily: FONT}}>
       <AbsoluteFill style={{transform: `translateY(${ty}px) scale(${s})`}}>
@@ -129,40 +132,28 @@ export const PhoneScene: React.FC = () => {
           <StatusBar color={sheet > 0.06 ? '#fff' : C.navy} />
         </PhoneFrame>
       </AbsoluteFill>
-      {/* frase final: só depois que o scroll para */}
-      {f >= 169 && (
+      {/* GANCHO: some antes da transição */}
+      {f < 68 && (
+        <div style={{position: 'absolute', top: 120, left: 60, right: 60, textAlign: 'center', color: '#fff',
+          font: `800 76px/1.08 ${FONT}`, letterSpacing: -2.2, opacity: hookIn * (1 - hookOut), transform: `translateY(${(1 - hookIn) * 30 - hookOut * 40}px)`}}>
+          Still answering<br />the <span style={{color: C.orange}}>same questions</span><br />all day?
+        </div>
+      )}
+      {/* SOLUÇÃO: entra com o catálogo já na tela e permanece até o fim */}
+      {f >= 128 && (
         <div style={{position: 'absolute', top: 170, left: 60, right: 60, textAlign: 'center', color: '#fff',
           font: `800 76px/1.08 ${FONT}`, letterSpacing: -2.2, opacity: line, transform: `translateY(${(1 - line) * 30}px)`}}>
-          Let customers <span style={{color: C.orange}}>browse</span><br />before they ask.
+          Let your customers<br /><span style={{color: C.orange}}>browse and order.</span>
         </div>
       )}
     </AbsoluteFill>
   );
 };
 
-/* ---------- bloco 1: produto (0–1,5s, 5 takes de 9 frames no grid de 100 BPM) ---------- */
-const Shot: React.FC<{src: string; ox: number; oy: number; s: [number, number]; dx?: [number, number]; r?: [number, number]; e?: (t: number) => number}> = ({
-  src, ox, oy, s: sc, dx = [0, 0], r = [0, 0], e = eOut,
-}) => {
-  const f = useCurrentFrame();
-  const t = interpolate(f, [0, 9], [0, 1], {...clamp, easing: e});
-  const L = (a: [number, number]) => a[0] + (a[1] - a[0]) * t;
-  return (
-    <AbsoluteFill style={{background: '#000', overflow: 'hidden'}}>
-      <Img src={staticFile(src)} style={{position: 'absolute', width: 1920, height: 1920, left: 540 - ox * 1920, top: 960 - oy * 1920,
-        transformOrigin: `${ox * 100}% ${oy * 100}%`, transform: `translateX(${L(dx)}px) scale(${L(sc)}) rotate(${L(r)}deg)`}} />
-    </AbsoluteFill>
-  );
-};
-
-export const V4Full: React.FC = () => (
+/* ---------- abertura V5: uma única cena no mesmo celular ---------- */
+export const Opening: React.FC = () => (
   <AbsoluteFill style={{background: '#000'}}>
-    <Sequence durationInFrames={9}><Shot src="b1_strawberry_dip.jpg" ox={0.45} oy={0.45} s={[1.15, 1.3]} /></Sequence>
-    <Sequence from={9} durationInFrames={9}><Shot src="b1_strawberry_drizzle.jpg" ox={0.5} oy={0.52} s={[1.2, 1.2]} dx={[70, -70]} e={(t) => t} /></Sequence>
-    <Sequence from={18} durationInFrames={9}><Shot src="b1_truffle_cut.jpg" ox={0.47} oy={0.52} s={[1.15, 1.35]} /></Sequence>
-    <Sequence from={27} durationInFrames={9}><Shot src="b1_brigadeiro_tray.jpg" ox={0.5} oy={0.55} s={[1.15, 1.2]} dx={[-50, 50]} e={(t) => t} /></Sequence>
-    <Sequence from={36} durationInFrames={9}><Shot src="b1_bonbon_box.jpg" ox={0.53} oy={0.5} s={[1.35, 1.08]} r={[6, 0]} /></Sequence>
-    <Sequence from={45}><PhoneScene /></Sequence>
-    <Audio src={staticFile('score_v4_full.wav')} />
+    <PhoneScene />
+    <Audio src={staticFile('score_v5.wav')} />
   </AbsoluteFill>
 );

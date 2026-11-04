@@ -1,7 +1,7 @@
 // Trilha provisória sintetizada (150 BPM, colcheia = 6 frames a 30fps).
 // Serve só para marcar ritmo e sincronia. Substituir por trilha + SFX licenciados.
 import {writeFileSync} from 'node:fs';
-const SR = 44100, DUR = 3.5, N = SR * DUR, L = new Float32Array(N);
+const SR = 44100, DUR = 8, N = SR * DUR, L = new Float32Array(N);
 const F = (f) => f / 30;
 let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
 const add = (t0, dur, fn, gain = 1) => {
@@ -15,21 +15,28 @@ const tone = (t, dur, f, g, a = 0.005, d = 6) => add(t, dur, (x) => Math.sin(2 *
 const noise = (t, dur, env, g) => { let lp = 0; add(t, dur, (x) => { lp += (rnd() - lp) * 0.25; return lp * env(x / dur); }, g); };
 const sweep = (t, dur, f0, f1, g) => { let ph = 0; add(t, dur, (x) => { const k = x / dur; ph += (2 * Math.PI * (f0 + (f1 - f0) * k * k)) / SR; return Math.sin(ph) * k * k; }, g); };
 
-// V4 preview: blocos 2 e 3 (frame 0 = 1,5s do filme)
-// Bloco 2: pings acelerando + 8 mensagens extras chegando em rajada, drone de tensão
-[0, 15, 24, 30].forEach((f, i) => { tone(F(f), 0.08, 1046 + i * 50, 0.14, 0.002, 30); tone(F(f) + 0.07, 0.12, 1568 + i * 50, 0.11, 0.002, 25); });
-[34, 36.5, 38.5, 40, 41.5, 42.5, 43.5, 44.3].forEach((f, i, a) => {
-  tone(F(f), 0.06, 1568 + i * 30, 0.06 + i * 0.008, 0.002, 40);   // ping
-  tone(F(f), 0.16, 150, 0.22 + i * 0.02, 0.002, 22);               // thump do selo laranja
-  if (i === a.length - 1) { kick(F(f), 0.7); tone(F(f), 0.12, 2093, 0.08, 0.002, 30); } // ápice
+// V5: gancho 0–60 | transição 60–84 | catálogo 84–240
+// gancho: pings nas 4 perguntas, rajada com thump no selo laranja, drone de tensão
+[0, 12, 20, 26].forEach((f, i) => { tone(F(f), 0.08, 1046 + i * 50, 0.14, 0.002, 30); tone(F(f) + 0.07, 0.12, 1568 + i * 50, 0.11, 0.002, 25); });
+[30, 33, 35.5, 38, 40, 42, 44, 46].forEach((f, i, a) => {
+  tone(F(f), 0.06, 1568 + i * 30, 0.06 + i * 0.008, 0.002, 40);
+  tone(F(f), 0.16, 150, 0.22 + i * 0.02, 0.002, 22);
+  if (i === a.length - 1) { kick(F(f), 0.7); tone(F(f), 0.12, 2093, 0.08, 0.002, 30); }
 });
-tone(0, 1.5, 58.3, 0.2, 0.3, 0.4); tone(0, 1.5, 87.3, 0.07, 0.4, 0.5);
-// Bloco 3: whoosh na subida, tick quando o catálogo encaixa, acorde de alívio
-noise(F(45), F(22), (k) => Math.sin(Math.PI * k) * (0.4 + 0.6 * k), 0.45);
-tone(F(67), 0.05, 2400, 0.14, 0.001, 60);
-kick(F(67), 1.4); tone(F(67), 1.3, 41, 0.5, 0.01, 2.4); noise(F(67), 0.35, (k) => Math.exp(-k * 6), 0.3); // impacto do reveal
+tone(0, 2.0, 58.3, 0.2, 0.3, 0.35); tone(0, 2.0, 87.3, 0.07, 0.4, 0.45);
+// transição: whoosh na subida, impacto + tick + acorde quando o catálogo cobre a tela
+noise(F(60), F(24), (k) => Math.sin(Math.PI * k) * (0.4 + 0.6 * k), 0.45);
+tone(F(84), 0.05, 2400, 0.14, 0.001, 60);
+kick(F(84), 1.4); tone(F(84), 1.3, 41, 0.5, 0.01, 2.4); noise(F(84), 0.35, (k) => Math.exp(-k * 6), 0.3);
 for (const [fr, g] of [[110, 0.1], [220, 0.08], [277.18, 0.06], [329.63, 0.06], [440, 0.04]])
-  add(F(67), 1.3, (x) => (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * fr * x)) * Math.min(1, x / 0.25) * Math.exp(-x * 0.9), g);
+  add(F(84), 1.6, (x) => (2 / Math.PI) * Math.asin(Math.sin(2 * Math.PI * fr * x)) * Math.min(1, x / 0.25) * Math.exp(-x * 0.8), g);
+// catálogo: batida volta, scroll, categoria abre, frase da solução
+noise(F(120), F(20), (k) => Math.sin(Math.PI * k), 0.22);
+for (const f of [102, 120, 138, 156, 174, 192, 210]) kick(F(f), 0.55);
+for (let f = 111; f < 228; f += 9) hatEnv(F(f), 0.1);
+tone(F(145), 0.05, 2200, 0.1, 0.001, 60);
+tone(F(128), 0.9, 1318.5, 0.06, 0.004, 3.5); tone(F(130), 0.9, 1975.5, 0.045, 0.004, 3.5);
+tone(F(210), 1.0, 55, 0.2, 0.02, 2.5);
 
 let peak = 0; for (const v of L) peak = Math.max(peak, Math.abs(v));
 const g = 0.89 / peak, buf = Buffer.alloc(44 + N * 2);
@@ -37,5 +44,5 @@ buf.write('RIFF', 0); buf.writeUInt32LE(36 + N * 2, 4); buf.write('WAVEfmt ', 8)
 buf.writeUInt16LE(1, 20); buf.writeUInt16LE(1, 22); buf.writeUInt32LE(SR, 24); buf.writeUInt32LE(SR * 2, 28);
 buf.writeUInt16LE(2, 32); buf.writeUInt16LE(16, 34); buf.write('data', 36); buf.writeUInt32LE(N * 2, 40);
 for (let i = 0; i < N; i++) buf.writeInt16LE(Math.round(Math.max(-1, Math.min(1, L[i] * g)) * 32767), 44 + i * 2);
-writeFileSync(new URL('../public/score_v4_b23.wav', import.meta.url), buf);
-console.log('score_v4_b23.wav ok');
+writeFileSync(new URL('../public/score_v5.wav', import.meta.url), buf);
+console.log('score_v5.wav ok');
