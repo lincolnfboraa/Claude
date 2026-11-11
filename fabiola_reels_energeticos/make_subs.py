@@ -26,7 +26,7 @@ ROTEIRO = [
     "Ele, em altas doses, | pode aumentar | a *carga osmótica* do rim, | e pode ser uma causa | de uma *lesão renal aguda*.",
     "Por isso, é interessante | que você preste atenção | na quantidade de energético | que você toma *por dia*,",
     "porque o seu corpo pode não sinalizar | assim, de uma forma | tão clara, | todo esse *excesso*.",
-    "O que eu estou | dizendo aqui | não é que você | não pode tomar, | mas que você não tome em excesso.",
+    "O que eu estou | dizendo aqui | não é que você | não pode tomar, | mas que você | não tome em excesso.",
 ]
 
 # ---------- alinhamento roteiro x tempos do Whisper ----------
@@ -120,7 +120,7 @@ def topo_glifo(txt, fs):   # distância da linha de base até o topo visível da
 def desc_glifo(txt, fs):   # quanto a linha desce abaixo da base
     return 0.10*fs if any(c in DESC for c in txt) else 0.0
 
-def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6):
+def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6, fundo_y=None):
     """Frase de destaque: linhas empilhadas de cima pra baixo, cada uma ENCOSTADA na anterior
     (folga 'gap' px entre a base/haste de uma e o topo das letras da seguinte, igual ao padrão dos posts).
     linhas: dicts {txt, fonte, papel ('pequena'|'grande'), cor, alinh ('l','r','c'), cue (palavra que dispara a entrada), dx (recuo)}"""
@@ -144,7 +144,7 @@ def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6):
             P = linhas[i-1]
             L['base'] = P['base'] + desc_glifo(P['txt'], P['fs'])*0.6 + L.get('gap', gap) + alto
     fundo = linhas[-1]['base'] + desc_glifo(linhas[-1]['txt'], linhas[-1]['fs'])
-    desloc = centro_y - fundo/2
+    desloc = (fundo_y - fundo) if fundo_y else (centro_y - fundo/2)   # fundo_y: ancora a base do bloco (altura da legenda)
     ref = max((L for L in linhas if L['papel'] == 'grande'), key=lambda L: L['w'])
     esq, dir_ = centro_x - ref['w']/2, centro_x + ref['w']/2
     for L in linhas:
@@ -155,6 +155,7 @@ def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6):
     return t0, t1
 
 BR = '&HFFFFFF&'
+FUNDO_DESTAQUE = 1478   # base dos destaques 2 e 3: na altura da legenda, um pouco acima (zona segura do Reels)
 # 1) "podem ter até / 500% / a mais" | pequena colada em cima à esquerda, número gigante azul, complemento colado embaixo à direita
 destaque(["podem ter até 500% a mais"], [
     dict(txt="podem ter até", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='podem', dx=8),
@@ -164,21 +165,15 @@ destaque(["podem ter até 500% a mais"], [
 # 2) "você imagina esse / ESTRAGO / no teu rim?" | pequena à direita em cima, gigante azul, pequena à esquerda embaixo
 destaque(["Você imagina esse estrago disso no teu rim?"], [
     dict(txt="você imagina esse", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='você', dx=6),
-    dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', alvo=860),
+    dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', alvo=800),
     dict(txt="no teu rim?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='teu', dx=8, gap=2),
-], centro_y=1000)
+], fundo_y=FUNDO_DESTAQUE)
 # 3) VIRADA "o seu corpo pode / NÃO / sinalizar" | quatro alturas, grandes coladas
 destaque(["porque o seu corpo pode não sinalizar"], [
     dict(txt="o seu corpo pode", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='seu', dx=6),
-    dict(txt="NÃO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='l', cue='não', alvo=430, fs_max=360),
-    dict(txt="sinalizar", fonte='Poppins Bold', papel='grande', cor=BR, alinh='r', cue='sinalizar', alvo=820, sp=-5, gap=2),
-], centro_y=1030)
-# 4) FECHAMENTO "mas que você / não tome em / EXCESSO" | três níveis centralizados, colados
-destaque(["mas que você não tome em excesso."], [
-    dict(txt="mas que você", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='c', cue='mas', fs=110),
-    dict(txt="não tome em", fonte='Poppins Bold', papel='grande', cor=BR, alinh='c', cue='não', alvo=600, sp=-4),
-    dict(txt="EXCESSO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='excesso', alvo=880, gap=4),
-], centro_y=1000)
+    dict(txt="NÃO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='l', cue='não', alvo=410, fs_max=340),
+    dict(txt="sinalizar", fonte='Poppins Bold', papel='grande', cor=BR, alinh='r', cue='sinalizar', alvo=780, sp=-5, gap=2),
+], fundo_y=FUNDO_DESTAQUE)
 
 # ---------- título (estilo dos posts anteriores: caixa escura serifada + caixa clara em itálico) ----------
 t0, t1 = 0.0, seg[1]['out_end'] + 0.9
@@ -236,8 +231,8 @@ txt(t0, t1, 540, 290, "{\\fnPoppins Medium\\fs64\\c&HDDDDDD&}metabólito do carb
 # ---------- legendas comuns ----------
 for b in blocos:
     if b.get('oculto'): continue
-    s = re.sub(r'\*(.+?)\*', lambda m: '{\\c' + AZUL + '}' + m.group(1) + '{\\c&HFFFFFF&}', b['txt'])
-    dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur3\\fscx93\\fscy93\\t(0,90,\\fscx100\\fscy100)}}{s}")
+    s = b['txt'].replace('*', '')
+    dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}")
 
 head = """[Script Info]
 ScriptType: v4.00+
@@ -248,7 +243,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Poppins SemiBold,96,&H00FFFFFF,&H00FFFFFF,&H70000000,&H50000000,0,0,0,0,100,100,-0.5,0,1,3,4,2,110,110,345,1
+Style: Sub,Poppins SemiBold,88,&H00FFFFFF,&H00FFFFFF,&HFF000000,&HA6000000,0,0,0,0,100,100,-0.3,0,1,1,3,2,110,110,420,1
 Style: K,Poppins SemiBold,118,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
 Style: Card,Poppins,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,8,0,0,0,1
 

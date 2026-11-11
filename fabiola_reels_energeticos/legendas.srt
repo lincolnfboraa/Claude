@@ -191,6 +191,10 @@ não é que você
 não pode tomar,
 
 49
-00:01:23,460 --> 00:01:25,400
-mas que você não tome em excesso.
+00:01:23,460 --> 00:01:24,120
+mas que você
+
+50
+00:01:24,120 --> 00:01:25,400
+não tome em excesso.
 

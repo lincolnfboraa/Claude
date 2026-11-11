@@ -7,7 +7,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Poppins SemiBold,96,&H00FFFFFF,&H00FFFFFF,&H70000000,&H50000000,0,0,0,0,100,100,-0.5,0,1,3,4,2,110,110,345,1
+Style: Sub,Poppins SemiBold,88,&H00FFFFFF,&H00FFFFFF,&HFF000000,&HA6000000,0,0,0,0,100,100,-0.3,0,1,1,3,2,110,110,420,1
 Style: K,Poppins SemiBold,118,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
 Style: Card,Poppins,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,8,0,0,0,1
 
@@ -16,15 +16,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 3,0:00:04.80,0:00:08.80,K,,0,0,0,,{\an7\move(58,843,58,819,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}podem ter até
 Dialogue: 3,0:00:06.58,0:00:08.80,K,,0,0,0,,{\an5\pos(270,979)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs278\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}500%
 Dialogue: 3,0:00:08.24,0:00:08.80,K,,0,0,0,,{\an9\move(486,1012,486,988,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}a mais
-Dialogue: 3,0:00:40.60,0:00:43.94,K,,0,0,0,,{\an9\move(961,878,961,854,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}você imagina esse
-Dialogue: 3,0:00:41.92,0:00:43.94,K,,0,0,0,,{\an5\pos(540,1027)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs330\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}ESTRAGO
-Dialogue: 3,0:00:43.14,0:00:43.94,K,,0,0,0,,{\an7\move(121,1067,121,1043,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}no teu rim?
-Dialogue: 3,0:01:13.76,0:01:15.70,K,,0,0,0,,{\an7\move(162,847,162,823,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o seu corpo pode
-Dialogue: 3,0:01:14.36,0:01:15.70,K,,0,0,0,,{\an5\pos(370,1035)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs336\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}NÃO
-Dialogue: 3,0:01:14.84,0:01:15.70,K,,0,0,0,,{\an5\pos(540,1166)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins\b1\fs330\fsp-5\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}sinalizar
-Dialogue: 3,0:01:23.42,0:01:25.55,K,,0,0,0,,{\an8\move(540,871,540,847,0,180)\fad(110,140)\fnPoppins Medium\b0\fs110\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}mas que você
-Dialogue: 3,0:01:24.08,0:01:25.55,K,,0,0,0,,{\an5\pos(540,973)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins\b1\fs168\fsp-4\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}não tome em
-Dialogue: 3,0:01:24.96,0:01:25.55,K,,0,0,0,,{\an5\pos(540,1084)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs330\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}EXCESSO
+Dialogue: 3,0:00:40.60,0:00:43.94,K,,0,0,0,,{\an9\move(932,1248,932,1224,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}você imagina esse
+Dialogue: 3,0:00:41.92,0:00:43.94,K,,0,0,0,,{\an5\pos(540,1391)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs308\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}ESTRAGO
+Dialogue: 3,0:00:43.14,0:00:43.94,K,,0,0,0,,{\an7\move(150,1428,150,1404,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}no teu rim?
+Dialogue: 3,0:01:13.76,0:01:15.70,K,,0,0,0,,{\an7\move(162,1125,162,1101,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o seu corpo pode
+Dialogue: 3,0:01:14.36,0:01:15.70,K,,0,0,0,,{\an5\pos(360,1307)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs320\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}NÃO
+Dialogue: 3,0:01:14.84,0:01:15.70,K,,0,0,0,,{\an5\pos(540,1436)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins\b1\fs330\fsp-5\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}sinalizar
 Dialogue: 0,0:00:00.00,0:00:04.54,Card,,0,0,0,,{\an7\pos(0,0)\1c&H38220E&\1a&H10&\bord0\shad0\fad(200,200)\p1}m 99 170 l 981 170 l 981 345 l 99 345
 Dialogue: 1,0:00:00.00,0:00:04.54,Card,,0,0,0,,{\an8\pos(540,169)\fad(200,200)\fnPlayfair Display\i0\fs96\fsp1\c&HFFFFFF&\bord0\shad0}ENERGÉTICO PODE
 Dialogue: 1,0:00:00.00,0:00:04.54,Card,,0,0,0,,{\an8\pos(540,236)\fad(200,200)\fnPlayfair Display\i0\fs96\fsp1\c&HFFFFFF&\bord0\shad0}PREJUDICAR SEUS RINS?
@@ -43,48 +40,50 @@ Dialogue: 1,0:00:34.54,0:00:40.34,Card,,0,0,0,,{\an8\pos(787,340)\fad(160,160)}{
 Dialogue: 0,0:00:49.01,0:00:55.61,Card,,0,0,0,,{\an7\pos(0,0)\1c&H38220E&\1a&H30&\bord0\shad0\fad(160,160)\p1}m 176 185 l 904 185 b 930 185 930 185 930 211 l 930 374 b 930 400 930 400 904 400 l 176 400 b 150 400 150 400 150 374 l 150 211 b 150 185 150 185 176 185
 Dialogue: 1,0:00:49.01,0:00:55.61,Card,,0,0,0,,{\an8\pos(540,192)\fad(160,160)}{\fnPoppins\b1\fs118\fsp-2\c&HFFFFFF&}Glucuronolactona
 Dialogue: 1,0:00:49.01,0:00:55.61,Card,,0,0,0,,{\an8\pos(540,290)\fad(160,160)}{\fnPoppins Medium\fs64\c&HDDDDDD&}metabólito do carboidrato,\Nexcretado pelo rim
-Dialogue: 2,0:00:00.00,0:00:01.70,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Uma coisa que me deixa
-Dialogue: 2,0:00:01.70,0:00:02.96,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}muito {\c&HFFB84D&}preocupada{\c&HFFFFFF&}
-Dialogue: 2,0:00:02.96,0:00:04.84,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}é que algumas formulações
-Dialogue: 2,0:00:08.80,0:00:10.44,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}da dose recomendada
-Dialogue: 2,0:00:10.44,0:00:12.54,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de vitaminas do complexo B
-Dialogue: 2,0:00:12.54,0:00:14.04,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}por latinha.
-Dialogue: 2,0:00:14.50,0:00:15.68,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}A presença de cafeína
-Dialogue: 2,0:00:15.68,0:00:16.94,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}nos energéticos
-Dialogue: 2,0:00:16.94,0:00:18.84,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}tem sido uma das causas
-Dialogue: 2,0:00:18.84,0:00:20.16,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de possibilidade
-Dialogue: 2,0:00:20.16,0:00:21.10,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de {\c&HFFB84D&}lesão renal{\c&HFFFFFF&}.
-Dialogue: 2,0:00:21.26,0:00:23.50,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}O ideal é que a gente
-Dialogue: 2,0:00:23.50,0:00:25.22,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}ingira no máximo
-Dialogue: 2,0:00:25.22,0:00:27.24,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}{\c&HFFB84D&}400 mg{\c&HFFFFFF&} de cafeína
-Dialogue: 2,0:00:27.24,0:00:28.12,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}ao dia.
-Dialogue: 2,0:00:28.12,0:00:29.70,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}E alguns energéticos,
-Dialogue: 2,0:00:29.70,0:00:30.88,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}eles têm uma quantidade
-Dialogue: 2,0:00:30.88,0:00:33.16,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}muito alta de cafeína,
-Dialogue: 2,0:00:33.50,0:00:35.28,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que variam entre 80
-Dialogue: 2,0:00:35.28,0:00:39.00,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}até 300 mg de cafeína
-Dialogue: 2,0:00:39.00,0:00:39.96,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}por dose.
-Dialogue: 2,0:00:43.94,0:00:44.88,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}E tem um outro
-Dialogue: 2,0:00:44.88,0:00:46.40,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que é um nome muito estranho
-Dialogue: 2,0:00:46.40,0:00:47.06,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que eu vou ter que ler
-Dialogue: 2,0:00:47.06,0:00:49.16,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}pra vocês, chamado
-Dialogue: 2,0:00:49.16,0:00:51.72,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}glucuronolactona,
-Dialogue: 2,0:00:51.96,0:00:53.30,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que é um metabólito
-Dialogue: 2,0:00:53.30,0:00:54.40,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}do carboidrato
-Dialogue: 2,0:00:54.40,0:00:55.54,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}excretado pelo rim.
-Dialogue: 2,0:00:55.54,0:00:57.34,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Ele, em altas doses,
-Dialogue: 2,0:00:57.34,0:00:58.80,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}pode aumentar
-Dialogue: 2,0:00:58.80,0:01:00.44,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}a {\c&HFFB84D&}carga osmótica{\c&HFFFFFF&} do rim,
-Dialogue: 2,0:01:00.44,0:01:02.60,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}e pode ser uma causa
-Dialogue: 2,0:01:02.60,0:01:04.48,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de uma {\c&HFFB84D&}lesão renal aguda{\c&HFFFFFF&}.
-Dialogue: 2,0:01:04.66,0:01:06.90,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Por isso, é interessante
-Dialogue: 2,0:01:06.90,0:01:09.44,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que você preste atenção
-Dialogue: 2,0:01:09.44,0:01:11.14,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}na quantidade de energético
-Dialogue: 2,0:01:11.14,0:01:12.66,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que você toma {\c&HFFB84D&}por dia{\c&HFFFFFF&},
-Dialogue: 2,0:01:15.70,0:01:16.68,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}assim, de uma forma
-Dialogue: 2,0:01:16.68,0:01:17.86,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}tão clara,
-Dialogue: 2,0:01:17.86,0:01:19.60,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}todo esse {\c&HFFB84D&}excesso{\c&HFFFFFF&}.
-Dialogue: 2,0:01:19.60,0:01:20.58,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}O que eu estou
-Dialogue: 2,0:01:20.58,0:01:21.40,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}dizendo aqui
-Dialogue: 2,0:01:21.40,0:01:22.30,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}não é que você
-Dialogue: 2,0:01:22.30,0:01:23.20,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}não pode tomar,
+Dialogue: 2,0:00:00.00,0:00:01.70,Sub,,0,0,0,,{\blur5}Uma coisa que me deixa
+Dialogue: 2,0:00:01.70,0:00:02.96,Sub,,0,0,0,,{\blur5}muito preocupada
+Dialogue: 2,0:00:02.96,0:00:04.84,Sub,,0,0,0,,{\blur5}é que algumas formulações
+Dialogue: 2,0:00:08.80,0:00:10.44,Sub,,0,0,0,,{\blur5}da dose recomendada
+Dialogue: 2,0:00:10.44,0:00:12.54,Sub,,0,0,0,,{\blur5}de vitaminas do complexo B
+Dialogue: 2,0:00:12.54,0:00:14.04,Sub,,0,0,0,,{\blur5}por latinha.
+Dialogue: 2,0:00:14.50,0:00:15.68,Sub,,0,0,0,,{\blur5}A presença de cafeína
+Dialogue: 2,0:00:15.68,0:00:16.94,Sub,,0,0,0,,{\blur5}nos energéticos
+Dialogue: 2,0:00:16.94,0:00:18.84,Sub,,0,0,0,,{\blur5}tem sido uma das causas
+Dialogue: 2,0:00:18.84,0:00:20.16,Sub,,0,0,0,,{\blur5}de possibilidade
+Dialogue: 2,0:00:20.16,0:00:21.10,Sub,,0,0,0,,{\blur5}de lesão renal.
+Dialogue: 2,0:00:21.26,0:00:23.50,Sub,,0,0,0,,{\blur5}O ideal é que a gente
+Dialogue: 2,0:00:23.50,0:00:25.22,Sub,,0,0,0,,{\blur5}ingira no máximo
+Dialogue: 2,0:00:25.22,0:00:27.24,Sub,,0,0,0,,{\blur5}400 mg de cafeína
+Dialogue: 2,0:00:27.24,0:00:28.12,Sub,,0,0,0,,{\blur5}ao dia.
+Dialogue: 2,0:00:28.12,0:00:29.70,Sub,,0,0,0,,{\blur5}E alguns energéticos,
+Dialogue: 2,0:00:29.70,0:00:30.88,Sub,,0,0,0,,{\blur5}eles têm uma quantidade
+Dialogue: 2,0:00:30.88,0:00:33.16,Sub,,0,0,0,,{\blur5}muito alta de cafeína,
+Dialogue: 2,0:00:33.50,0:00:35.28,Sub,,0,0,0,,{\blur5}que variam entre 80
+Dialogue: 2,0:00:35.28,0:00:39.00,Sub,,0,0,0,,{\blur5}até 300 mg de cafeína
+Dialogue: 2,0:00:39.00,0:00:39.96,Sub,,0,0,0,,{\blur5}por dose.
+Dialogue: 2,0:00:43.94,0:00:44.88,Sub,,0,0,0,,{\blur5}E tem um outro
+Dialogue: 2,0:00:44.88,0:00:46.40,Sub,,0,0,0,,{\blur5}que é um nome muito estranho
+Dialogue: 2,0:00:46.40,0:00:47.06,Sub,,0,0,0,,{\blur5}que eu vou ter que ler
+Dialogue: 2,0:00:47.06,0:00:49.16,Sub,,0,0,0,,{\blur5}pra vocês, chamado
+Dialogue: 2,0:00:49.16,0:00:51.72,Sub,,0,0,0,,{\blur5}glucuronolactona,
+Dialogue: 2,0:00:51.96,0:00:53.30,Sub,,0,0,0,,{\blur5}que é um metabólito
+Dialogue: 2,0:00:53.30,0:00:54.40,Sub,,0,0,0,,{\blur5}do carboidrato
+Dialogue: 2,0:00:54.40,0:00:55.54,Sub,,0,0,0,,{\blur5}excretado pelo rim.
+Dialogue: 2,0:00:55.54,0:00:57.34,Sub,,0,0,0,,{\blur5}Ele, em altas doses,
+Dialogue: 2,0:00:57.34,0:00:58.80,Sub,,0,0,0,,{\blur5}pode aumentar
+Dialogue: 2,0:00:58.80,0:01:00.44,Sub,,0,0,0,,{\blur5}a carga osmótica do rim,
+Dialogue: 2,0:01:00.44,0:01:02.60,Sub,,0,0,0,,{\blur5}e pode ser uma causa
+Dialogue: 2,0:01:02.60,0:01:04.48,Sub,,0,0,0,,{\blur5}de uma lesão renal aguda.
+Dialogue: 2,0:01:04.66,0:01:06.90,Sub,,0,0,0,,{\blur5}Por isso, é interessante
+Dialogue: 2,0:01:06.90,0:01:09.44,Sub,,0,0,0,,{\blur5}que você preste atenção
+Dialogue: 2,0:01:09.44,0:01:11.14,Sub,,0,0,0,,{\blur5}na quantidade de energético
+Dialogue: 2,0:01:11.14,0:01:12.66,Sub,,0,0,0,,{\blur5}que você toma por dia,
+Dialogue: 2,0:01:15.70,0:01:16.68,Sub,,0,0,0,,{\blur5}assim, de uma forma
+Dialogue: 2,0:01:16.68,0:01:17.86,Sub,,0,0,0,,{\blur5}tão clara,
+Dialogue: 2,0:01:17.86,0:01:19.60,Sub,,0,0,0,,{\blur5}todo esse excesso.
+Dialogue: 2,0:01:19.60,0:01:20.58,Sub,,0,0,0,,{\blur5}O que eu estou
+Dialogue: 2,0:01:20.58,0:01:21.40,Sub,,0,0,0,,{\blur5}dizendo aqui
+Dialogue: 2,0:01:21.40,0:01:22.30,Sub,,0,0,0,,{\blur5}não é que você
+Dialogue: 2,0:01:22.30,0:01:23.20,Sub,,0,0,0,,{\blur5}não pode tomar,
+Dialogue: 2,0:01:23.46,0:01:24.12,Sub,,0,0,0,,{\blur5}mas que você
+Dialogue: 2,0:01:24.12,0:01:25.40,Sub,,0,0,0,,{\blur5}não tome em excesso.
