@@ -1,0 +1,66 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Inter ExtraBold,62,&H00FFFFFF,&H00FFFFFF,&H50000000,&H90000000,0,0,0,0,100,100,0,0,1,3.2,2.5,2,110,110,345,1
+Style: Card,Inter,40,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,8,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.00,0:00:03.64,Card,,0,0,0,,{\an7\pos(0,0)\1c&H161616&\1a&H38&\bord0\shad0\fad(160,160)\p1}m 146 200 l 934 200 b 960 200 960 200 960 226 l 960 404 b 960 430 960 430 934 430 l 146 430 b 120 430 120 430 120 404 l 120 226 b 120 200 120 200 146 200
+Dialogue: 1,0:00:00.00,0:00:03.64,Card,,0,0,0,,{\an8\pos(540,228)\fad(160,160)\fscx96\fscy96\t(0,140,\fscx100\fscy100)}{\fnInter Black\fs74\c&HFFFFFF&}ENERGÉTICO\N{\fs74}FAZ MAL PRO {\c&H66D1FF&}RIM?
+Dialogue: 0,0:00:06.62,0:00:13.98,Card,,0,0,0,,{\an7\pos(0,0)\1c&H161616&\1a&H38&\bord0\shad0\fad(160,160)\p1}m 216 170 l 864 170 b 890 170 890 170 890 196 l 890 380 b 890 406 890 406 864 406 l 216 406 b 190 406 190 406 190 380 l 190 196 b 190 170 190 170 216 170
+Dialogue: 1,0:00:06.62,0:00:13.98,Card,,0,0,0,,{\an8\pos(540,190)\fad(160,160)}{\fnInter SemiBold\fs34\c&HD8D8D8&}VITAMINAS DO COMPLEXO B
+Dialogue: 1,0:00:06.62,0:00:13.98,Card,,0,0,0,,{\an8\pos(540,234)\fad(160,160)}{\fnInter Black\fs96\c&H66D1FF&}até +500%
+Dialogue: 1,0:00:06.62,0:00:13.98,Card,,0,0,0,,{\an8\pos(540,348)\fad(160,160)}{\fnInter Medium\fs34\c&HFFFFFF&}da dose recomendada, por latinha
+Dialogue: 0,0:00:14.23,0:00:18.43,Card,,0,0,0,,{\an7\pos(0,0)\1c&H161616&\1a&H38&\bord0\shad0\fad(160,160)\p1}m 216 220 l 864 220 b 890 220 890 220 890 246 l 890 324 b 890 350 890 350 864 350 l 216 350 b 190 350 190 350 190 324 l 190 246 b 190 220 190 220 216 220
+Dialogue: 1,0:00:14.23,0:00:18.43,Card,,0,0,0,,{\an8\pos(540,236)\fad(160,160)}{\fnInter Bold\fs46\c&HFFFFFF&}Dra. Fabiola Pedron\N{\fnInter Medium\fs34\c&H66D1FF&}Médica nefrologista
+Dialogue: 0,0:00:25.22,0:00:40.34,Card,,0,0,0,,{\an7\pos(0,0)\1c&H161616&\1a&H38&\bord0\shad0\fad(160,160)\p1}m 86 190 l 499 190 b 525 190 525 190 525 216 l 525 374 b 525 400 525 400 499 400 l 86 400 b 60 400 60 400 60 374 l 60 216 b 60 190 60 190 86 190
+Dialogue: 1,0:00:25.22,0:00:40.34,Card,,0,0,0,,{\an8\pos(292,212)\fad(160,160)}{\fnInter SemiBold\fs30\c&HD8D8D8&}MÁXIMO IDEAL POR DIA
+Dialogue: 1,0:00:25.22,0:00:40.34,Card,,0,0,0,,{\an8\pos(292,258)\fad(160,160)}{\fnInter Black\fs84\c&HFFFFFF&}400 mg
+Dialogue: 1,0:00:25.22,0:00:40.34,Card,,0,0,0,,{\an8\pos(292,352)\fad(160,160)}{\fnInter Medium\fs30\c&HD8D8D8&}de cafeína
+Dialogue: 0,0:00:34.54,0:00:40.34,Card,,0,0,0,,{\an7\pos(0,0)\1c&H161616&\1a&H38&\bord0\shad0\fad(160,160)\p1}m 581 190 l 994 190 b 1020 190 1020 190 1020 216 l 1020 374 b 1020 400 1020 400 994 400 l 581 400 b 555 400 555 400 555 374 l 555 216 b 555 190 555 190 581 190
+Dialogue: 1,0:00:34.54,0:00:40.34,Card,,0,0,0,,{\an8\pos(787,212)\fad(160,160)}{\fnInter SemiBold\fs30\c&HD8D8D8&}ENERGÉTICOS, POR DOSE
+Dialogue: 1,0:00:34.54,0:00:40.34,Card,,0,0,0,,{\an8\pos(787,258)\fad(160,160)}{\fnInter Black\fs84\c&H66D1FF&}80–300
+Dialogue: 1,0:00:34.54,0:00:40.34,Card,,0,0,0,,{\an8\pos(787,352)\fad(160,160)}{\fnInter Medium\fs30\c&HD8D8D8&}mg de cafeína
+Dialogue: 2,0:00:00.00,0:00:01.70,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Uma coisa que me deixa
+Dialogue: 2,0:00:01.70,0:00:02.98,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}muito {\c&H66D1FF&}preocupada{\c&HFFFFFF&}
+Dialogue: 2,0:00:02.98,0:00:04.84,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}é que algumas formulações
+Dialogue: 2,0:00:04.84,0:00:08.80,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}podem ter até {\c&H66D1FF&}500%{\c&HFFFFFF&} a mais
+Dialogue: 2,0:00:08.80,0:00:10.44,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}da dose recomendada
+Dialogue: 2,0:00:10.44,0:00:12.54,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de vitaminas do complexo B
+Dialogue: 2,0:00:12.54,0:00:14.02,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}por latinha.
+Dialogue: 2,0:00:14.52,0:00:15.68,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}A presença de cafeína
+Dialogue: 2,0:00:15.68,0:00:16.94,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}nos energéticos
+Dialogue: 2,0:00:16.94,0:00:18.84,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}tem sido uma das causas
+Dialogue: 2,0:00:18.84,0:00:20.16,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de possibilidade
+Dialogue: 2,0:00:20.16,0:00:21.10,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de {\c&H66D1FF&}lesão renal{\c&HFFFFFF&}.
+Dialogue: 2,0:00:21.26,0:00:23.50,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}O ideal é que a gente
+Dialogue: 2,0:00:23.50,0:00:25.22,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}ingira no máximo
+Dialogue: 2,0:00:25.22,0:00:27.24,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}{\c&H66D1FF&}400 mg{\c&HFFFFFF&} de cafeína
+Dialogue: 2,0:00:27.24,0:00:28.14,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}ao dia.
+Dialogue: 2,0:00:28.14,0:00:29.72,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}E alguns energéticos,
+Dialogue: 2,0:00:29.72,0:00:30.88,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}eles têm uma quantidade
+Dialogue: 2,0:00:30.88,0:00:33.18,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}muito alta de cafeína,
+Dialogue: 2,0:00:33.50,0:00:35.24,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}que variam entre 80
+Dialogue: 2,0:00:35.24,0:00:38.98,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}até 300 mg de cafeína
+Dialogue: 2,0:00:38.98,0:00:39.96,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}por dose.
+Dialogue: 2,0:00:40.64,0:00:41.54,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Você imagina
+Dialogue: 2,0:00:41.54,0:00:42.54,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}esse {\c&H66D1FF&}estrago{\c&HFFFFFF&}
+Dialogue: 2,0:00:42.54,0:00:43.64,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}disso no teu rim?
+Dialogue: 2,0:00:44.22,0:00:44.98,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Porque o seu corpo
+Dialogue: 2,0:00:44.98,0:00:46.56,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}pode {\c&H66D1FF&}não sinalizar{\c&HFFFFFF&}
+Dialogue: 2,0:00:46.56,0:00:47.50,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}assim, de uma forma
+Dialogue: 2,0:00:47.50,0:00:48.60,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}tão clara,
+Dialogue: 2,0:00:48.96,0:00:50.38,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}todo esse excesso.
+Dialogue: 2,0:00:50.88,0:00:51.40,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}O que eu estou
+Dialogue: 2,0:00:51.40,0:00:52.24,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}dizendo aqui
+Dialogue: 2,0:00:52.46,0:00:53.12,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}não é que você
+Dialogue: 2,0:00:53.12,0:00:54.04,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}não pode tomar,
+Dialogue: 2,0:00:54.26,0:00:54.96,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}mas que você
+Dialogue: 2,0:00:54.96,0:00:56.32,Sub,,0,0,0,,{\fscx93\fscy93\t(0,90,\fscx100\fscy100)}{\c&H66D1FF&}não tome em excesso{\c&HFFFFFF&}.

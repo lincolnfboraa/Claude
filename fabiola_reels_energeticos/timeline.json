@@ -26,16 +26,16 @@
  },
  "enquadramentos": {
   "aberto": {
-   "zoom": 1.15,
+   "zoom": 1.28,
    "face_y": 0.3
   },
   "medio": {
-   "zoom": 1.28,
-   "face_y": 0.29
+   "zoom": 1.38,
+   "face_y": 0.28
   },
   "fechado": {
-   "zoom": 1.45,
-   "face_y": 0.28
+   "zoom": 1.48,
+   "face_y": 0.24
   }
  },
  "segmentos": [
@@ -141,11 +141,11 @@
   {
    "id": 12,
    "fonte": "IMG_2597",
-   "in": 9.93,
+   "in": 9.58,
    "out": 16.03,
    "quadro": "fechado",
    "funcao": "VIRADA",
-   "fala": "O seu corpo pode não sinalizar de uma forma tão clara todo esse excesso."
+   "fala": "Porque o seu corpo pode não sinalizar assim, de uma forma tão clara, todo esse excesso."
   },
   {
    "id": 13,

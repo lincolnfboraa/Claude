@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
 """Monta o Reels a partir de timeline.json.
-Uso: python3 render.py <pasta_intermediarios> <saida.mp4> [legendas.ass]
+Uso: python3 render.py <pasta_intermediarios> <saida.mp4> [legendas.ass] [altura_saida]
+altura_saida: 1920 (final, padrão) ou 1280 (preview 720p).
+Se existir <pasta>/<fonte>.offset, o intermediário começa nesse segundo do original.
 Intermediários = MOVs originais convertidos de HLG para SDR em 1440x2560 (ver README.md)."""
 import json, sys, subprocess, os
 FPS = 30000/1001
 here = os.path.dirname(os.path.abspath(__file__))
 t = json.load(open(os.path.join(here, 'timeline.json')))
 src_dir, out = sys.argv[1], sys.argv[2]
-ass = sys.argv[3] if len(sys.argv) > 3 else None
+ass = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] not in ('', '-') else None
+OH = int(sys.argv[4]) if len(sys.argv) > 4 else 1920
+OW = OH*9//16
 W, H = 1440, 2560
 args, fc, cat = ['ffmpeg', '-v', 'error', '-y'], [], []
 offset = 0.0
 for i, s in enumerate(t['segmentos']):
     fi, fo = round(s['in']*FPS), round(s['out']*FPS)
     tin, dur = fi/FPS, (fo-fi)/FPS
+    off = os.path.join(src_dir, s['fonte']+'.offset')
+    if os.path.exists(off): tin -= float(open(off).read())
     args += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', os.path.join(src_dir, s['fonte']+'.mov')]
     q = t['enquadramentos'][s['quadro']]
     cx, cy = s.get('centro', t['centro_rosto'][s['fonte']])
     cw, ch = round(W/q['zoom']/2)*2, round(H/q['zoom']/2)*2
     x = min(max(cx*W - cw/2, 0), W-cw); y = min(max(cy*H - q['face_y']*ch, 0), H-ch)
-    fc.append(f"[{i}:v]crop={cw}:{ch}:{int(x)}:{int(y)},scale=1080:1920:flags=lanczos,setsar=1,fps=30000/1001,trim=duration={dur:.4f},setpts=PTS-STARTPTS[v{i}]")
+    fc.append(f"[{i}:v]crop={cw}:{ch}:{int(x)}:{int(y)},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001,trim=duration={dur:.4f},setpts=PTS-STARTPTS[v{i}]")
     fc.append(f"[{i}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.012,afade=t=out:st={dur-0.015:.4f}:d=0.015[a{i}]")
     cat.append(f"[v{i}][a{i}]")
     s['out_start'] = round(offset, 3); offset += dur; s['out_end'] = round(offset, 3)
