@@ -1,5 +1,5 @@
 {
- "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v2",
+ "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v7",
  "saida": {
   "w": 1080,
   "h": 1920,
@@ -46,7 +46,13 @@
    "out": 75.6,
    "quadro": "aberto",
    "funcao": "GANCHO",
-   "fala": "Uma coisa que me deixa muito preocupada é que"
+   "fala": "Uma coisa que me deixa muito preocupada é que",
+   "pausas": [
+    [
+     71.96,
+     71.97
+    ]
+   ]
   },
   {
    "id": 2,
@@ -55,151 +61,233 @@
    "out": 106.36,
    "quadro": "medio",
    "funcao": "GANCHO (dado)",
-   "fala": "algumas formulações podem ter até 500% a mais da dose recomendada de vitaminas do complexo B por latinha"
+   "fala": "algumas formulações podem ter até 500% a mais da dose recomendada de vitaminas do complexo B por latinha",
+   "pausas": [
+    [
+     104.71,
+     104.95
+    ]
+   ]
   },
   {
    "id": 3,
    "fonte": "IMG_2595",
    "in": 74.05,
-   "out": 79.36,
+   "out": 81.6,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO",
-   "fala": "A presença de cafeína nos energéticos tem sido uma das causas de"
+   "fala": "A presença de cafeína nos energéticos tem sido uma das causas de lesão renal.",
+   "cortes": [
+    {
+     "de": 78.97,
+     "ate": 80.68,
+     "motivo": "'possibilidade de' (construção truncada)"
+    }
+   ],
+   "pausas": [
+    [
+     74.05,
+     74.44
+    ]
+   ]
   },
   {
    "id": 4,
    "fonte": "IMG_2595",
-   "in": 79.7,
-   "out": 81.6,
+   "in": 90.66,
+   "out": 104.8,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO",
-   "fala": "possibilidade de lesão renal."
+   "fala": "E alguns energéticos têm uma quantidade muito alta de cafeína, até 300 miligramas de cafeína por dose.",
+   "cortes": [
+    {
+     "de": 92.12,
+     "ate": 92.42,
+     "motivo": "'eles' (sujeito repetido)"
+    },
+    {
+     "de": 94.12,
+     "ate": 95.33,
+     "motivo": "pausa longa com respiração ('alta de ... cafeína')"
+    },
+    {
+     "de": 95.96,
+     "ate": 99.8,
+     "motivo": "'que variam entre 80 até 400' (concordância e número corrigido por ela)"
+    }
+   ],
+   "pausas": [
+    [
+     92.11,
+     92.12
+    ],
+    [
+     101.91,
+     102.23
+    ],
+    [
+     103.31,
+     103.53
+    ],
+    [
+     104.69,
+     104.8
+    ]
+   ]
   },
   {
    "id": 5,
    "fonte": "IMG_2595",
-   "in": 82.32,
-   "out": 84.38,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "O ideal é que a gente"
+   "in": 104.8,
+   "out": 108.55,
+   "quadro": "fechado",
+   "funcao": "CLÍMAX",
+   "fala": "Você imagina esse estrago no teu rim?",
+   "cortes": [
+    {
+     "de": 106.84,
+     "ate": 107.3,
+     "motivo": "'disso' (redundância)"
+    }
+   ],
+   "pausas": [
+    [
+     104.8,
+     104.95
+    ]
+   ],
+   "manter_respiro_final": true
   },
   {
    "id": 6,
-   "fonte": "IMG_2595",
-   "in": 84.96,
-   "out": 88.74,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "ingira no máximo 400 mg de cafeína"
-  },
-  {
-   "id": 7,
-   "fonte": "IMG_2595",
-   "in": 89.1,
-   "out": 90.3,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "ao dia."
-  },
-  {
-   "id": 8,
-   "fonte": "IMG_2595",
-   "in": 90.66,
-   "out": 94.56,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "E alguns energéticos, eles têm uma quantidade muito alta de"
-  },
-  {
-   "id": 9,
-   "fonte": "IMG_2595",
-   "in": 95.02,
-   "out": 98.14,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "cafeína, que variam entre 80"
-  },
-  {
-   "id": 10,
-   "fonte": "IMG_2595",
-   "in": 99.74,
-   "out": 104.8,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "até 300 miligramas de cafeína por dose."
-  },
-  {
-   "id": 11,
-   "fonte": "IMG_2595",
-   "in": 104.8,
-   "out": 108.3,
-   "quadro": "fechado",
-   "funcao": "CLÍMAX",
-   "fala": "Você imagina esse estrago disso no teu rim?"
-  },
-  {
    "fonte": "IMG_2596",
    "in": 32.3,
    "out": 37.3,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "E tem um outro que é um nome muito estranho que eu vou ter que ler pra vocês, chamado",
-   "id": 12
+   "pausas": [
+    [
+     36.21,
+     36.59
+    ],
+    [
+     37.27,
+     37.3
+    ]
+   ]
   },
   {
+   "id": 7,
    "fonte": "IMG_2596",
    "in": 37.3,
    "out": 44.1,
    "quadro": "medio",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "glucuronolactona, que é um metabólito do carboidrato excretado pelo rim.",
-   "id": 13
+   "pausas": [
+    [
+     37.3,
+     37.51
+    ],
+    [
+     44.09,
+     44.1
+    ]
+   ]
   },
   {
+   "id": 8,
    "fonte": "IMG_2596",
-   "in": 44.1,
+   "in": 44.38,
    "out": 48.92,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO 2",
-   "fala": "Ele, em altas doses, pode aumentar a carga osmótica do rim,",
-   "id": 14
+   "fala": "Ele, em altas doses, pode(m) aumentar a carga osmótica do rim,",
+   "pausas": []
   },
   {
+   "id": 9,
    "fonte": "IMG_2596",
    "in": 51.7,
    "out": 55.72,
    "quadro": "medio",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "e pode ser uma causa de uma lesão renal aguda.",
-   "id": 15
+   "pausas": [
+    [
+     51.7,
+     51.73
+    ],
+    [
+     52.73,
+     52.89
+    ]
+   ]
   },
   {
+   "id": 10,
    "fonte": "IMG_2597",
    "in": 1.06,
-   "out": 9.56,
+   "out": 9.24,
    "quadro": "aberto",
    "funcao": "ORIENTAÇÃO",
    "fala": "Por isso, é interessante que você preste atenção na quantidade de energético que você toma por dia,",
-   "id": 16
+   "pausas": [
+    [
+     3.57,
+     3.83
+    ],
+    [
+     5.11,
+     5.23
+    ],
+    [
+     9.21,
+     9.24
+    ]
+   ]
   },
   {
+   "id": 11,
    "fonte": "IMG_2597",
-   "in": 9.56,
+   "in": 9.88,
    "out": 16.03,
    "quadro": "fechado",
    "funcao": "VIRADA",
-   "fala": "porque o seu corpo pode não sinalizar assim, de uma forma tão clara, todo esse excesso.",
-   "id": 17
+   "fala": "porque o seu corpo pode não sinalizar de uma forma tão clara todo esse excesso.",
+   "cortes": [
+    {
+     "de": 12.15,
+     "ate": 12.46,
+     "motivo": "'assim' (vício de fala)"
+    }
+   ],
+   "pausas": [
+    [
+     14.11,
+     14.37
+    ],
+    [
+     15.65,
+     15.87
+    ]
+   ]
   },
   {
-   "id": 18,
+   "id": 12,
    "fonte": "IMG_2597",
    "in": 16.03,
    "out": 22.12,
    "quadro": "medio",
    "funcao": "FECHAMENTO",
-   "fala": "O que eu estou dizendo aqui não é que você não pode tomar, mas que você não tome em excesso."
+   "fala": "O que eu estou dizendo aqui não é que você não pode tomar, mas que você não tome em excesso.",
+   "pausas": [
+    [
+     22.12,
+     22.12
+    ]
+   ]
   }
  ],
  "centro_rosto": {
@@ -215,5 +303,11 @@
    0.51,
    0.405
   ]
+ },
+ "pausas_auto": {
+  "limiar_db": -38,
+  "min_s": 0.25,
+  "mantem_s": 0.07,
+  "descricao": "silêncios >= min_s viram 2*mantem_s; calculado por apara_pausas.py e gravado em cada segmento"
  }
 }

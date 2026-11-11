@@ -14,24 +14,42 @@ OH = int(sys.argv[4]) if len(sys.argv) > 4 else 1920
 OW = OH*9//16
 W, H = 1440, 2560
 args, fc, cat = ['ffmpeg', '-v', 'error', '-y'], [], []
-offset = 0.0
-for i, s in enumerate(t['segmentos']):
-    fi, fo = round(s['in']*FPS), round(s['out']*FPS)
-    tin, dur = fi/FPS, (fo-fi)/FPS
-    off = os.path.join(src_dir, s['fonte']+'.offset')
-    if os.path.exists(off): tin -= float(open(off).read())
-    args += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', os.path.join(src_dir, s['fonte']+'.mov')]
+
+def pedacos(seg):
+    """[in,out] menos cortes manuais ('cortes') e pausas automáticas ('pausas'), em quadros inteiros."""
+    rem = sorted([(c['de'], c['ate']) for c in seg.get('cortes', [])] + [tuple(p) for p in seg.get('pausas', [])])
+    out, cur = [], seg['in']
+    for a, b in rem:
+        if a > cur: out.append((cur, a))
+        cur = max(cur, b)
+    if seg['out'] > cur: out.append((cur, seg['out']))
+    res = []
+    for a, b in out:
+        fa, fb = round(a*FPS), round(b*FPS)
+        if fb - fa >= 2: res.append((fa, fb))
+    return res
+
+offset, n = 0.0, 0
+for s in t['segmentos']:
     q = t['enquadramentos'][s['quadro']]
     cx, cy = s.get('centro', t['centro_rosto'][s['fonte']])
     cw, ch = round(W/q['zoom']/2)*2, round(H/q['zoom']/2)*2
     x = min(max(cx*W - cw/2, 0), W-cw); y = min(max(cy*H - q['face_y']*ch, 0), H-ch)
-    fc.append(f"[{i}:v]crop={cw}:{ch}:{int(x)}:{int(y)},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001,trim=duration={dur:.4f},setpts=PTS-STARTPTS[v{i}]")
-    fc.append(f"[{i}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.012,afade=t=out:st={dur-0.015:.4f}:d=0.015[a{i}]")
-    cat.append(f"[v{i}][a{i}]")
-    s['out_start'] = round(offset, 3); offset += dur; s['out_end'] = round(offset, 3)
-n = len(t['segmentos'])
-vpost = "eq=contrast=1.04:saturation=1.03:gamma=1.01,unsharp=5:5:0.35:5:5:0"
-if ass: vpost += f",subtitles={ass}:fontsdir={os.path.join(here, 'fonts')}"
+    off = os.path.join(src_dir, s['fonte']+'.offset')
+    off = float(open(off).read()) if os.path.exists(off) else 0.0
+    s['out_start'] = round(offset, 3); s['pedacos'] = []
+    for fa, fb in pedacos(s):
+        tin, dur = fa/FPS - off, (fb-fa)/FPS
+        args += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', os.path.join(src_dir, s['fonte']+'.mov')]
+        i = n; n += 1
+        fc.append(f"[{i}:v]crop={cw}:{ch}:{int(x)}:{int(y)},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001,trim=duration={dur:.4f},setpts=PTS-STARTPTS[v{i}]")
+        fc.append(f"[{i}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur-0.012,0):.4f}:d=0.012[a{i}]")
+        cat.append(f"[v{i}][a{i}]")
+        s['pedacos'].append({'fonte_de': round(fa/FPS, 3), 'fonte_ate': round(fb/FPS, 3), 'saida_de': round(offset, 3)})
+        offset += dur
+    s['out_end'] = round(offset, 3)
+vpost = "null"   # sem filtro de cor: só a conversão HDR->SDR feita nos intermediários
+if ass: vpost = f"subtitles={ass}:fontsdir={os.path.join(here, 'fonts')}"
 fc.append(''.join(cat) + f"concat=n={n}:v=1:a=1[cv][ca]")
 fc.append(f"[cv]{vpost},format=yuv420p[vo]")
 fc.append("[ca]highpass=f=80,afftdn=nf=-32:nr=8,equalizer=f=250:t=q:w=1.2:g=-1.5,equalizer=f=3500:t=q:w=1.0:g=1.5,"

@@ -1,5 +1,5 @@
 {
- "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v2",
+ "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v7",
  "saida": {
   "w": 1080,
   "h": 1920,
@@ -47,7 +47,20 @@
    "quadro": "aberto",
    "funcao": "GANCHO",
    "fala": "Uma coisa que me deixa muito preocupada é que",
+   "pausas": [
+    [
+     71.96,
+     71.97
+    ]
+   ],
    "out_start": 0.0,
+   "pedacos": [
+    {
+     "fonte_de": 71.972,
+     "fonte_ate": 75.609,
+     "saida_de": 0.0
+    }
+   ],
    "out_end": 3.637
   },
   {
@@ -58,184 +71,406 @@
    "quadro": "medio",
    "funcao": "GANCHO (dado)",
    "fala": "algumas formulações podem ter até 500% a mais da dose recomendada de vitaminas do complexo B por latinha",
+   "pausas": [
+    [
+     104.71,
+     104.95
+    ]
+   ],
    "out_start": 3.637,
-   "out_end": 13.981
+   "pedacos": [
+    {
+     "fonte_de": 96.029,
+     "fonte_ate": 104.705,
+     "saida_de": 3.637
+    },
+    {
+     "fonte_de": 104.938,
+     "fonte_ate": 106.373,
+     "saida_de": 12.312
+    }
+   ],
+   "out_end": 13.747
   },
   {
    "id": 3,
    "fonte": "IMG_2595",
    "in": 74.05,
-   "out": 79.36,
+   "out": 81.6,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO",
-   "fala": "A presença de cafeína nos energéticos tem sido uma das causas de",
-   "out_start": 13.981,
-   "out_end": 19.286
+   "fala": "A presença de cafeína nos energéticos tem sido uma das causas de lesão renal.",
+   "cortes": [
+    {
+     "de": 78.97,
+     "ate": 80.68,
+     "motivo": "'possibilidade de' (construção truncada)"
+    }
+   ],
+   "pausas": [
+    [
+     74.05,
+     74.44
+    ]
+   ],
+   "out_start": 13.747,
+   "pedacos": [
+    {
+     "fonte_de": 74.441,
+     "fonte_ate": 78.979,
+     "saida_de": 13.747
+    },
+    {
+     "fonte_de": 80.681,
+     "fonte_ate": 81.615,
+     "saida_de": 18.285
+    }
+   ],
+   "out_end": 19.219
   },
   {
    "id": 4,
    "fonte": "IMG_2595",
-   "in": 79.7,
-   "out": 81.6,
+   "in": 90.66,
+   "out": 104.8,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO",
-   "fala": "possibilidade de lesão renal.",
-   "out_start": 19.286,
-   "out_end": 21.188
+   "fala": "E alguns energéticos têm uma quantidade muito alta de cafeína, até 300 miligramas de cafeína por dose.",
+   "cortes": [
+    {
+     "de": 92.12,
+     "ate": 92.42,
+     "motivo": "'eles' (sujeito repetido)"
+    },
+    {
+     "de": 94.12,
+     "ate": 95.33,
+     "motivo": "pausa longa com respiração ('alta de ... cafeína')"
+    },
+    {
+     "de": 95.96,
+     "ate": 99.8,
+     "motivo": "'que variam entre 80 até 400' (concordância e número corrigido por ela)"
+    }
+   ],
+   "pausas": [
+    [
+     92.11,
+     92.12
+    ],
+    [
+     101.91,
+     102.23
+    ],
+    [
+     103.31,
+     103.53
+    ],
+    [
+     104.69,
+     104.8
+    ]
+   ],
+   "out_start": 19.219,
+   "pedacos": [
+    {
+     "fonte_de": 90.657,
+     "fonte_ate": 92.125,
+     "saida_de": 19.219
+    },
+    {
+     "fonte_de": 92.426,
+     "fonte_ate": 94.127,
+     "saida_de": 20.687
+    },
+    {
+     "fonte_de": 95.329,
+     "fonte_ate": 95.963,
+     "saida_de": 22.389
+    },
+    {
+     "fonte_de": 99.8,
+     "fonte_ate": 101.902,
+     "saida_de": 23.023
+    },
+    {
+     "fonte_de": 102.235,
+     "fonte_ate": 103.303,
+     "saida_de": 25.125
+    },
+    {
+     "fonte_de": 103.537,
+     "fonte_ate": 104.705,
+     "saida_de": 26.193
+    }
+   ],
+   "out_end": 27.361
   },
   {
    "id": 5,
    "fonte": "IMG_2595",
-   "in": 82.32,
-   "out": 84.38,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "O ideal é que a gente",
-   "out_start": 21.188,
-   "out_end": 23.257
+   "in": 104.8,
+   "out": 108.55,
+   "quadro": "fechado",
+   "funcao": "CLÍMAX",
+   "fala": "Você imagina esse estrago no teu rim?",
+   "cortes": [
+    {
+     "de": 106.84,
+     "ate": 107.3,
+     "motivo": "'disso' (redundância)"
+    }
+   ],
+   "pausas": [
+    [
+     104.8,
+     104.95
+    ]
+   ],
+   "manter_respiro_final": true,
+   "out_start": 27.361,
+   "pedacos": [
+    {
+     "fonte_de": 104.938,
+     "fonte_ate": 106.84,
+     "saida_de": 27.361
+    },
+    {
+     "fonte_de": 107.307,
+     "fonte_ate": 108.542,
+     "saida_de": 29.263
+    }
+   ],
+   "out_end": 30.497
   },
   {
    "id": 6,
-   "fonte": "IMG_2595",
-   "in": 84.96,
-   "out": 88.74,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "ingira no máximo 400 mg de cafeína",
-   "out_start": 23.257,
-   "out_end": 27.06
-  },
-  {
-   "id": 7,
-   "fonte": "IMG_2595",
-   "in": 89.1,
-   "out": 90.3,
-   "quadro": "medio",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "ao dia.",
-   "out_start": 27.06,
-   "out_end": 28.262
-  },
-  {
-   "id": 8,
-   "fonte": "IMG_2595",
-   "in": 90.66,
-   "out": 94.56,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "E alguns energéticos, eles têm uma quantidade muito alta de",
-   "out_start": 28.262,
-   "out_end": 32.165
-  },
-  {
-   "id": 9,
-   "fonte": "IMG_2595",
-   "in": 95.02,
-   "out": 98.14,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "cafeína, que variam entre 80",
-   "out_start": 32.165,
-   "out_end": 35.269
-  },
-  {
-   "id": 10,
-   "fonte": "IMG_2595",
-   "in": 99.74,
-   "out": 104.8,
-   "quadro": "aberto",
-   "funcao": "DESENVOLVIMENTO",
-   "fala": "até 300 miligramas de cafeína por dose.",
-   "out_start": 35.269,
-   "out_end": 40.34
-  },
-  {
-   "id": 11,
-   "fonte": "IMG_2595",
-   "in": 104.8,
-   "out": 108.3,
-   "quadro": "fechado",
-   "funcao": "CLÍMAX",
-   "fala": "Você imagina esse estrago disso no teu rim?",
-   "out_start": 40.34,
-   "out_end": 43.844
-  },
-  {
    "fonte": "IMG_2596",
    "in": 32.3,
    "out": 37.3,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "E tem um outro que é um nome muito estranho que eu vou ter que ler pra vocês, chamado",
-   "id": 12,
-   "out_start": 43.844,
-   "out_end": 48.849
+   "pausas": [
+    [
+     36.21,
+     36.59
+    ],
+    [
+     37.27,
+     37.3
+    ]
+   ],
+   "out_start": 30.497,
+   "pedacos": [
+    {
+     "fonte_de": 32.299,
+     "fonte_ate": 36.203,
+     "saida_de": 30.497
+    },
+    {
+     "fonte_de": 36.603,
+     "fonte_ate": 37.271,
+     "saida_de": 34.401
+    }
+   ],
+   "out_end": 35.068
   },
   {
+   "id": 7,
    "fonte": "IMG_2596",
    "in": 37.3,
    "out": 44.1,
    "quadro": "medio",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "glucuronolactona, que é um metabólito do carboidrato excretado pelo rim.",
-   "id": 13,
-   "out_start": 48.849,
-   "out_end": 55.656
+   "pausas": [
+    [
+     37.3,
+     37.51
+    ],
+    [
+     44.09,
+     44.1
+    ]
+   ],
+   "out_start": 35.068,
+   "pedacos": [
+    {
+     "fonte_de": 37.504,
+     "fonte_ate": 44.077,
+     "saida_de": 35.068
+    }
+   ],
+   "out_end": 41.642
   },
   {
+   "id": 8,
    "fonte": "IMG_2596",
-   "in": 44.1,
+   "in": 44.38,
    "out": 48.92,
    "quadro": "aberto",
    "funcao": "DESENVOLVIMENTO 2",
-   "fala": "Ele, em altas doses, pode aumentar a carga osmótica do rim,",
-   "id": 14,
-   "out_start": 55.656,
-   "out_end": 60.46
+   "fala": "Ele, em altas doses, pode(m) aumentar a carga osmótica do rim,",
+   "pausas": [],
+   "out_start": 41.642,
+   "pedacos": [
+    {
+     "fonte_de": 44.378,
+     "fonte_ate": 48.916,
+     "saida_de": 41.642
+    }
+   ],
+   "out_end": 46.179
   },
   {
+   "id": 9,
    "fonte": "IMG_2596",
    "in": 51.7,
    "out": 55.72,
    "quadro": "medio",
    "funcao": "DESENVOLVIMENTO 2",
    "fala": "e pode ser uma causa de uma lesão renal aguda.",
-   "id": 15,
-   "out_start": 60.46,
-   "out_end": 64.498
+   "pausas": [
+    [
+     51.7,
+     51.73
+    ],
+    [
+     52.73,
+     52.89
+    ]
+   ],
+   "out_start": 46.179,
+   "pedacos": [
+    {
+     "fonte_de": 51.718,
+     "fonte_ate": 52.719,
+     "saida_de": 46.179
+    },
+    {
+     "fonte_de": 52.886,
+     "fonte_ate": 55.722,
+     "saida_de": 47.18
+    }
+   ],
+   "out_end": 50.017
   },
   {
+   "id": 10,
    "fonte": "IMG_2597",
    "in": 1.06,
-   "out": 9.56,
+   "out": 9.24,
    "quadro": "aberto",
    "funcao": "ORIENTAÇÃO",
    "fala": "Por isso, é interessante que você preste atenção na quantidade de energético que você toma por dia,",
-   "id": 16,
-   "out_start": 64.498,
-   "out_end": 73.006
+   "pausas": [
+    [
+     3.57,
+     3.83
+    ],
+    [
+     5.11,
+     5.23
+    ],
+    [
+     9.21,
+     9.24
+    ]
+   ],
+   "out_start": 50.017,
+   "pedacos": [
+    {
+     "fonte_de": 1.068,
+     "fonte_ate": 3.57,
+     "saida_de": 50.017
+    },
+    {
+     "fonte_de": 3.837,
+     "fonte_ate": 5.105,
+     "saida_de": 52.519
+    },
+    {
+     "fonte_de": 5.239,
+     "fonte_ate": 9.209,
+     "saida_de": 53.787
+    }
+   ],
+   "out_end": 57.758
   },
   {
+   "id": 11,
    "fonte": "IMG_2597",
-   "in": 9.56,
+   "in": 9.88,
    "out": 16.03,
    "quadro": "fechado",
    "funcao": "VIRADA",
-   "fala": "porque o seu corpo pode não sinalizar assim, de uma forma tão clara, todo esse excesso.",
-   "id": 17,
-   "out_start": 73.006,
-   "out_end": 79.446
+   "fala": "porque o seu corpo pode não sinalizar de uma forma tão clara todo esse excesso.",
+   "cortes": [
+    {
+     "de": 12.15,
+     "ate": 12.46,
+     "motivo": "'assim' (vício de fala)"
+    }
+   ],
+   "pausas": [
+    [
+     14.11,
+     14.37
+    ],
+    [
+     15.65,
+     15.87
+    ]
+   ],
+   "out_start": 57.758,
+   "pedacos": [
+    {
+     "fonte_de": 9.877,
+     "fonte_ate": 12.145,
+     "saida_de": 57.758
+    },
+    {
+     "fonte_de": 12.446,
+     "fonte_ate": 14.114,
+     "saida_de": 60.027
+    },
+    {
+     "fonte_de": 14.381,
+     "fonte_ate": 15.649,
+     "saida_de": 61.695
+    },
+    {
+     "fonte_de": 15.883,
+     "fonte_ate": 16.016,
+     "saida_de": 62.963
+    }
+   ],
+   "out_end": 63.096
   },
   {
-   "id": 18,
+   "id": 12,
    "fonte": "IMG_2597",
    "in": 16.03,
    "out": 22.12,
    "quadro": "medio",
    "funcao": "FECHAMENTO",
    "fala": "O que eu estou dizendo aqui não é que você não pode tomar, mas que você não tome em excesso.",
-   "out_start": 79.446,
-   "out_end": 85.552
+   "pausas": [
+    [
+     22.12,
+     22.12
+    ]
+   ],
+   "out_start": 63.096,
+   "pedacos": [
+    {
+     "fonte_de": 16.016,
+     "fonte_ate": 22.122,
+     "saida_de": 63.096
+    }
+   ],
+   "out_end": 69.202
   }
  ],
  "centro_rosto": {
@@ -251,5 +486,11 @@
    0.51,
    0.405
   ]
+ },
+ "pausas_auto": {
+  "limiar_db": -38,
+  "min_s": 0.25,
+  "mantem_s": 0.07,
+  "descricao": "silêncios >= min_s viram 2*mantem_s; calculado por apara_pausas.py e gravado em cada segmento"
  }
 }

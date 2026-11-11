@@ -18,14 +18,13 @@ seg = {s['id']: s for s in segs}
 
 ROTEIRO = [
     "Uma coisa que me deixa | muito *preocupada* | é que algumas formulações | podem ter até 500% a mais | da dose recomendada | de vitaminas do complexo B | por latinha.",
-    "A presença de cafeína | nos energéticos | tem sido uma das causas | de possibilidade | de *lesão renal*.",
-    "O ideal é que a gente | ingira no máximo | *400 mg* de cafeína | ao dia.",
-    "E alguns energéticos, | eles têm uma quantidade | muito alta de cafeína, | que variam entre 80 | até 300 mg de cafeína | por dose.",
-    "Você imagina esse estrago disso no teu rim?",
+    "A presença de cafeína | nos energéticos | tem sido uma das causas | de lesão renal.",
+    "E alguns energéticos têm | uma quantidade muito alta | de cafeína, | até 300 mg de cafeína | por dose.",
+    "Você imagina esse estrago no teu rim?",
     "E tem um outro | que é um nome muito estranho | que eu vou ter que ler | pra vocês, chamado | glucuronolactona, | que é um metabólito | do carboidrato | excretado pelo rim.",
     "Ele, em altas doses, | pode aumentar | a *carga osmótica* do rim, | e pode ser uma causa | de uma *lesão renal aguda*.",
     "Por isso, é interessante | que você preste atenção | na quantidade de energético | que você toma *por dia*,",
-    "porque o seu corpo pode não sinalizar | assim, de uma forma | tão clara, | todo esse *excesso*.",
+    "porque o seu corpo pode não sinalizar | de uma forma tão clara | todo esse excesso.",
     "O que eu estou | dizendo aqui | não é que você | não pode tomar, | mas que você | não tome em excesso.",
 ]
 
@@ -163,7 +162,7 @@ destaque(["podem ter até 500% a mais"], [
     dict(txt="a mais", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='mais', dx=4, gap=2),
 ], centro_y=955, centro_x=270)
 # 2) "você imagina esse / ESTRAGO / no teu rim?" | pequena à direita em cima, gigante azul, pequena à esquerda embaixo
-destaque(["Você imagina esse estrago disso no teu rim?"], [
+destaque(["Você imagina esse estrago no teu rim?"], [
     dict(txt="você imagina esse", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='você', dx=6),
     dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', alvo=800),
     dict(txt="no teu rim?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='teu', dx=8, gap=2),
@@ -211,19 +210,8 @@ def txt(t0, t1, x, y, s):
 t0 = seg[3]['out_start'] + 0.25; t1 = t0 + 4.2
 card(t0, t1, 190, 205, 700, 170)
 txt(t0, t1, 540, 222, "{\\fnPoppins SemiBold\\fs82\\c&HFFFFFF&}Dra. Fabiola Pedron\\N{\\fnPoppins Medium\\fs66\\c" + AZUL + "}Médica nefrologista")
-# comparativo de cafeína (fala: máximo ideal 400 mg/dia; energéticos 80 a 300 mg por dose)
-t0, t1 = word_start('400'), seg[10]['out_end']
-card(t0, t1, 60, 190, 465, 215)
-txt(t0, t1, 292, 200, "{\\fnPoppins SemiBold\\fs56\\c&HDDDDDD&}MÁXIMO IDEAL POR DIA")
-txt(t0, t1, 292, 232, "{\\fnPoppins Black\\fs150\\fsp-2\\c&HFFFFFF&}400 mg")
-txt(t0, t1, 292, 340, "{\\fnPoppins Medium\\fs62\\c&HDDDDDD&}de cafeína")
-t2 = word_start('80')
-card(t2, t1, 555, 190, 465, 215)
-txt(t2, t1, 787, 200, "{\\fnPoppins SemiBold\\fs56\\c&HDDDDDD&}ENERGÉTICOS, POR DOSE")
-txt(t2, t1, 787, 232, "{\\fnPoppins Black\\fs150\\fsp-2\\c" + AZUL + "}80–300")
-txt(t2, t1, 787, 340, "{\\fnPoppins Medium\\fs62\\c&HDDDDDD&}mg de cafeína")
 # glucuronolactona (fala: metabólito do carboidrato excretado pelo rim)
-t0, t1 = word_start('glucuronolactona') - 0.15, seg[14]['out_start'] - 0.05
+t0, t1 = word_start('glucuronolactona') - 0.15, seg[8]['out_start'] - 0.05
 card(t0, t1, 150, 185, 780, 215)
 txt(t0, t1, 540, 192, "{\\fnPoppins\\b1\\fs118\\fsp-2\\c&HFFFFFF&}Glucuronolactona")
 txt(t0, t1, 540, 290, "{\\fnPoppins Medium\\fs64\\c&HDDDDDD&}metabólito do carboidrato,\\Nexcretado pelo rim")
