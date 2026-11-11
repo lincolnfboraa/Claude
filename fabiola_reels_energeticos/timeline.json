@@ -1,0 +1,174 @@
+{
+ "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v1",
+ "saida": {
+  "w": 1080,
+  "h": 1920,
+  "fps": "30000/1001"
+ },
+ "fontes": {
+  "IMG_2595": {
+   "drive_id": "16uJx4CfECNO7ZDAKYLn3RdTxYsC_rHDw",
+   "arquivo": "IMG_2595.MOV"
+  },
+  "IMG_2596": {
+   "drive_id": "1czoDyRMnNp_9hCNwK14-yawruUKRC-vH",
+   "arquivo": "IMG_2596.MOV"
+  },
+  "IMG_2597": {
+   "drive_id": "16clT774l9P7jXhtlvjBgD2d1GWhKFvNw",
+   "arquivo": "IMG_2597.MOV"
+  },
+  "IMG_2598": {
+   "drive_id": "1GUyq7jIGXe-tv7qbhwF0WrmGlQ4jheOQ",
+   "arquivo": "IMG_2598.MOV",
+   "uso": "não utilizado"
+  }
+ },
+ "enquadramentos": {
+  "aberto": {
+   "zoom": 1.15,
+   "face_y": 0.3
+  },
+  "medio": {
+   "zoom": 1.28,
+   "face_y": 0.29
+  },
+  "fechado": {
+   "zoom": 1.45,
+   "face_y": 0.28
+  }
+ },
+ "segmentos": [
+  {
+   "id": 1,
+   "fonte": "IMG_2596",
+   "in": 71.96,
+   "out": 75.6,
+   "quadro": "aberto",
+   "funcao": "GANCHO",
+   "fala": "Uma coisa que me deixa muito preocupada é que"
+  },
+  {
+   "id": 2,
+   "fonte": "IMG_2596",
+   "in": 96.02,
+   "out": 106.36,
+   "quadro": "medio",
+   "funcao": "GANCHO (dado)",
+   "fala": "algumas formulações podem ter até 500% a mais da dose recomendada de vitaminas do complexo B por latinha"
+  },
+  {
+   "id": 3,
+   "fonte": "IMG_2595",
+   "in": 74.05,
+   "out": 79.36,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "A presença de cafeína nos energéticos tem sido uma das causas de"
+  },
+  {
+   "id": 4,
+   "fonte": "IMG_2595",
+   "in": 79.7,
+   "out": 81.6,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "possibilidade de lesão renal."
+  },
+  {
+   "id": 5,
+   "fonte": "IMG_2595",
+   "in": 82.32,
+   "out": 84.38,
+   "quadro": "medio",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "O ideal é que a gente"
+  },
+  {
+   "id": 6,
+   "fonte": "IMG_2595",
+   "in": 84.96,
+   "out": 88.74,
+   "quadro": "medio",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "ingira no máximo 400 mg de cafeína"
+  },
+  {
+   "id": 7,
+   "fonte": "IMG_2595",
+   "in": 89.1,
+   "out": 90.3,
+   "quadro": "medio",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "ao dia."
+  },
+  {
+   "id": 8,
+   "fonte": "IMG_2595",
+   "in": 90.66,
+   "out": 94.56,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "E alguns energéticos, eles têm uma quantidade muito alta de"
+  },
+  {
+   "id": 9,
+   "fonte": "IMG_2595",
+   "in": 95.02,
+   "out": 98.14,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "cafeína, que variam entre 80"
+  },
+  {
+   "id": 10,
+   "fonte": "IMG_2595",
+   "in": 99.74,
+   "out": 104.8,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO",
+   "fala": "até 300 miligramas de cafeína por dose."
+  },
+  {
+   "id": 11,
+   "fonte": "IMG_2595",
+   "in": 104.8,
+   "out": 108.3,
+   "quadro": "fechado",
+   "funcao": "CLÍMAX",
+   "fala": "Você imagina esse estrago disso no teu rim?"
+  },
+  {
+   "id": 12,
+   "fonte": "IMG_2597",
+   "in": 9.93,
+   "out": 16.03,
+   "quadro": "fechado",
+   "funcao": "VIRADA",
+   "fala": "O seu corpo pode não sinalizar de uma forma tão clara todo esse excesso."
+  },
+  {
+   "id": 13,
+   "fonte": "IMG_2597",
+   "in": 16.03,
+   "out": 22.12,
+   "quadro": "medio",
+   "funcao": "FECHAMENTO",
+   "fala": "O que eu estou dizendo aqui não é que você não pode tomar, mas que você não tome em excesso."
+  }
+ ],
+ "centro_rosto": {
+  "IMG_2595": [
+   0.48,
+   0.41
+  ],
+  "IMG_2596": [
+   0.47,
+   0.39
+  ],
+  "IMG_2597": [
+   0.51,
+   0.405
+  ]
+ }
+}
