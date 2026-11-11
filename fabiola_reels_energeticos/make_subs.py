@@ -91,7 +91,7 @@ ev = []
 def dlg(layer, t0, t1, style, txt):
     ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{style},,0,0,0,,{txt}")
 
-SOMBRA = '\\bord3\\3c&H000000&\\3a&HC8&\\blur4\\shad3\\4c&H000000&\\4a&HB4&'
+SOMBRA = '\\bord3\\3c&H000000&\\3a&H9A&\\blur7\\shad6\\4c&H000000&\\4a&H48&'
 def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slide', bold=False):
     """Desenha uma linha posicionada pela linha de base. alinh: l (x = borda esquerda), r (x = borda direita), c (x = centro)."""
     w = largura(txt, fonte, fs, sp)
@@ -111,65 +111,85 @@ def ajusta_fs(txt, fonte, alvo, sp, fs_max):
     while largura(txt, fonte, fs, sp) > alvo and fs > 40: fs -= 2
     return fs
 
-def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, fim_extra=0.25, centro_x=540):
-    """linhas: dicts {txt, fonte, papel ('pequena'|'grande'), cor, alinh ('l','r','c'), cue (palavra que dispara a entrada), dy (deslocamento da base)}"""
+BAIXA = set('acemnorsuvwxz .,?!:;-–')   # letras sem haste/acento: topo na altura-x
+DESC = set('gjpqyç')                      # letras com haste descendente
+ACENTO_MAI = set('ÃÕÁÉÍÓÚÂÊÔÀ')           # maiúsculas acentuadas: o acento sobe acima da altura da maiúscula
+def topo_glifo(txt, fs):   # distância da linha de base até o topo visível da linha
+    if any(c in ACENTO_MAI for c in txt): return 0.50 * fs
+    return (0.388 if any(c not in BAIXA for c in txt) else 0.305) * fs
+def desc_glifo(txt, fs):   # quanto a linha desce abaixo da base
+    return 0.10*fs if any(c in DESC for c in txt) else 0.0
+
+def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6):
+    """Frase de destaque: linhas empilhadas de cima pra baixo, cada uma ENCOSTADA na anterior
+    (folga 'gap' px entre a base/haste de uma e o topo das letras da seguinte, igual ao padrão dos posts).
+    linhas: dicts {txt, fonte, papel ('pequena'|'grande'), cor, alinh ('l','r','c'), cue (palavra que dispara a entrada), dx (recuo)}"""
     idx = [i for i, b in enumerate(blocos) if b['txt'].replace('*', '') in chunk_txts]
     t0 = blocos[idx[0]]['s'] - 0.05
-    t1 = blocos[idx[-1]+1]['s'] if idx[-1]+1 < len(blocos) else FIM
-    t1 = min(t1, blocos[idx[-1]]['e'] + 1.2) if idx[-1]+1 < len(blocos) else FIM
+    t1 = min(blocos[idx[-1]+1]['s'], blocos[idx[-1]]['e'] + 1.2) if idx[-1]+1 < len(blocos) else FIM
     for i in idx: blocos[i]['oculto'] = True
-    # dimensiona as linhas grandes pela largura-alvo
     for L in linhas:
         if L['papel'] == 'grande':
             L['sp'] = L.get('sp', -4); L['fs'] = ajusta_fs(L['txt'], L['fonte'], L.get('alvo', alvo), L['sp'], L.get('fs_max', 330))
         else:
             L['sp'] = L.get('sp', -1); L['fs'] = L.get('fs', 118)
         L['w'] = largura(L['txt'], L['fonte'], L['fs'], L['sp'])
+    # empilhamento vertical colado
+    y, topo_bloco = 0.0, None
+    for i, L in enumerate(linhas):
+        alto = topo_glifo(L['txt'], L['fs'])
+        if i == 0:
+            L['base'] = alto; topo_bloco = 0.0
+        else:
+            P = linhas[i-1]
+            L['base'] = P['base'] + desc_glifo(P['txt'], P['fs'])*0.6 + L.get('gap', gap) + alto
+    fundo = linhas[-1]['base'] + desc_glifo(linhas[-1]['txt'], linhas[-1]['fs'])
+    desloc = centro_y - fundo/2
     ref = max((L for L in linhas if L['papel'] == 'grande'), key=lambda L: L['w'])
     esq, dir_ = centro_x - ref['w']/2, centro_x + ref['w']/2
     for L in linhas:
         x = {'l': esq + L.get('dx', 0), 'r': dir_ - L.get('dx', 0), 'c': centro_x}[L['alinh']]
         tc = word_start(L['cue'], t0) - 0.04 if L.get('cue') else t0
-        linha(tc, t1, L['txt'], L['fonte'], L['fs'], L['cor'], x, centro_y + L['dy'], L['alinh'], L['sp'],
+        linha(tc, t1, L['txt'], L['fonte'], L['fs'], L['cor'], x, L['base'] + desloc, L['alinh'], L['sp'],
               'pop' if L['papel'] == 'grande' else 'slide')
     return t0, t1
 
 BR = '&HFFFFFF&'
-# 1) "podem ter até 500% a mais" | pequena à esquerda, número gigante azul, complemento à direita sobreposto
+# 1) "podem ter até / 500% / a mais" | pequena colada em cima à esquerda, número gigante azul, complemento colado embaixo à direita
 destaque(["podem ter até 500% a mais"], [
-    dict(txt="podem ter até", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='podem', dy=-150, dx=12),
-    dict(txt="500%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='500', dy=60, alvo=440, fs_max=420),
-    dict(txt="a mais", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='mais', dy=128, dx=6),
-], centro_y=960, centro_x=270)
-# 2) "de possibilidade de lesão renal" | estilo minúsculo, grande branca, pequena azul recuada
+    dict(txt="podem ter até", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='podem', dx=8),
+    dict(txt="500%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='500', alvo=440, fs_max=420),
+    dict(txt="a mais", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='mais', dx=4, gap=2),
+], centro_y=955, centro_x=270)
+# 2) "de possibilidade de / lesão renal" | estilo minúsculo: grande branca, pequena azul recuada colada em cima
 destaque(["de possibilidade de lesão renal."], [
-    dict(txt="de possibilidade de", fonte='Poppins Medium', papel='pequena', cor=AZUL, alinh='l', cue='possibilidade', dy=-64, dx=60, fs=112),
-    dict(txt="lesão renal", fonte='Poppins SemiBold', papel='grande', cor=BR, alinh='c', cue='lesão', dy=70, alvo=820, sp=-5),
-])
-# 3) "Você imagina esse ESTRAGO no teu rim?" | pequena à direita em cima, palavra gigante azul, pequena à esquerda embaixo
+    dict(txt="de possibilidade de", fonte='Poppins Medium', papel='pequena', cor=AZUL, alinh='l', cue='possibilidade', dx=40, fs=112),
+    dict(txt="lesão renal", fonte='Poppins SemiBold', papel='grande', cor=BR, alinh='c', cue='lesão', alvo=820, sp=-5),
+], centro_y=1030)
+# 3) "você imagina esse / ESTRAGO / no teu rim?" | pequena à direita em cima, gigante azul, pequena à esquerda embaixo
 destaque(["Você imagina esse estrago disso no teu rim?"], [
-    dict(txt="você imagina esse", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='você', dy=-128, dx=4),
-    dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', dy=40, alvo=860),
-    dict(txt="no teu rim?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='teu', dy=118, dx=8),
-])
-# 4) "pode aumentar a carga osmótica do rim" | minúscula grande azul, pequenas brancas nas pontas
+    dict(txt="você imagina esse", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='você', dx=6),
+    dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', alvo=860),
+    dict(txt="no teu rim?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='teu', dx=8, gap=2),
+], centro_y=1000)
+# 4) "pode aumentar a / carga osmótica / do rim" | minúscula extra-negrito azul, pequenas brancas nas pontas
 destaque(["pode aumentar a carga osmótica do rim,"], [
-    dict(txt="pode aumentar a", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='l', cue='pode', dy=-58, dx=10, fs=112),
-    dict(txt="carga osmótica", fonte='Poppins ExtraBold', papel='grande', cor=AZUL, alinh='c', cue='carga', dy=62, alvo=850, sp=-5),
-    dict(txt="do rim", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='r', cue='rim', dy=150, dx=10, fs=112),
-])
-# 5) VIRADA "o seu corpo pode NÃO sinalizar" | quatro alturas, sobreposição
+    dict(txt="pode aumentar a", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='l', cue='pode', dx=10, fs=112),
+    dict(txt="carga osmótica", fonte='Poppins ExtraBold', papel='grande', cor=AZUL, alinh='c', cue='carga', alvo=850, sp=-5),
+    dict(txt="do rim", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='r', cue='rim', dx=10, fs=112, gap=0),
+], centro_y=1000)
+# 5) VIRADA "o seu corpo pode / NÃO / sinalizar" | quatro alturas, grandes coladas
 destaque(["porque o seu corpo pode não sinalizar"], [
-    dict(txt="o seu corpo pode", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='seu', dy=-150, dx=6),
-    dict(txt="NÃO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='l', cue='não', dy=0, alvo=430, fs_max=360),
-    dict(txt="sinalizar", fonte='Poppins Bold', papel='grande', cor=BR, alinh='r', cue='sinalizar', dy=128, alvo=820, sp=-5),
-], centro_y=1050)
-# 6) FECHAMENTO "mas que você não tome em EXCESSO"
+    dict(txt="o seu corpo pode", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='seu', dx=6),
+    dict(txt="NÃO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='l', cue='não', alvo=430, fs_max=360),
+    dict(txt="sinalizar", fonte='Poppins Bold', papel='grande', cor=BR, alinh='r', cue='sinalizar', alvo=820, sp=-5, gap=2),
+], centro_y=1030)
+# 6) FECHAMENTO "mas que você / não tome em / EXCESSO" | três níveis centralizados, colados
 destaque(["mas que você não tome em excesso."], [
-    dict(txt="mas que você", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='c', cue='mas', dy=-200, fs=110),
-    dict(txt="não tome em", fonte='Poppins Bold', papel='grande', cor=BR, alinh='c', cue='não', dy=-60, alvo=600, sp=-4),
-    dict(txt="EXCESSO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='excesso', dy=118, alvo=880),
-], fim_extra=0.6)
+    dict(txt="mas que você", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='c', cue='mas', fs=110),
+    dict(txt="não tome em", fonte='Poppins Bold', papel='grande', cor=BR, alinh='c', cue='não', alvo=600, sp=-4),
+    dict(txt="EXCESSO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='excesso', alvo=880, gap=4),
+], centro_y=1000)
 
 # ---------- título (estilo dos posts anteriores: caixa escura serifada + caixa clara em itálico) ----------
 t0, t1 = 0.0, seg[1]['out_end'] + 0.9
@@ -228,7 +248,7 @@ txt(t0, t1, 540, 290, "{\\fnPoppins Medium\\fs64\\c&HDDDDDD&}metabólito do carb
 for b in blocos:
     if b.get('oculto'): continue
     s = re.sub(r'\*(.+?)\*', lambda m: '{\\c' + AZUL + '}' + m.group(1) + '{\\c&HFFFFFF&}', b['txt'])
-    dlg(2, b['s'], b['e'], 'Sub', f"{{\\fscx93\\fscy93\\t(0,90,\\fscx100\\fscy100)}}{s}")
+    dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur3\\fscx93\\fscy93\\t(0,90,\\fscx100\\fscy100)}}{s}")
 
 head = """[Script Info]
 ScriptType: v4.00+
@@ -239,7 +259,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Sub,Poppins SemiBold,96,&H00FFFFFF,&H00FFFFFF,&H50000000,&H90000000,0,0,0,0,100,100,-0.5,0,1,3.2,2.5,2,110,110,345,1
+Style: Sub,Poppins SemiBold,96,&H00FFFFFF,&H00FFFFFF,&H70000000,&H50000000,0,0,0,0,100,100,-0.5,0,1,3,4,2,110,110,345,1
 Style: K,Poppins SemiBold,118,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
 Style: Card,Poppins,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,8,0,0,0,1
 
