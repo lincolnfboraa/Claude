@@ -1,5 +1,5 @@
 {
- "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v1",
+ "projeto": "Dra. Fabiola Pedron | Energéticos e rim | Reels v2",
  "saida": {
   "w": 1080,
   "h": 1920,
@@ -139,16 +139,61 @@
    "fala": "Você imagina esse estrago disso no teu rim?"
   },
   {
-   "id": 12,
+   "fonte": "IMG_2596",
+   "in": 32.3,
+   "out": 37.3,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO 2",
+   "fala": "E tem um outro que é um nome muito estranho que eu vou ter que ler pra vocês, chamado",
+   "id": 12
+  },
+  {
+   "fonte": "IMG_2596",
+   "in": 37.3,
+   "out": 44.1,
+   "quadro": "medio",
+   "funcao": "DESENVOLVIMENTO 2",
+   "fala": "glucuronolactona, que é um metabólito do carboidrato excretado pelo rim.",
+   "id": 13
+  },
+  {
+   "fonte": "IMG_2596",
+   "in": 44.1,
+   "out": 48.92,
+   "quadro": "aberto",
+   "funcao": "DESENVOLVIMENTO 2",
+   "fala": "Ele, em altas doses, pode aumentar a carga osmótica do rim,",
+   "id": 14
+  },
+  {
+   "fonte": "IMG_2596",
+   "in": 51.7,
+   "out": 55.72,
+   "quadro": "medio",
+   "funcao": "DESENVOLVIMENTO 2",
+   "fala": "e pode ser uma causa de uma lesão renal aguda.",
+   "id": 15
+  },
+  {
    "fonte": "IMG_2597",
-   "in": 9.58,
+   "in": 1.06,
+   "out": 9.56,
+   "quadro": "aberto",
+   "funcao": "ORIENTAÇÃO",
+   "fala": "Por isso, é interessante que você preste atenção na quantidade de energético que você toma por dia,",
+   "id": 16
+  },
+  {
+   "fonte": "IMG_2597",
+   "in": 9.56,
    "out": 16.03,
    "quadro": "fechado",
    "funcao": "VIRADA",
-   "fala": "Porque o seu corpo pode não sinalizar assim, de uma forma tão clara, todo esse excesso."
+   "fala": "porque o seu corpo pode não sinalizar assim, de uma forma tão clara, todo esse excesso.",
+   "id": 17
   },
   {
-   "id": 13,
+   "id": 18,
    "fonte": "IMG_2597",
    "in": 16.03,
    "out": 22.12,

@@ -18,7 +18,10 @@ ROTEIRO = [
     "O ideal é que a gente | ingira no máximo | *400 mg* de cafeína | ao dia.",
     "E alguns energéticos, | eles têm uma quantidade | muito alta de cafeína, | que variam entre 80 | até 300 mg de cafeína | por dose.",
     "Você imagina | esse *estrago* | disso no teu rim?",
-    "Porque o seu corpo | pode *não sinalizar* | assim, de uma forma | tão clara, | todo esse excesso.",
+    "E tem um outro | que é um nome muito estranho | que eu vou ter que ler | pra vocês, chamado | glucuronolactona, | que é um metabólito | do carboidrato | excretado pelo rim.",
+    "Ele, em altas doses, | pode aumentar | a *carga osmótica* do rim, | e pode ser uma causa | de uma *lesão renal aguda*.",
+    "Por isso, é interessante | que você preste atenção | na quantidade de energético | que você toma *por dia*,",
+    "porque o seu corpo | pode *não sinalizar* | assim, de uma forma | tão clara, | todo esse excesso.",
     "O que eu estou | dizendo aqui | não é que você | não pode tomar, | mas que você | *não tome em excesso*.",
 ]
 
@@ -88,22 +91,33 @@ t0, t1 = word_start('500'), seg[2]['out_end']
 card(t0, t1, 190, 170, 700, 236)
 txt(t0, t1, 540, 190, "{\\fnInter SemiBold\\fs34\\c&HD8D8D8&}VITAMINAS DO COMPLEXO B")
 txt(t0, t1, 540, 234, "{\\fnInter Black\\fs96\\c" + AMBAR + "}até +500%")
-txt(t0, t1, 540, 348, "{\\fnInter Medium\\fs34\\c&HFFFFFF&}da dose recomendada, por latinha")
+txt(t0, t1, 540, 348, "{\\fnInter Medium\\fs38\\c&HFFFFFF&}da dose recomendada, por latinha")
 # 3) Identificação da médica
 t0 = seg[3]['out_start'] + 0.25; t1 = t0 + 4.2
 card(t0, t1, 190, 220, 700, 130)
-txt(t0, t1, 540, 236, "{\\fnInter Bold\\fs46\\c&HFFFFFF&}Dra. Fabiola Pedron\\N{\\fnInter Medium\\fs34\\c" + AMBAR + "}Médica nefrologista")
+txt(t0, t1, 540, 236, "{\\fnInter Bold\\fs46\\c&HFFFFFF&}Dra. Fabiola Pedron\\N{\\fnInter Medium\\fs38\\c" + AMBAR + "}Médica nefrologista")
 # 4) Comparativo de cafeína (fala: máximo ideal 400 mg/dia; energéticos 80 a 300 mg por dose)
 t0, t1 = word_start('400'), seg[10]['out_end']
 card(t0, t1, 60, 190, 465, 210)
-txt(t0, t1, 292, 212, "{\\fnInter SemiBold\\fs30\\c&HD8D8D8&}MÁXIMO IDEAL POR DIA")
+txt(t0, t1, 292, 212, "{\\fnInter SemiBold\\fs32\\c&HD8D8D8&}MÁXIMO IDEAL POR DIA")
 txt(t0, t1, 292, 258, "{\\fnInter Black\\fs84\\c&HFFFFFF&}400 mg")
-txt(t0, t1, 292, 352, "{\\fnInter Medium\\fs30\\c&HD8D8D8&}de cafeína")
+txt(t0, t1, 292, 352, "{\\fnInter Medium\\fs34\\c&HD8D8D8&}de cafeína")
 t2 = word_start('80')
 card(t2, t1, 555, 190, 465, 210)
-txt(t2, t1, 787, 212, "{\\fnInter SemiBold\\fs30\\c&HD8D8D8&}ENERGÉTICOS, POR DOSE")
+txt(t2, t1, 787, 212, "{\\fnInter SemiBold\\fs32\\c&HD8D8D8&}ENERGÉTICOS, POR DOSE")
 txt(t2, t1, 787, 258, "{\\fnInter Black\\fs84\\c" + AMBAR + "}80–300")
-txt(t2, t1, 787, 352, "{\\fnInter Medium\\fs30\\c&HD8D8D8&}mg de cafeína")
+txt(t2, t1, 787, 352, "{\\fnInter Medium\\fs34\\c&HD8D8D8&}mg de cafeína")
+
+# 5) Glucuronolactona (fala: metabólito do carboidrato excretado pelo rim; em altas doses aumenta a carga osmótica do rim)
+t0, t1 = word_start('glucuronolactona') - 0.15, seg[14]['out_start'] - 0.05
+card(t0, t1, 150, 180, 780, 215)
+txt(t0, t1, 540, 196, "{\\fnInter Black\\fs66\\c&HFFFFFF&}Glucuronolactona")
+txt(t0, t1, 540, 282, "{\\fnInter Medium\\fs38\\c&HD8D8D8&}metabólito do carboidrato,\\Nexcretado pelo rim")
+t0, t1 = seg[14]['out_start'] + 0.05, seg[15]['out_end']
+card(t0, t1, 150, 190, 780, 190)
+txt(t0, t1, 540, 212, "{\\fnInter SemiBold\\fs32\\c&HD8D8D8&}GLUCURONOLACTONA EM ALTAS DOSES")
+txt(t0, t1, 540, 262, "{\\fnInter Black\\fs70\\c" + AMBAR + "}↑ carga osmótica")
+txt(t0, t1, 540, 342, "{\\fnInter Medium\\fs38\\c&HFFFFFF&}no rim")
 
 # legendas
 for b in blocos:
