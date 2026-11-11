@@ -16,14 +16,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 3,0:00:04.80,0:00:08.80,K,,0,0,0,,{\an7\move(58,843,58,819,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}podem ter até
 Dialogue: 3,0:00:06.58,0:00:08.80,K,,0,0,0,,{\an5\pos(270,979)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs278\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}500%
 Dialogue: 3,0:00:08.24,0:00:08.80,K,,0,0,0,,{\an9\move(486,1012,486,988,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}a mais
-Dialogue: 3,0:00:19.38,0:00:21.26,K,,0,0,0,,{\an7\move(172,945,172,921,0,180)\fad(110,140)\fnPoppins Medium\b0\fs112\fsp-1\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}de possibilidade de
-Dialogue: 3,0:00:20.36,0:00:21.26,K,,0,0,0,,{\an5\pos(540,1076)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins SemiBold\b0\fs276\fsp-5\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}lesão renal
 Dialogue: 3,0:00:40.60,0:00:43.94,K,,0,0,0,,{\an9\move(961,878,961,854,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}você imagina esse
 Dialogue: 3,0:00:41.92,0:00:43.94,K,,0,0,0,,{\an5\pos(540,1027)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs330\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}ESTRAGO
 Dialogue: 3,0:00:43.14,0:00:43.94,K,,0,0,0,,{\an7\move(121,1067,121,1043,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}no teu rim?
-Dialogue: 3,0:00:57.30,0:01:00.44,K,,0,0,0,,{\an7\move(125,903,125,879,0,180)\fad(110,140)\fnPoppins Medium\b0\fs112\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}pode aumentar a
-Dialogue: 3,0:00:58.98,0:01:00.44,K,,0,0,0,,{\an5\pos(540,1014)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins ExtraBold\b0\fs200\fsp-5\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}carga osmótica
-Dialogue: 3,0:01:00.16,0:01:00.44,K,,0,0,0,,{\an9\move(955,1048,955,1024,0,180)\fad(110,140)\fnPoppins Medium\b0\fs112\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}do rim
 Dialogue: 3,0:01:13.76,0:01:15.70,K,,0,0,0,,{\an7\move(162,847,162,823,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o seu corpo pode
 Dialogue: 3,0:01:14.36,0:01:15.70,K,,0,0,0,,{\an5\pos(370,1035)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs336\fsp-4\c&HFFB84D&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}NÃO
 Dialogue: 3,0:01:14.84,0:01:15.70,K,,0,0,0,,{\an5\pos(540,1166)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins\b1\fs330\fsp-5\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}sinalizar
@@ -57,6 +52,8 @@ Dialogue: 2,0:00:12.54,0:00:14.04,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx
 Dialogue: 2,0:00:14.50,0:00:15.68,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}A presença de cafeína
 Dialogue: 2,0:00:15.68,0:00:16.94,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}nos energéticos
 Dialogue: 2,0:00:16.94,0:00:18.84,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}tem sido uma das causas
+Dialogue: 2,0:00:18.84,0:00:20.16,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de possibilidade
+Dialogue: 2,0:00:20.16,0:00:21.10,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de {\c&HFFB84D&}lesão renal{\c&HFFFFFF&}.
 Dialogue: 2,0:00:21.26,0:00:23.50,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}O ideal é que a gente
 Dialogue: 2,0:00:23.50,0:00:25.22,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}ingira no máximo
 Dialogue: 2,0:00:25.22,0:00:27.24,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}{\c&HFFB84D&}400 mg{\c&HFFFFFF&} de cafeína
@@ -76,6 +73,8 @@ Dialogue: 2,0:00:51.96,0:00:53.30,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx
 Dialogue: 2,0:00:53.30,0:00:54.40,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}do carboidrato
 Dialogue: 2,0:00:54.40,0:00:55.54,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}excretado pelo rim.
 Dialogue: 2,0:00:55.54,0:00:57.34,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Ele, em altas doses,
+Dialogue: 2,0:00:57.34,0:00:58.80,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}pode aumentar
+Dialogue: 2,0:00:58.80,0:01:00.44,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}a {\c&HFFB84D&}carga osmótica{\c&HFFFFFF&} do rim,
 Dialogue: 2,0:01:00.44,0:01:02.60,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}e pode ser uma causa
 Dialogue: 2,0:01:02.60,0:01:04.48,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}de uma {\c&HFFB84D&}lesão renal aguda{\c&HFFFFFF&}.
 Dialogue: 2,0:01:04.66,0:01:06.90,Sub,,0,0,0,,{\blur3\fscx93\fscy93\t(0,90,\fscx100\fscy100)}Por isso, é interessante

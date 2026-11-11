@@ -18,12 +18,12 @@ seg = {s['id']: s for s in segs}
 
 ROTEIRO = [
     "Uma coisa que me deixa | muito *preocupada* | é que algumas formulações | podem ter até 500% a mais | da dose recomendada | de vitaminas do complexo B | por latinha.",
-    "A presença de cafeína | nos energéticos | tem sido uma das causas | de possibilidade de lesão renal.",
+    "A presença de cafeína | nos energéticos | tem sido uma das causas | de possibilidade | de *lesão renal*.",
     "O ideal é que a gente | ingira no máximo | *400 mg* de cafeína | ao dia.",
     "E alguns energéticos, | eles têm uma quantidade | muito alta de cafeína, | que variam entre 80 | até 300 mg de cafeína | por dose.",
     "Você imagina esse estrago disso no teu rim?",
     "E tem um outro | que é um nome muito estranho | que eu vou ter que ler | pra vocês, chamado | glucuronolactona, | que é um metabólito | do carboidrato | excretado pelo rim.",
-    "Ele, em altas doses, | pode aumentar a carga osmótica do rim, | e pode ser uma causa | de uma *lesão renal aguda*.",
+    "Ele, em altas doses, | pode aumentar | a *carga osmótica* do rim, | e pode ser uma causa | de uma *lesão renal aguda*.",
     "Por isso, é interessante | que você preste atenção | na quantidade de energético | que você toma *por dia*,",
     "porque o seu corpo pode não sinalizar | assim, de uma forma | tão clara, | todo esse *excesso*.",
     "O que eu estou | dizendo aqui | não é que você | não pode tomar, | mas que você não tome em excesso.",
@@ -161,30 +161,19 @@ destaque(["podem ter até 500% a mais"], [
     dict(txt="500%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='500', alvo=440, fs_max=420),
     dict(txt="a mais", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='mais', dx=4, gap=2),
 ], centro_y=955, centro_x=270)
-# 2) "de possibilidade de / lesão renal" | estilo minúsculo: grande branca, pequena azul recuada colada em cima
-destaque(["de possibilidade de lesão renal."], [
-    dict(txt="de possibilidade de", fonte='Poppins Medium', papel='pequena', cor=AZUL, alinh='l', cue='possibilidade', dx=40, fs=112),
-    dict(txt="lesão renal", fonte='Poppins SemiBold', papel='grande', cor=BR, alinh='c', cue='lesão', alvo=820, sp=-5),
-], centro_y=1030)
-# 3) "você imagina esse / ESTRAGO / no teu rim?" | pequena à direita em cima, gigante azul, pequena à esquerda embaixo
+# 2) "você imagina esse / ESTRAGO / no teu rim?" | pequena à direita em cima, gigante azul, pequena à esquerda embaixo
 destaque(["Você imagina esse estrago disso no teu rim?"], [
     dict(txt="você imagina esse", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='você', dx=6),
     dict(txt="ESTRAGO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='estrago', alvo=860),
     dict(txt="no teu rim?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='teu', dx=8, gap=2),
 ], centro_y=1000)
-# 4) "pode aumentar a / carga osmótica / do rim" | minúscula extra-negrito azul, pequenas brancas nas pontas
-destaque(["pode aumentar a carga osmótica do rim,"], [
-    dict(txt="pode aumentar a", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='l', cue='pode', dx=10, fs=112),
-    dict(txt="carga osmótica", fonte='Poppins ExtraBold', papel='grande', cor=AZUL, alinh='c', cue='carga', alvo=850, sp=-5),
-    dict(txt="do rim", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='r', cue='rim', dx=10, fs=112, gap=0),
-], centro_y=1000)
-# 5) VIRADA "o seu corpo pode / NÃO / sinalizar" | quatro alturas, grandes coladas
+# 3) VIRADA "o seu corpo pode / NÃO / sinalizar" | quatro alturas, grandes coladas
 destaque(["porque o seu corpo pode não sinalizar"], [
     dict(txt="o seu corpo pode", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='seu', dx=6),
     dict(txt="NÃO", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='l', cue='não', alvo=430, fs_max=360),
     dict(txt="sinalizar", fonte='Poppins Bold', papel='grande', cor=BR, alinh='r', cue='sinalizar', alvo=820, sp=-5, gap=2),
 ], centro_y=1030)
-# 6) FECHAMENTO "mas que você / não tome em / EXCESSO" | três níveis centralizados, colados
+# 4) FECHAMENTO "mas que você / não tome em / EXCESSO" | três níveis centralizados, colados
 destaque(["mas que você não tome em excesso."], [
     dict(txt="mas que você", fonte='Poppins Medium', papel='pequena', cor=BR, alinh='c', cue='mas', fs=110),
     dict(txt="não tome em", fonte='Poppins Bold', papel='grande', cor=BR, alinh='c', cue='não', alvo=600, sp=-4),
