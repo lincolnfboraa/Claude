@@ -31,7 +31,7 @@ for i, s in enumerate(t['segmentos']):
     s['out_start'] = round(offset, 3); offset += dur; s['out_end'] = round(offset, 3)
 n = len(t['segmentos'])
 vpost = "eq=contrast=1.04:saturation=1.03:gamma=1.01,unsharp=5:5:0.35:5:5:0"
-if ass: vpost += f",subtitles={ass}:fontsdir=/usr/share/fonts"
+if ass: vpost += f",subtitles={ass}:fontsdir={os.path.join(here, 'fonts')}"
 fc.append(''.join(cat) + f"concat=n={n}:v=1:a=1[cv][ca]")
 fc.append(f"[cv]{vpost},format=yuv420p[vo]")
 fc.append("[ca]highpass=f=80,afftdn=nf=-32:nr=8,equalizer=f=250:t=q:w=1.2:g=-1.5,equalizer=f=3500:t=q:w=1.0:g=1.5,"
