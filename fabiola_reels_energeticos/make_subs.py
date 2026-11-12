@@ -68,7 +68,7 @@ def ts_srt(t):
     ms = int(round(t*1000)); return f"{ms//3600000:02d}:{ms//60000%60:02d}:{ms//1000%60:02d},{ms%1000:03d}"
 
 # ---------- tipografia ----------
-AZUL = '&H4A1C0F&'      # #0F1C4A azul-marinho da paleta da Dra. Fabiola (destaque)
+AZUL = '&HA7B9C8&'      # #C8B9A7 creme/bege da paleta da Dra. Fabiola (cor da palavra em destaque)
 NAVY = '&H4A1C0F&'      # #0F1C4A azul-marinho da paleta (caixa do título)
 GELO = '&HA7B9C8&'      # #C8B9A7 bege da paleta (caixa clara do título)
 FONTES = {  # nome ASS -> (arquivo, fator de escala libass medido, topo das maiúsculas, linha de base) em fração de fs
@@ -103,7 +103,7 @@ def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slid
         an, xx = {'l': (7, x), 'r': (9, x), 'c': (8, x)}[alinh]
         anim = f"\\an{an}\\move({xx:.0f},{topo+24:.0f},{xx:.0f},{topo:.0f},0,180)"
     fn = '\\fnPoppins\\b1' if fonte == 'Poppins Bold' else f'\\fn{fonte}\\b0'
-    sombra = SOMBRA_MARINHO if cor == AZUL else SOMBRA
+    sombra = SOMBRA_MARINHO if cor == NAVY else SOMBRA
     dlg(3, t0, t1, 'K', f"{{{anim}\\fad(110,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}}}{txt}")
     return w
 
