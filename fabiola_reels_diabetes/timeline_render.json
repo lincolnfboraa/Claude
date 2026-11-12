@@ -1,0 +1,849 @@
+{
+ "projeto": "Dra. Fabiola Pedron | Dia Mundial do Diabetes: diabetes e rim | Reels v1",
+ "saida": {
+  "w": 1080,
+  "h": 1920,
+  "fps": "30/1"
+ },
+ "fontes": {
+  "IMG_DIAB": {
+   "drive_id": "1-VuMwBmnmOOaLNFBXU7AxKiJVKIjQjFV",
+   "arquivo": "Diabetes/social-9x16.mov (1080x1920 SDR, 30 fps, 5min46s)"
+  }
+ },
+ "enquadramentos": {
+  "aberto": {
+   "zoom": 1.0,
+   "face_y": 0.27
+  },
+  "medio": {
+   "zoom": 1.12,
+   "face_y": 0.27
+  },
+  "fechado": {
+   "zoom": 1.25,
+   "face_y": 0.26
+  }
+ },
+ "centro_rosto": {
+  "IMG_DIAB": [
+   0.5,
+   0.27
+  ]
+ },
+ "pausas_auto": {
+  "limiar_db": -38,
+  "min_s": 0.25,
+  "mantem_s": 0.07
+ },
+ "segmentos": [
+  {
+   "id": 1,
+   "fonte": "IMG_DIAB",
+   "in": 19.3,
+   "out": 26.95,
+   "quadro": "aberto",
+   "funcao": "GANCHO",
+   "fala": "Seu pai deve ter, sua mãe deve ter, seu avô deve ter, o seu vizinho deve ter. É uma epidemia mundial.",
+   "pausas": [
+    [
+     19.3,
+     19.51
+    ],
+    [
+     22.63,
+     22.95
+    ],
+    [
+     24.15,
+     25.03
+    ],
+    [
+     26.81,
+     26.95
+    ]
+   ],
+   "out_start": 0.0,
+   "pedacos": [
+    {
+     "fonte_de": 19.5,
+     "fonte_ate": 22.633,
+     "saida_de": 0.0
+    },
+    {
+     "fonte_de": 22.933,
+     "fonte_ate": 24.133,
+     "saida_de": 3.133
+    },
+    {
+     "fonte_de": 25.033,
+     "fonte_ate": 26.8,
+     "saida_de": 4.333
+    }
+   ],
+   "out_end": 6.1
+  },
+  {
+   "id": 2,
+   "fonte": "IMG_DIAB",
+   "in": 5.3,
+   "out": 14.2,
+   "quadro": "medio",
+   "funcao": "CONTEXTO (data)",
+   "fala": "Nesse mês de novembro, a gente tem uma data muito importante, que é o Dia Mundial do Diabetes.",
+   "cortes": [
+    {
+     "de": 6.75,
+     "ate": 10.12,
+     "motivo": "hesitação"
+    }
+   ],
+   "pausas": [
+    [
+     5.3,
+     5.35
+    ],
+    [
+     6.71,
+     6.75
+    ],
+    [
+     11.79,
+     11.97
+    ],
+    [
+     13.75,
+     14.2
+    ]
+   ],
+   "out_start": 6.1,
+   "pedacos": [
+    {
+     "fonte_de": 5.333,
+     "fonte_ate": 6.7,
+     "saida_de": 6.1
+    },
+    {
+     "fonte_de": 10.133,
+     "fonte_ate": 11.8,
+     "saida_de": 7.467
+    },
+    {
+     "fonte_de": 11.967,
+     "fonte_ate": 13.733,
+     "saida_de": 9.133
+    }
+   ],
+   "out_end": 10.9
+  },
+  {
+   "id": 3,
+   "fonte": "IMG_DIAB",
+   "in": 27.45,
+   "out": 31.75,
+   "quadro": "aberto",
+   "funcao": "CONTEXTO",
+   "fala": "Mas o diabetes, ele vai muito além desse açúcar no sangue.",
+   "pausas": [
+    [
+     27.45,
+     27.64
+    ],
+    [
+     28.42,
+     28.8
+    ],
+    [
+     31.48,
+     31.75
+    ]
+   ],
+   "out_start": 10.9,
+   "pedacos": [
+    {
+     "fonte_de": 27.633,
+     "fonte_ate": 28.433,
+     "saida_de": 10.9
+    },
+    {
+     "fonte_de": 28.8,
+     "fonte_ate": 31.467,
+     "saida_de": 11.7
+    }
+   ],
+   "out_end": 14.367
+  },
+  {
+   "id": 4,
+   "fonte": "IMG_DIAB",
+   "in": 48.45,
+   "out": 51.35,
+   "quadro": "medio",
+   "funcao": "PROMESSA",
+   "fala": "O que esse diabetes pode fazer no seu rim?",
+   "pausas": [
+    [
+     48.45,
+     48.52
+    ],
+    [
+     48.74,
+     49.1
+    ],
+    [
+     51.04,
+     51.35
+    ]
+   ],
+   "out_start": 14.367,
+   "pedacos": [
+    {
+     "fonte_de": 48.533,
+     "fonte_ate": 48.733,
+     "saida_de": 14.367
+    },
+    {
+     "fonte_de": 49.1,
+     "fonte_ate": 51.033,
+     "saida_de": 14.567
+    }
+   ],
+   "out_end": 16.5
+  },
+  {
+   "id": 5,
+   "fonte": "IMG_DIAB",
+   "in": 71.05,
+   "out": 86.1,
+   "quadro": "aberto",
+   "funcao": "DADO",
+   "fala": "A incidência de doença renal em pacientes diabéticos gira em torno de 30% a 40%.",
+   "cortes": [
+    {
+     "de": 72.55,
+     "ate": 80.15,
+     "motivo": "travou e retomou a frase"
+    }
+   ],
+   "pausas": [
+    [
+     71.05,
+     71.52
+    ],
+    [
+     80.15,
+     80.52
+    ],
+    [
+     85.22,
+     85.36
+    ]
+   ],
+   "out_start": 16.5,
+   "pedacos": [
+    {
+     "fonte_de": 71.533,
+     "fonte_ate": 72.533,
+     "saida_de": 16.5
+    },
+    {
+     "fonte_de": 80.533,
+     "fonte_ate": 85.233,
+     "saida_de": 17.5
+    },
+    {
+     "fonte_de": 85.367,
+     "fonte_ate": 86.1,
+     "saida_de": 22.2
+    }
+   ],
+   "out_end": 22.933
+  },
+  {
+   "id": 6,
+   "fonte": "IMG_DIAB",
+   "in": 129.45,
+   "out": 143.3,
+   "quadro": "medio",
+   "funcao": "CURIOSIDADE",
+   "fala": "Vocês já viram falar do fundo do olho para o diabético? O fundo do olho é um exame extremamente importante em pacientes diabéticos e ele reflete também a lesão renal, você sabia disso?",
+   "pausas": [
+    [
+     129.45,
+     129.7
+    ],
+    [
+     132.2,
+     133.04
+    ],
+    [
+     134.8,
+     134.98
+    ],
+    [
+     135.32,
+     135.5
+    ],
+    [
+     137.78,
+     138.42
+    ],
+    [
+     139.42,
+     139.78
+    ],
+    [
+     140.46,
+     141.06
+    ],
+    [
+     143.18,
+     143.3
+    ]
+   ],
+   "out_start": 22.933,
+   "pedacos": [
+    {
+     "fonte_de": 129.7,
+     "fonte_ate": 132.2,
+     "saida_de": 22.933
+    },
+    {
+     "fonte_de": 133.033,
+     "fonte_ate": 134.8,
+     "saida_de": 25.433
+    },
+    {
+     "fonte_de": 134.967,
+     "fonte_ate": 135.333,
+     "saida_de": 27.2
+    },
+    {
+     "fonte_de": 135.5,
+     "fonte_ate": 137.767,
+     "saida_de": 27.567
+    },
+    {
+     "fonte_de": 138.433,
+     "fonte_ate": 139.433,
+     "saida_de": 29.833
+    },
+    {
+     "fonte_de": 139.767,
+     "fonte_ate": 140.467,
+     "saida_de": 30.833
+    },
+    {
+     "fonte_de": 141.067,
+     "fonte_ate": 143.167,
+     "saida_de": 31.533
+    }
+   ],
+   "out_end": 33.633
+  },
+  {
+   "id": 7,
+   "fonte": "IMG_DIAB",
+   "in": 143.55,
+   "out": 162.35,
+   "quadro": "aberto",
+   "funcao": "CURIOSIDADE",
+   "fala": "Os vasos que têm dentro do olho, aqueles microvasos, eles são parecidos com os microvasos que têm dentro do rim. Quando a gente consegue ver lesão nesses microvasos no olho, a gente já sabe que tem lesão no rim.",
+   "cortes": [
+    {
+     "de": 147.92,
+     "ate": 150.06,
+     "motivo": "'eles têm semelhança' (repetição)"
+    },
+    {
+     "de": 161.3,
+     "ate": 161.86,
+     "motivo": "'renal no' (troca de palavra)"
+    }
+   ],
+   "pausas": [
+    [
+     143.55,
+     143.72
+    ],
+    [
+     147.76,
+     147.92
+    ],
+    [
+     153.73,
+     154.27
+    ],
+    [
+     158.45,
+     158.79
+    ],
+    [
+     160.31,
+     160.43
+    ],
+    [
+     162.13,
+     162.35
+    ]
+   ],
+   "out_start": 33.633,
+   "pedacos": [
+    {
+     "fonte_de": 143.733,
+     "fonte_ate": 147.767,
+     "saida_de": 33.633
+    },
+    {
+     "fonte_de": 150.067,
+     "fonte_ate": 153.733,
+     "saida_de": 37.667
+    },
+    {
+     "fonte_de": 154.267,
+     "fonte_ate": 158.467,
+     "saida_de": 41.333
+    },
+    {
+     "fonte_de": 158.8,
+     "fonte_ate": 160.3,
+     "saida_de": 45.533
+    },
+    {
+     "fonte_de": 160.433,
+     "fonte_ate": 161.3,
+     "saida_de": 47.033
+    },
+    {
+     "fonte_de": 161.867,
+     "fonte_ate": 162.133,
+     "saida_de": 47.9
+    }
+   ],
+   "out_end": 48.167
+  },
+  {
+   "id": 8,
+   "fonte": "IMG_DIAB",
+   "in": 162.85,
+   "out": 188.8,
+   "quadro": "medio",
+   "funcao": "ANALOGIA (filtro de café)",
+   "fala": "As primeiras lesões de rim, elas acontecem com a perda de proteína. É aquela história do filtro de café que perde o pó. Quando você perde esse pó, você mostra que o teu rim, o teu filtro, não está íntegro, ele tem furos a mais que estão passando o que não deveria passar.",
+   "cortes": [
+    {
+     "de": 168.3,
+     "ate": 171.7,
+     "motivo": "'você já ouviu falar na perda de proteína' (repetição)"
+    }
+   ],
+   "pausas": [
+    [
+     162.85,
+     163.0
+    ],
+    [
+     164.6,
+     164.8
+    ],
+    [
+     165.96,
+     166.42
+    ],
+    [
+     168.28,
+     168.3
+    ],
+    [
+     171.7,
+     171.77
+    ],
+    [
+     174.11,
+     174.29
+    ],
+    [
+     175.19,
+     175.69
+    ],
+    [
+     177.29,
+     177.57
+    ],
+    [
+     177.83,
+     178.03
+    ],
+    [
+     178.45,
+     179.09
+    ],
+    [
+     180.47,
+     180.69
+    ],
+    [
+     181.35,
+     181.51
+    ],
+    [
+     185.75,
+     186.19
+    ],
+    [
+     188.59,
+     188.8
+    ]
+   ],
+   "out_start": 48.167,
+   "pedacos": [
+    {
+     "fonte_de": 163.0,
+     "fonte_ate": 164.6,
+     "saida_de": 48.167
+    },
+    {
+     "fonte_de": 164.8,
+     "fonte_ate": 165.967,
+     "saida_de": 49.767
+    },
+    {
+     "fonte_de": 166.433,
+     "fonte_ate": 168.267,
+     "saida_de": 50.933
+    },
+    {
+     "fonte_de": 171.767,
+     "fonte_ate": 174.1,
+     "saida_de": 52.767
+    },
+    {
+     "fonte_de": 174.3,
+     "fonte_ate": 175.2,
+     "saida_de": 55.1
+    },
+    {
+     "fonte_de": 175.7,
+     "fonte_ate": 177.3,
+     "saida_de": 56.0
+    },
+    {
+     "fonte_de": 177.567,
+     "fonte_ate": 177.833,
+     "saida_de": 57.6
+    },
+    {
+     "fonte_de": 178.033,
+     "fonte_ate": 178.467,
+     "saida_de": 57.867
+    },
+    {
+     "fonte_de": 179.1,
+     "fonte_ate": 180.467,
+     "saida_de": 58.3
+    },
+    {
+     "fonte_de": 180.7,
+     "fonte_ate": 181.333,
+     "saida_de": 59.667
+    },
+    {
+     "fonte_de": 181.5,
+     "fonte_ate": 185.733,
+     "saida_de": 60.3
+    },
+    {
+     "fonte_de": 186.2,
+     "fonte_ate": 188.6,
+     "saida_de": 64.533
+    }
+   ],
+   "out_end": 66.933
+  },
+  {
+   "id": 9,
+   "fonte": "IMG_DIAB",
+   "in": 196.35,
+   "out": 203.95,
+   "quadro": "aberto",
+   "funcao": "VIRADA",
+   "fala": "Às vezes, a função continua normal, mas você já tem o início dessa doença renal.",
+   "pausas": [
+    [
+     196.35,
+     196.5
+    ],
+    [
+     198.4,
+     198.52
+    ],
+    [
+     199.5,
+     199.9
+    ],
+    [
+     200.94,
+     201.16
+    ],
+    [
+     201.52,
+     201.82
+    ],
+    [
+     203.88,
+     203.95
+    ]
+   ],
+   "out_start": 66.933,
+   "pedacos": [
+    {
+     "fonte_de": 196.5,
+     "fonte_ate": 198.4,
+     "saida_de": 66.933
+    },
+    {
+     "fonte_de": 198.533,
+     "fonte_ate": 199.5,
+     "saida_de": 68.833
+    },
+    {
+     "fonte_de": 199.9,
+     "fonte_ate": 200.933,
+     "saida_de": 69.8
+    },
+    {
+     "fonte_de": 201.167,
+     "fonte_ate": 201.533,
+     "saida_de": 70.833
+    },
+    {
+     "fonte_de": 201.833,
+     "fonte_ate": 203.867,
+     "saida_de": 71.2
+    }
+   ],
+   "out_end": 73.233
+  },
+  {
+   "id": 10,
+   "fonte": "IMG_DIAB",
+   "in": 254.75,
+   "out": 266.5,
+   "quadro": "fechado",
+   "funcao": "VIRADA (dado)",
+   "fala": "Lembrando que a doença renal só começa a ter sintomas quando a gente já perdeu mais de 60% da função.",
+   "cortes": [
+    {
+     "de": 260.45,
+     "ate": 263.62,
+     "motivo": "'em torno de, sim' (hesitação)"
+    }
+   ],
+   "pausas": [
+    [
+     254.75,
+     254.88
+    ],
+    [
+     255.66,
+     255.8
+    ],
+    [
+     259.04,
+     259.24
+    ],
+    [
+     266.33,
+     266.5
+    ]
+   ],
+   "out_start": 73.233,
+   "pedacos": [
+    {
+     "fonte_de": 254.867,
+     "fonte_ate": 255.667,
+     "saida_de": 73.233
+    },
+    {
+     "fonte_de": 255.8,
+     "fonte_ate": 259.033,
+     "saida_de": 74.033
+    },
+    {
+     "fonte_de": 259.233,
+     "fonte_ate": 260.467,
+     "saida_de": 77.267
+    },
+    {
+     "fonte_de": 263.633,
+     "fonte_ate": 266.333,
+     "saida_de": 78.5
+    }
+   ],
+   "out_end": 81.2
+  },
+  {
+   "id": 11,
+   "fonte": "IMG_DIAB",
+   "in": 276.55,
+   "out": 281.85,
+   "quadro": "medio",
+   "funcao": "VIRADA",
+   "fala": "A maioria das vezes você não percebe, você só vai perceber no exame de sangue.",
+   "pausas": [
+    [
+     276.55,
+     276.66
+    ],
+    [
+     277.7,
+     277.98
+    ],
+    [
+     279.04,
+     279.38
+    ],
+    [
+     281.6,
+     281.85
+    ]
+   ],
+   "out_start": 81.2,
+   "pedacos": [
+    {
+     "fonte_de": 276.667,
+     "fonte_ate": 277.7,
+     "saida_de": 81.2
+    },
+    {
+     "fonte_de": 277.967,
+     "fonte_ate": 279.033,
+     "saida_de": 82.233
+    },
+    {
+     "fonte_de": 279.367,
+     "fonte_ate": 281.6,
+     "saida_de": 83.3
+    }
+   ],
+   "out_end": 85.533
+  },
+  {
+   "id": 12,
+   "fonte": "IMG_DIAB",
+   "in": 299.2,
+   "out": 313.2,
+   "quadro": "aberto",
+   "funcao": "ESPERANÇA",
+   "fala": "Hoje em dia, nós temos inúmeras medicações novas, então nós temos muitas coisas para fazer por você.",
+   "cortes": [
+    {
+     "de": 302.22,
+     "ate": 309.5,
+     "motivo": "trecho longo sobre literatura médica"
+    }
+   ],
+   "pausas": [
+    [
+     299.2,
+     299.33
+    ],
+    [
+     300.01,
+     300.13
+    ],
+    [
+     309.5,
+     309.51
+    ],
+    [
+     310.07,
+     310.19
+    ],
+    [
+     310.63,
+     310.91
+    ],
+    [
+     313.11,
+     313.2
+    ]
+   ],
+   "out_start": 85.533,
+   "pedacos": [
+    {
+     "fonte_de": 299.333,
+     "fonte_ate": 300.0,
+     "saida_de": 85.533
+    },
+    {
+     "fonte_de": 300.133,
+     "fonte_ate": 302.233,
+     "saida_de": 86.2
+    },
+    {
+     "fonte_de": 309.5,
+     "fonte_ate": 310.067,
+     "saida_de": 88.3
+    },
+    {
+     "fonte_de": 310.2,
+     "fonte_ate": 310.633,
+     "saida_de": 88.867
+    },
+    {
+     "fonte_de": 310.9,
+     "fonte_ate": 313.1,
+     "saida_de": 89.3
+    }
+   ],
+   "out_end": 91.5
+  },
+  {
+   "id": 13,
+   "fonte": "IMG_DIAB",
+   "in": 333.55,
+   "out": 342.4,
+   "quadro": "medio",
+   "funcao": "FECHAMENTO (ação)",
+   "fala": "Então, a minha dica aqui é de que você peça para o teu médico fazer um exame de urina e um exame de creatinina para você.",
+   "pausas": [
+    [
+     333.55,
+     333.68
+    ],
+    [
+     334.24,
+     334.56
+    ],
+    [
+     335.9,
+     336.08
+    ],
+    [
+     342.06,
+     342.4
+    ]
+   ],
+   "out_start": 91.5,
+   "pedacos": [
+    {
+     "fonte_de": 333.667,
+     "fonte_ate": 334.233,
+     "saida_de": 91.5
+    },
+    {
+     "fonte_de": 334.567,
+     "fonte_ate": 335.9,
+     "saida_de": 92.067
+    },
+    {
+     "fonte_de": 336.067,
+     "fonte_ate": 342.067,
+     "saida_de": 93.4
+    }
+   ],
+   "out_end": 99.4
+  }
+ ]
+}

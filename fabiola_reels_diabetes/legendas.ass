@@ -1,0 +1,94 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sub,Poppins SemiBold,88,&H00FFFFFF,&H00FFFFFF,&HFF000000,&HA6000000,0,0,0,0,100,100,-0.3,0,1,1,3,2,110,110,420,1
+Style: K,Poppins SemiBold,118,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
+Style: Card,Poppins,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,8,0,0,0,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 3,0:00:17.80,0:00:22.90,K,,0,0,0,,{\an7\move(158,1323,158,1299,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs104\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}doença renal em diabéticos
+Dialogue: 3,0:00:21.06,0:00:22.90,K,,0,0,0,,{\an5\pos(540,1444)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs262\fsp-4\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}30% a 40%
+Dialogue: 3,0:00:30.52,0:00:32.68,K,,0,0,0,,{\an9\move(943,1307,943,1283,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o fundo do olho reflete
+Dialogue: 3,0:00:31.80,0:00:32.68,K,,0,0,0,,{\an5\pos(540,1449)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs230\fsp-4\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}LESÃO RENAL
+Dialogue: 3,0:01:18.12,0:01:21.38,K,,0,0,0,,{\an8\move(540,1192,540,1168,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}já perdeu mais de
+Dialogue: 3,0:01:19.60,0:01:21.38,K,,0,0,0,,{\an5\pos(540,1365)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs420\fsp-4\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}60%
+Dialogue: 3,0:01:20.74,0:01:21.38,K,,0,0,0,,{\an8\move(540,1416,540,1392,0,180)\fad(110,140)\fnPoppins\b1\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}da função
+Dialogue: 0,0:00:00.00,0:00:06.05,Card,,0,0,0,,{\an7\pos(0,0)\1c&H9C4F1B&\1a&H18&\bord0\shad0\fad(200,250)\p1}m 0 1010 l 1080 1010 l 1080 1240 l 0 1240
+Dialogue: 1,0:00:00.00,0:00:06.05,Card,,0,0,0,,{\an7\pos(273,988)\fad(200,250)\fnPlayfair Display\fs150\fsp6\c&HFFFFFF&\bord0\shad0}DIABETES
+Dialogue: 1,0:00:00.30,0:00:06.05,Card,,0,0,0,,{\an2\pos(540,1218)\fad(200,250)\fnPoppins\b1\fs96\c&HFFFFFF&\bord0\shad0}o que ele pode fazer no seu rim?
+Dialogue: 2,0:00:00.00,0:00:01.04,Sub,,0,0,0,,{\blur5}Seu pai deve ter,
+Dialogue: 2,0:00:01.10,0:00:01.96,Sub,,0,0,0,,{\blur5}sua mãe deve ter,
+Dialogue: 2,0:00:02.04,0:00:03.14,Sub,,0,0,0,,{\blur5}seu avô deve ter,
+Dialogue: 2,0:00:03.14,0:00:04.36,Sub,,0,0,0,,{\blur5}o seu vizinho deve ter.
+Dialogue: 2,0:00:04.50,0:00:06.10,Sub,,0,0,0,,{\blur5}É uma epidemia mundial.
+Dialogue: 2,0:00:06.56,0:00:07.56,Sub,,0,0,0,,{\blur5}Nesse mês de novembro,
+Dialogue: 2,0:00:07.62,0:00:08.38,Sub,,0,0,0,,{\blur5}a gente tem uma data
+Dialogue: 2,0:00:08.38,0:00:09.14,Sub,,0,0,0,,{\blur5}muito importante,
+Dialogue: 2,0:00:09.20,0:00:10.40,Sub,,0,0,0,,{\blur5}que é o Dia Mundial
+Dialogue: 2,0:00:10.40,0:00:10.90,Sub,,0,0,0,,{\blur5}do Diabetes.
+Dialogue: 2,0:00:10.98,0:00:12.06,Sub,,0,0,0,,{\blur5}Mas o diabetes
+Dialogue: 2,0:00:12.06,0:00:13.10,Sub,,0,0,0,,{\blur5}vai muito além
+Dialogue: 2,0:00:13.10,0:00:14.40,Sub,,0,0,0,,{\blur5}desse açúcar no sangue.
+Dialogue: 2,0:00:14.48,0:00:15.48,Sub,,0,0,0,,{\blur5}O que esse diabetes
+Dialogue: 2,0:00:15.48,0:00:16.48,Sub,,0,0,0,,{\blur5}pode fazer no seu rim?
+Dialogue: 2,0:00:22.90,0:00:23.90,Sub,,0,0,0,,{\blur5}Vocês já viram falar
+Dialogue: 2,0:00:23.90,0:00:24.74,Sub,,0,0,0,,{\blur5}do fundo do olho
+Dialogue: 2,0:00:24.74,0:00:25.44,Sub,,0,0,0,,{\blur5}para o diabético?
+Dialogue: 2,0:00:25.54,0:00:26.34,Sub,,0,0,0,,{\blur5}O fundo do olho
+Dialogue: 2,0:00:26.34,0:00:27.40,Sub,,0,0,0,,{\blur5}é um exame
+Dialogue: 2,0:00:27.40,0:00:28.82,Sub,,0,0,0,,{\blur5}extremamente importante
+Dialogue: 2,0:00:28.82,0:00:29.82,Sub,,0,0,0,,{\blur5}em pacientes diabéticos
+Dialogue: 2,0:00:32.68,0:00:33.60,Sub,,0,0,0,,{\blur5}Você sabia disso?
+Dialogue: 2,0:00:33.76,0:00:35.10,Sub,,0,0,0,,{\blur5}Os vasos que têm
+Dialogue: 2,0:00:35.10,0:00:36.10,Sub,,0,0,0,,{\blur5}dentro do olho,
+Dialogue: 2,0:00:36.42,0:00:37.72,Sub,,0,0,0,,{\blur5}aqueles microvasos,
+Dialogue: 2,0:00:37.82,0:00:38.90,Sub,,0,0,0,,{\blur5}eles são parecidos
+Dialogue: 2,0:00:38.90,0:00:40.26,Sub,,0,0,0,,{\blur5}com os microvasos
+Dialogue: 2,0:00:40.26,0:00:41.28,Sub,,0,0,0,,{\blur5}que têm dentro do rim.
+Dialogue: 2,0:00:41.38,0:00:42.52,Sub,,0,0,0,,{\blur5}Quando a gente consegue
+Dialogue: 2,0:00:42.52,0:00:44.94,Sub,,0,0,0,,{\blur5}ver lesão nesses microvasos
+Dialogue: 2,0:00:44.94,0:00:45.50,Sub,,0,0,0,,{\blur5}no olho,
+Dialogue: 2,0:00:45.74,0:00:47.00,Sub,,0,0,0,,{\blur5}a gente já sabe
+Dialogue: 2,0:00:47.00,0:00:48.14,Sub,,0,0,0,,{\blur5}que tem lesão no rim.
+Dialogue: 2,0:00:48.28,0:00:49.78,Sub,,0,0,0,,{\blur5}As primeiras lesões de rim
+Dialogue: 2,0:00:50.24,0:00:51.78,Sub,,0,0,0,,{\blur5}acontecem com a
+Dialogue: 2,0:00:51.78,0:00:52.74,Sub,,0,0,0,,{\blur5}perda de proteína.
+Dialogue: 2,0:00:52.88,0:00:53.70,Sub,,0,0,0,,{\blur5}É aquela história
+Dialogue: 2,0:00:53.70,0:00:55.04,Sub,,0,0,0,,{\blur5}do filtro de café
+Dialogue: 2,0:00:55.04,0:00:55.98,Sub,,0,0,0,,{\blur5}que perde o pó.
+Dialogue: 2,0:00:55.98,0:00:57.58,Sub,,0,0,0,,{\blur5}Quando você perde esse pó,
+Dialogue: 2,0:00:59.00,0:01:00.74,Sub,,0,0,0,,{\blur5}você mostra que o teu rim,
+Dialogue: 2,0:01:00.88,0:01:01.88,Sub,,0,0,0,,{\blur5}o teu filtro,
+Dialogue: 2,0:01:02.06,0:01:02.94,Sub,,0,0,0,,{\blur5}não está íntegro,
+Dialogue: 2,0:01:03.14,0:01:04.54,Sub,,0,0,0,,{\blur5}ele tem furos a mais
+Dialogue: 2,0:01:04.54,0:01:05.56,Sub,,0,0,0,,{\blur5}que estão passando
+Dialogue: 2,0:01:05.56,0:01:06.92,Sub,,0,0,0,,{\blur5}o que não deveria passar.
+Dialogue: 2,0:01:07.04,0:01:07.72,Sub,,0,0,0,,{\blur5}Às vezes,
+Dialogue: 2,0:01:07.72,0:01:09.76,Sub,,0,0,0,,{\blur5}a função continua normal,
+Dialogue: 2,0:01:09.88,0:01:12.14,Sub,,0,0,0,,{\blur5}mas você já tem o início
+Dialogue: 2,0:01:12.14,0:01:13.24,Sub,,0,0,0,,{\blur5}dessa doença renal.
+Dialogue: 2,0:01:13.42,0:01:15.52,Sub,,0,0,0,,{\blur5}Lembrando que a doença renal
+Dialogue: 2,0:01:15.52,0:01:17.28,Sub,,0,0,0,,{\blur5}só começa a ter sintomas
+Dialogue: 2,0:01:21.38,0:01:22.26,Sub,,0,0,0,,{\blur5}A maioria das vezes
+Dialogue: 2,0:01:22.26,0:01:23.32,Sub,,0,0,0,,{\blur5}você não percebe,
+Dialogue: 2,0:01:23.40,0:01:24.36,Sub,,0,0,0,,{\blur5}você só vai perceber
+Dialogue: 2,0:01:24.36,0:01:25.58,Sub,,0,0,0,,{\blur5}no exame de sangue.
+Dialogue: 2,0:01:25.58,0:01:26.26,Sub,,0,0,0,,{\blur5}Hoje em dia,
+Dialogue: 2,0:01:26.48,0:01:27.32,Sub,,0,0,0,,{\blur5}nós temos inúmeras
+Dialogue: 2,0:01:27.32,0:01:28.34,Sub,,0,0,0,,{\blur5}medicações novas,
+Dialogue: 2,0:01:28.58,0:01:29.44,Sub,,0,0,0,,{\blur5}então nós temos
+Dialogue: 2,0:01:29.44,0:01:30.38,Sub,,0,0,0,,{\blur5}muitas coisas
+Dialogue: 2,0:01:30.38,0:01:31.52,Sub,,0,0,0,,{\blur5}para fazer por você.
+Dialogue: 2,0:01:31.96,0:01:33.40,Sub,,0,0,0,,{\blur5}Então, a minha dica aqui
+Dialogue: 2,0:01:33.40,0:01:34.96,Sub,,0,0,0,,{\blur5}é de que você peça
+Dialogue: 2,0:01:34.96,0:01:35.74,Sub,,0,0,0,,{\blur5}para o teu médico
+Dialogue: 2,0:01:35.74,0:01:37.58,Sub,,0,0,0,,{\blur5}fazer um exame de urina
+Dialogue: 2,0:01:37.58,0:01:38.96,Sub,,0,0,0,,{\blur5}e um exame de creatinina
+Dialogue: 2,0:01:38.96,0:01:39.38,Sub,,0,0,0,,{\blur5}para você.
