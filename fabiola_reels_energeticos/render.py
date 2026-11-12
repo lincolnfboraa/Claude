@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Monta o Reels a partir de timeline.json.
 Uso: python3 render.py <pasta_intermediarios> <saida.mp4> [legendas.ass] [altura_saida]
-altura_saida: 1920 (final, padrão) ou 1280 (preview 720p).
+altura_saida: 3840 (4K), 1920 (1080p, padrão) ou 1280 (preview 720p).
 Se existir <pasta>/<fonte>.offset, o intermediário começa nesse segundo do original.
 Intermediários = MOVs originais convertidos de HLG para SDR em 1440x2560 (ver README.md)."""
 import json, sys, subprocess, os
@@ -12,7 +12,9 @@ src_dir, out = sys.argv[1], sys.argv[2]
 ass = sys.argv[3] if len(sys.argv) > 3 and sys.argv[3] not in ('', '-') else None
 OH = int(sys.argv[4]) if len(sys.argv) > 4 else 1920
 OW = OH*9//16
-W, H = 1440, 2560
+_f = os.path.join(src_dir, t['segmentos'][0]['fonte'] + '.mov')
+W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
+                                '-of', 'csv=p=0', _f], capture_output=True, text=True).stdout.split()[0].split(','))
 args, fc, cat = ['ffmpeg', '-v', 'error', '-y'], [], []
 
 def pedacos(seg):
@@ -55,7 +57,7 @@ fc.append(f"[cv]{vpost},format=yuv420p[vo]")
 fc.append("[ca]highpass=f=80,afftdn=nf=-32:nr=8,equalizer=f=250:t=q:w=1.2:g=-1.5,equalizer=f=3500:t=q:w=1.0:g=1.5,"
           "acompressor=threshold=-21dB:ratio=2.5:attack=8:release=160:makeup=1.5,loudnorm=I=-14:TP=-1.5:LRA=7,aresample=48000[ao]")
 args += ['-filter_complex', ';'.join(fc), '-map', '[vo]', '-map', '[ao]',
-         '-c:v', 'libx264', '-preset', 'slow', '-crf', '17', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
+         '-c:v', 'libx264', '-preset', 'slow' if OH <= 1920 else 'medium', '-crf', '17', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
          '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-r', '30000/1001',
          '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', out]
 subprocess.run(args, check=True)
