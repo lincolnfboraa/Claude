@@ -9,4 +9,5 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - No máximo 3 ou 4 frases de destaque, com linhas coladas e a palavra principal em creme #C8B9A7.
 - Título no estilo dos posts dela: caixa marinho #0F1C4A com serifa + caixinha bege #C8B9A7 com itálico.
 - Validar por trechos curtos em 720p; final em 4K.
+- Roteiro e ganchos: seguir `fabiola_reels_energeticos/ANALISE_REFERENCIAS.md` e `GUIA_ROTEIRO_GRAVACAO.md`.
 - Respostas em português, linguagem natural, sem travessões.

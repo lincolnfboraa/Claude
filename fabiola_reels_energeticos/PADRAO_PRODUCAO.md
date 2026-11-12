@@ -30,9 +30,14 @@ Aprovado em 12/11/2026 no Reels "Energéticos e rim". Projeto de referência: es
 - Duração: o conteúdo manda (o aprovado ficou com 69 s). Sem enchimento.
 
 ## 4. Estrutura narrativa
-Gancho (0–3 s, fala forte ou dado surpreendente + título) → desenvolvimento → clímax → virada → orientação e fechamento.
+Detalhada em `ANALISE_REFERENCIAS.md` (vídeos aprovados) e `GUIA_ROTEIRO_GRAVACAO.md` (para a médica gravar):
+gancho (pergunta, identificação, cena ou diálogo) → promessa ("vou explicar") → analogia com objeto real → explicação curta
+→ dado com número → experiência de consultório → ressalva responsável → fechamento com ação ou frase leve.
+Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesitações e repetições.
 
-## 5. Título (abertura, ~4,5 s, no topo)
+## 5. Título (abertura, ~4,5 s)
+- Fórmula dos aprovados: TEMA em caixa alta + complemento em pergunta/promessa. Preferir faixa na altura do peito com a cor
+  do tema (vinho, marrom do café, azul); usar o topo só quando o peito/mesa tiver objeto de cena.
 - Estilo dos posts da médica: caixa **azul-marinho #0F1C4A** com serifa (Playfair Display) em caixa alta e branco,
   mais uma caixinha **bege #C8B9A7** logo abaixo com itálico marinho (ex.: "ENTENDA COMO").
 - Fica no topo quando a parte de baixo tem objetos de cena.
