@@ -68,9 +68,9 @@ def ts_srt(t):
     ms = int(round(t*1000)); return f"{ms//3600000:02d}:{ms//60000%60:02d}:{ms//1000%60:02d},{ms%1000:03d}"
 
 # ---------- tipografia ----------
-AZUL = '&HFFB84D&'      # #4DB8FF (destaque)
-NAVY = '&H38220E&'      # #0E2238 (caixa do título)
-GELO = '&HF7EBDC&'      # #DCEBF7 (caixa clara do título)
+AZUL = '&H4A1C0F&'      # #0F1C4A azul-marinho da paleta da Dra. Fabiola (destaque)
+NAVY = '&H4A1C0F&'      # #0F1C4A azul-marinho da paleta (caixa do título)
+GELO = '&HA7B9C8&'      # #C8B9A7 bege da paleta (caixa clara do título)
 FONTES = {  # nome ASS -> (arquivo, fator de escala libass medido, topo das maiúsculas, linha de base) em fração de fs
     'Poppins Medium': ('Poppins-Medium.ttf', 0.5585, 0.24, 0.628),
     'Poppins SemiBold': ('Poppins-SemiBold.ttf', 0.557, 0.24, 0.628),
@@ -90,6 +90,7 @@ ev = []
 def dlg(layer, t0, t1, style, txt):
     ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{style},,0,0,0,,{txt}")
 
+SOMBRA_MARINHO = '\\bord4\\3c&HFFFFFF&\\3a&H00&\\blur1\\shad6\\4c&H000000&\\4a&H48&'   # marinho precisa de contorno claro sobre a blusa vinho
 SOMBRA = '\\bord3\\3c&H000000&\\3a&H9A&\\blur7\\shad6\\4c&H000000&\\4a&H48&'
 def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slide', bold=False):
     """Desenha uma linha posicionada pela linha de base. alinh: l (x = borda esquerda), r (x = borda direita), c (x = centro)."""
@@ -102,7 +103,8 @@ def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slid
         an, xx = {'l': (7, x), 'r': (9, x), 'c': (8, x)}[alinh]
         anim = f"\\an{an}\\move({xx:.0f},{topo+24:.0f},{xx:.0f},{topo:.0f},0,180)"
     fn = '\\fnPoppins\\b1' if fonte == 'Poppins Bold' else f'\\fn{fonte}\\b0'
-    dlg(3, t0, t1, 'K', f"{{{anim}\\fad(110,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{SOMBRA}}}{txt}")
+    sombra = SOMBRA_MARINHO if cor == AZUL else SOMBRA
+    dlg(3, t0, t1, 'K', f"{{{anim}\\fad(110,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}}}{txt}")
     return w
 
 def ajusta_fs(txt, fonte, alvo, sp, fs_max):
@@ -203,13 +205,9 @@ def rrect(x, y, w, h, r):
     return (f"m {x+r} {y} l {x+w-r} {y} b {x+w} {y} {x+w} {y} {x+w} {y+r} l {x+w} {y+h-r} b {x+w} {y+h} {x+w} {y+h} {x+w-r} {y+h} "
             f"l {x+r} {y+h} b {x} {y+h} {x} {y+h} {x} {y+h-r} l {x} {y+r} b {x} {y} {x} {y} {x+r} {y}")
 def card(t0, t1, x, y, w, h):
-    dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H38220E&\\1a&H30&\\bord0\\shad0\\fad(160,160)\\p1}}{rrect(x, y, w, h, 26)}")
+    dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c{NAVY}\\1a&H30&\\bord0\\shad0\\fad(160,160)\\p1}}{rrect(x, y, w, h, 26)}")
 def txt(t0, t1, x, y, s):
     dlg(1, t0, t1, 'Card', f"{{\\an8\\pos({x},{y})\\fad(160,160)}}{s}")
-# nome da médica
-t0 = seg[3]['out_start'] + 0.25; t1 = t0 + 4.2
-card(t0, t1, 190, 205, 700, 170)
-txt(t0, t1, 540, 222, "{\\fnPoppins SemiBold\\fs82\\c&HFFFFFF&}Dra. Fabiola Pedron\\N{\\fnPoppins Medium\\fs66\\c" + AZUL + "}Médica nefrologista")
 # glucuronolactona (fala: metabólito do carboidrato excretado pelo rim)
 t0, t1 = word_start('glucuronolactona') - 0.15, seg[8]['out_start'] - 0.05
 card(t0, t1, 150, 185, 780, 215)
