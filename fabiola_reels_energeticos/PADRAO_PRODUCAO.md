@@ -66,7 +66,7 @@ Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesita�
 1. Baixar os brutos do Drive (links públicos via `drive.usercontent.google.com`), rodar ffprobe e transcrever.
 2. Montar `timeline.json` (segmentos, função narrativa, cortes com motivo).
 3. `apara_pausas.py` → `render.py` (preview SDR 720p) → re-transcrever → `make_subs.py`.
-4. Validar por **trechos curtos** (não mandar o vídeo inteiro a cada ajuste).
+4. Validar em **480p** (`render.py <pasta> <saida> <ass> 854`), de preferência por **trechos curtos** (não mandar o vídeo inteiro a cada ajuste).
 5. Final: `render_hdr.py` com os .MOV originais. Entregar também o `.srt` e, se pedido, a versão com legendas.
 6. Antes de entregar: conferir duração de vídeo × áudio (sincronia) e quadros ao longo do vídeo.
 
