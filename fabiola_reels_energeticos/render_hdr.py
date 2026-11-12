@@ -36,7 +36,8 @@ for s in t['segmentos']:
         f = os.path.join(src, s['fonte'] + '.mov')
         n = len(jobs)
         jobs.append(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', f, '-an',
-                     '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001,trim=duration={dur:.4f}',
+                     '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001',
+                     '-frames:v', str(fb-fa),
                      '-c:v', 'libx265', '-preset', 'medium', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', X265,
                      '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc',
                      os.path.join(tmp, f'p{n:03d}.mp4')])
