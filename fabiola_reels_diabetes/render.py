@@ -63,7 +63,7 @@ if HDR:
             '-x265-params', 'colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc:range=limited',
             '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc']
 else:
-    venc = ['-c:v', 'libx264', '-preset', 'slow' if OH <= 1920 else 'medium', '-crf', '17', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
+    venc = ['-c:v', 'libx264', '-preset', 'slow' if OH <= 1920 else 'medium', '-crf', '17' if OH > 854 else '28', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
             '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709']
 args += ['-filter_complex', ';'.join(fc), '-map', '[vo]', '-map', '[ao]'] + venc + ['-r', '30',
          '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', out]

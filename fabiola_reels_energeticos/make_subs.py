@@ -217,7 +217,7 @@ txt(t0, t1, 540, 290, "{\\fnPoppins Medium\\fs64\\c&HDDDDDD&}metabólito do carb
 # ---------- legendas comuns ----------
 for b in blocos:
     if b.get('oculto'): continue
-    s = b['txt'].replace('*', '')
+    s = b['txt'].replace('*', '').replace('.', '')   # padrão: legenda sem pontos
     dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}")
 
 head = """[Script Info]
@@ -239,5 +239,5 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 open(base + '.ass', 'w').write(head + '\n'.join(ev) + '\n')
 with open(base + '.srt', 'w') as f:  # SRT completo (inclui as falas que viraram destaque)
     for i, b in enumerate(blocos, 1):
-        f.write(f"{i}\n{ts_srt(b['s'])} --> {ts_srt(b['e'])}\n{b['txt'].replace('*', '')}\n\n")
+        f.write(f"{i}\n{ts_srt(b['s'])} --> {ts_srt(b['e'])}\n{b['txt'].replace('*', '').replace('.', '')}\n\n")
 print(len(blocos), 'blocos de legenda,', sum(1 for b in blocos if b.get('oculto')), 'viraram frase de destaque')

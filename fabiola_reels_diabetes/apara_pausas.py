@@ -11,6 +11,7 @@ tl_path = os.path.join(here, 'timeline.json')
 t = json.load(open(tl_path))
 cfg = t['pausas_auto']
 LIM, MIN, KEEP = cfg['limiar_db'], cfg['min_s'], cfg['mantem_s']
+BORDA = cfg.get('borda_s', 0.18)   # margem maior no início/fim de cada trecho: protege finais fracos de palavra ('s', 'f', 'x')
 SR, HOP = 16000, 0.02
 cache = {}
 
@@ -35,10 +36,10 @@ for s in t['segmentos']:
         # início/fim do trecho
         j = 0
         while j < len(quiet) and quiet[j]: j += 1
-        if j*HOP > KEEP: pausas.append([round(a, 3), round(a + j*HOP - KEEP, 3)])
+        if j*HOP > BORDA: pausas.append([round(a, 3), round(a + j*HOP - BORDA, 3)])
         k = len(quiet)
         while k > 0 and quiet[k-1]: k -= 1
-        if (len(quiet)-k)*HOP > KEEP and not (s.get('manter_respiro_final') and b == s['out']): pausas.append([round(a + k*HOP + KEEP, 3), round(b, 3)])
+        if (len(quiet)-k)*HOP > BORDA and not (s.get('manter_respiro_final') and b == s['out']): pausas.append([round(a + k*HOP + BORDA, 3), round(b, 3)])
         # pausas internas
         r = j
         while r < k:

@@ -32,9 +32,11 @@
   ]
  },
  "pausas_auto": {
-  "limiar_db": -38,
-  "min_s": 0.25,
-  "mantem_s": 0.07
+  "limiar_db": -45,
+  "min_s": 0.3,
+  "mantem_s": 0.1,
+  "borda_s": 0.18,
+  "descricao": "silêncio >= min_s (abaixo de limiar_db) vira 2*mantem_s; bordas dos trechos mantêm borda_s para não cortar finais fracos de palavra"
  },
  "segmentos": [
   {
@@ -48,40 +50,36 @@
    "pausas": [
     [
      19.3,
-     19.51
+     19.4
     ],
     [
-     22.63,
-     22.95
+     22.72,
+     22.84
     ],
     [
-     24.15,
-     25.03
-    ],
-    [
-     26.81,
-     26.95
+     24.18,
+     24.98
     ]
    ],
    "out_start": 0.0,
    "pedacos": [
     {
-     "fonte_de": 19.5,
-     "fonte_ate": 22.633,
+     "fonte_de": 19.4,
+     "fonte_ate": 22.733,
      "saida_de": 0.0
     },
     {
-     "fonte_de": 22.933,
-     "fonte_ate": 24.133,
-     "saida_de": 3.133
+     "fonte_de": 22.833,
+     "fonte_ate": 24.167,
+     "saida_de": 3.333
     },
     {
-     "fonte_de": 25.033,
-     "fonte_ate": 26.8,
-     "saida_de": 4.333
+     "fonte_de": 24.967,
+     "fonte_ate": 26.933,
+     "saida_de": 4.667
     }
    ],
-   "out_end": 6.1
+   "out_end": 6.633
   },
   {
    "id": 2,
@@ -100,41 +98,24 @@
    ],
    "pausas": [
     [
-     5.3,
-     5.35
-    ],
-    [
-     6.71,
-     6.75
-    ],
-    [
-     11.79,
-     11.97
-    ],
-    [
-     13.75,
+     14.04,
      14.2
     ]
    ],
-   "out_start": 6.1,
+   "out_start": 6.633,
    "pedacos": [
     {
-     "fonte_de": 5.333,
-     "fonte_ate": 6.7,
-     "saida_de": 6.1
+     "fonte_de": 5.3,
+     "fonte_ate": 6.733,
+     "saida_de": 6.633
     },
     {
      "fonte_de": 10.133,
-     "fonte_ate": 11.8,
-     "saida_de": 7.467
-    },
-    {
-     "fonte_de": 11.967,
-     "fonte_ate": 13.733,
-     "saida_de": 9.133
+     "fonte_ate": 14.033,
+     "saida_de": 8.067
     }
    ],
-   "out_end": 10.9
+   "out_end": 11.967
   },
   {
    "id": 3,
@@ -147,31 +128,22 @@
    "pausas": [
     [
      27.45,
-     27.64
+     27.51
     ],
     [
-     28.42,
-     28.8
-    ],
-    [
-     31.48,
+     31.59,
      31.75
     ]
    ],
-   "out_start": 10.9,
+   "out_start": 11.967,
    "pedacos": [
     {
-     "fonte_de": 27.633,
-     "fonte_ate": 28.433,
-     "saida_de": 10.9
-    },
-    {
-     "fonte_de": 28.8,
-     "fonte_ate": 31.467,
-     "saida_de": 11.7
+     "fonte_de": 27.5,
+     "fonte_ate": 31.6,
+     "saida_de": 11.967
     }
    ],
-   "out_end": 14.367
+   "out_end": 16.067
   },
   {
    "id": 4,
@@ -183,32 +155,28 @@
    "fala": "O que esse diabetes pode fazer no seu rim?",
    "pausas": [
     [
-     48.45,
-     48.52
+     48.77,
+     49.07
     ],
     [
-     48.74,
-     49.1
-    ],
-    [
-     51.04,
+     51.21,
      51.35
     ]
    ],
-   "out_start": 14.367,
+   "out_start": 16.067,
    "pedacos": [
     {
-     "fonte_de": 48.533,
-     "fonte_ate": 48.733,
-     "saida_de": 14.367
+     "fonte_de": 48.467,
+     "fonte_ate": 48.767,
+     "saida_de": 16.067
     },
     {
-     "fonte_de": 49.1,
-     "fonte_ate": 51.033,
-     "saida_de": 14.567
+     "fonte_de": 49.067,
+     "fonte_ate": 51.2,
+     "saida_de": 16.367
     }
    ],
-   "out_end": 16.5
+   "out_end": 18.5
   },
   {
    "id": 5,
@@ -228,36 +196,32 @@
    "pausas": [
     [
      71.05,
-     71.52
+     71.39
     ],
     [
-     80.15,
-     80.52
-    ],
-    [
-     85.22,
-     85.36
+     80.27,
+     80.49
     ]
    ],
-   "out_start": 16.5,
+   "out_start": 18.5,
    "pedacos": [
     {
-     "fonte_de": 71.533,
+     "fonte_de": 71.4,
      "fonte_ate": 72.533,
-     "saida_de": 16.5
+     "saida_de": 18.5
     },
     {
-     "fonte_de": 80.533,
-     "fonte_ate": 85.233,
-     "saida_de": 17.5
+     "fonte_de": 80.133,
+     "fonte_ate": 80.267,
+     "saida_de": 19.633
     },
     {
-     "fonte_de": 85.367,
+     "fonte_de": 80.5,
      "fonte_ate": 86.1,
-     "saida_de": 22.2
+     "saida_de": 19.767
     }
    ],
-   "out_end": 22.933
+   "out_end": 25.367
   },
   {
    "id": 6,
@@ -270,76 +234,72 @@
    "pausas": [
     [
      129.45,
-     129.7
+     129.59
     ],
     [
-     132.2,
-     133.04
+     132.35,
+     133.01
     ],
     [
-     134.8,
-     134.98
+     134.85,
+     134.95
     ],
     [
-     135.32,
-     135.5
+     135.37,
+     135.47
     ],
     [
-     137.78,
-     138.42
+     138.15,
+     138.37
     ],
     [
-     139.42,
-     139.78
+     139.57,
+     139.73
     ],
     [
-     140.46,
-     141.06
-    ],
-    [
-     143.18,
-     143.3
+     140.53,
+     140.91
     ]
    ],
-   "out_start": 22.933,
+   "out_start": 25.367,
    "pedacos": [
     {
-     "fonte_de": 129.7,
-     "fonte_ate": 132.2,
-     "saida_de": 22.933
+     "fonte_de": 129.6,
+     "fonte_ate": 132.333,
+     "saida_de": 25.367
     },
     {
-     "fonte_de": 133.033,
-     "fonte_ate": 134.8,
-     "saida_de": 25.433
+     "fonte_de": 133.0,
+     "fonte_ate": 134.867,
+     "saida_de": 28.1
     },
     {
-     "fonte_de": 134.967,
-     "fonte_ate": 135.333,
-     "saida_de": 27.2
+     "fonte_de": 134.933,
+     "fonte_ate": 135.367,
+     "saida_de": 29.967
     },
     {
-     "fonte_de": 135.5,
-     "fonte_ate": 137.767,
-     "saida_de": 27.567
+     "fonte_de": 135.467,
+     "fonte_ate": 138.133,
+     "saida_de": 30.4
     },
     {
-     "fonte_de": 138.433,
-     "fonte_ate": 139.433,
-     "saida_de": 29.833
+     "fonte_de": 138.367,
+     "fonte_ate": 139.567,
+     "saida_de": 33.067
     },
     {
-     "fonte_de": 139.767,
-     "fonte_ate": 140.467,
-     "saida_de": 30.833
+     "fonte_de": 139.733,
+     "fonte_ate": 140.533,
+     "saida_de": 34.267
     },
     {
-     "fonte_de": 141.067,
-     "fonte_ate": 143.167,
-     "saida_de": 31.533
+     "fonte_de": 140.9,
+     "fonte_ate": 143.3,
+     "saida_de": 35.067
     }
    ],
-   "out_end": 33.633
+   "out_end": 37.467
   },
   {
    "id": 7,
@@ -364,63 +324,50 @@
    "pausas": [
     [
      143.55,
-     143.72
+     143.61
     ],
     [
-     147.76,
-     147.92
+     153.76,
+     154.24
     ],
     [
-     153.73,
-     154.27
+     158.5,
+     158.74
     ],
     [
-     158.45,
-     158.79
-    ],
-    [
-     160.31,
-     160.43
-    ],
-    [
-     162.13,
+     162.24,
      162.35
     ]
    ],
-   "out_start": 33.633,
+   "out_start": 37.467,
    "pedacos": [
     {
-     "fonte_de": 143.733,
-     "fonte_ate": 147.767,
-     "saida_de": 33.633
+     "fonte_de": 143.6,
+     "fonte_ate": 147.933,
+     "saida_de": 37.467
     },
     {
      "fonte_de": 150.067,
-     "fonte_ate": 153.733,
-     "saida_de": 37.667
+     "fonte_ate": 153.767,
+     "saida_de": 41.8
     },
     {
-     "fonte_de": 154.267,
-     "fonte_ate": 158.467,
-     "saida_de": 41.333
+     "fonte_de": 154.233,
+     "fonte_ate": 158.5,
+     "saida_de": 45.5
     },
     {
-     "fonte_de": 158.8,
-     "fonte_ate": 160.3,
-     "saida_de": 45.533
-    },
-    {
-     "fonte_de": 160.433,
+     "fonte_de": 158.733,
      "fonte_ate": 161.3,
-     "saida_de": 47.033
+     "saida_de": 49.767
     },
     {
      "fonte_de": 161.867,
-     "fonte_ate": 162.133,
-     "saida_de": 47.9
+     "fonte_ate": 162.233,
+     "saida_de": 52.333
     }
    ],
-   "out_end": 48.167
+   "out_end": 52.7
   },
   {
    "id": 8,
@@ -440,125 +387,99 @@
    "pausas": [
     [
      162.85,
-     163.0
+     162.89
     ],
     [
-     164.6,
-     164.8
+     164.65,
+     164.77
     ],
     [
-     165.96,
-     166.42
+     166.01,
+     166.35
     ],
     [
-     168.28,
-     168.3
+     174.14,
+     174.26
     ],
     [
-     171.7,
-     171.77
+     175.26,
+     175.66
     ],
     [
-     174.11,
-     174.29
+     177.34,
+     177.52
     ],
     [
-     175.19,
-     175.69
+     178.48,
+     179.06
     ],
     [
-     177.29,
-     177.57
+     180.52,
+     180.66
     ],
     [
-     177.83,
-     178.03
+     185.86,
+     186.16
     ],
     [
-     178.45,
-     179.09
-    ],
-    [
-     180.47,
-     180.69
-    ],
-    [
-     181.35,
-     181.51
-    ],
-    [
-     185.75,
-     186.19
-    ],
-    [
-     188.59,
+     188.72,
      188.8
     ]
    ],
-   "out_start": 48.167,
+   "out_start": 52.7,
    "pedacos": [
     {
-     "fonte_de": 163.0,
-     "fonte_ate": 164.6,
-     "saida_de": 48.167
+     "fonte_de": 162.9,
+     "fonte_ate": 164.667,
+     "saida_de": 52.7
     },
     {
-     "fonte_de": 164.8,
-     "fonte_ate": 165.967,
-     "saida_de": 49.767
+     "fonte_de": 164.767,
+     "fonte_ate": 166.0,
+     "saida_de": 54.467
     },
     {
-     "fonte_de": 166.433,
-     "fonte_ate": 168.267,
-     "saida_de": 50.933
+     "fonte_de": 166.333,
+     "fonte_ate": 168.3,
+     "saida_de": 55.7
     },
     {
-     "fonte_de": 171.767,
-     "fonte_ate": 174.1,
-     "saida_de": 52.767
+     "fonte_de": 171.7,
+     "fonte_ate": 174.133,
+     "saida_de": 57.667
     },
     {
-     "fonte_de": 174.3,
-     "fonte_ate": 175.2,
-     "saida_de": 55.1
+     "fonte_de": 174.267,
+     "fonte_ate": 175.267,
+     "saida_de": 60.1
     },
     {
-     "fonte_de": 175.7,
-     "fonte_ate": 177.3,
-     "saida_de": 56.0
+     "fonte_de": 175.667,
+     "fonte_ate": 177.333,
+     "saida_de": 61.1
     },
     {
-     "fonte_de": 177.567,
-     "fonte_ate": 177.833,
-     "saida_de": 57.6
-    },
-    {
-     "fonte_de": 178.033,
+     "fonte_de": 177.533,
      "fonte_ate": 178.467,
-     "saida_de": 57.867
+     "saida_de": 62.767
     },
     {
-     "fonte_de": 179.1,
-     "fonte_ate": 180.467,
-     "saida_de": 58.3
+     "fonte_de": 179.067,
+     "fonte_ate": 180.533,
+     "saida_de": 63.7
     },
     {
-     "fonte_de": 180.7,
-     "fonte_ate": 181.333,
-     "saida_de": 59.667
+     "fonte_de": 180.667,
+     "fonte_ate": 185.867,
+     "saida_de": 65.167
     },
     {
-     "fonte_de": 181.5,
-     "fonte_ate": 185.733,
-     "saida_de": 60.3
-    },
-    {
-     "fonte_de": 186.2,
-     "fonte_ate": 188.6,
-     "saida_de": 64.533
+     "fonte_de": 186.167,
+     "fonte_ate": 188.733,
+     "saida_de": 70.367
     }
    ],
-   "out_end": 66.933
+   "out_end": 72.933
   },
   {
    "id": 9,
@@ -571,58 +492,45 @@
    "pausas": [
     [
      196.35,
-     196.5
+     196.37
     ],
     [
-     198.4,
-     198.52
+     199.53,
+     199.87
     ],
     [
-     199.5,
-     199.9
+     200.99,
+     201.13
     ],
     [
-     200.94,
-     201.16
-    ],
-    [
-     201.52,
-     201.82
-    ],
-    [
-     203.88,
-     203.95
+     201.57,
+     201.79
     ]
    ],
-   "out_start": 66.933,
+   "out_start": 72.933,
    "pedacos": [
     {
-     "fonte_de": 196.5,
-     "fonte_ate": 198.4,
-     "saida_de": 66.933
+     "fonte_de": 196.367,
+     "fonte_ate": 199.533,
+     "saida_de": 72.933
     },
     {
-     "fonte_de": 198.533,
-     "fonte_ate": 199.5,
-     "saida_de": 68.833
+     "fonte_de": 199.867,
+     "fonte_ate": 201.0,
+     "saida_de": 76.1
     },
     {
-     "fonte_de": 199.9,
-     "fonte_ate": 200.933,
-     "saida_de": 69.8
+     "fonte_de": 201.133,
+     "fonte_ate": 201.567,
+     "saida_de": 77.233
     },
     {
-     "fonte_de": 201.167,
-     "fonte_ate": 201.533,
-     "saida_de": 70.833
-    },
-    {
-     "fonte_de": 201.833,
-     "fonte_ate": 203.867,
-     "saida_de": 71.2
+     "fonte_de": 201.8,
+     "fonte_ate": 203.933,
+     "saida_de": 77.667
     }
    ],
-   "out_end": 73.233
+   "out_end": 79.8
   },
   {
    "id": 10,
@@ -642,45 +550,32 @@
    "pausas": [
     [
      254.75,
-     254.88
+     254.77
     ],
     [
-     255.66,
-     255.8
-    ],
-    [
-     259.04,
-     259.24
-    ],
-    [
-     266.33,
-     266.5
+     259.09,
+     259.21
     ]
    ],
-   "out_start": 73.233,
+   "out_start": 79.8,
    "pedacos": [
     {
-     "fonte_de": 254.867,
-     "fonte_ate": 255.667,
-     "saida_de": 73.233
+     "fonte_de": 254.767,
+     "fonte_ate": 259.1,
+     "saida_de": 79.8
     },
     {
-     "fonte_de": 255.8,
-     "fonte_ate": 259.033,
-     "saida_de": 74.033
-    },
-    {
-     "fonte_de": 259.233,
+     "fonte_de": 259.2,
      "fonte_ate": 260.467,
-     "saida_de": 77.267
+     "saida_de": 84.133
     },
     {
      "fonte_de": 263.633,
-     "fonte_ate": 266.333,
-     "saida_de": 78.5
+     "fonte_ate": 266.5,
+     "saida_de": 85.4
     }
    ],
-   "out_end": 81.2
+   "out_end": 88.267
   },
   {
    "id": 11,
@@ -692,41 +587,37 @@
    "fala": "A maioria das vezes você não percebe, você só vai perceber no exame de sangue.",
    "pausas": [
     [
-     276.55,
-     276.66
+     277.75,
+     277.95
     ],
     [
-     277.7,
-     277.98
+     279.15,
+     279.29
     ],
     [
-     279.04,
-     279.38
-    ],
-    [
-     281.6,
+     281.75,
      281.85
     ]
    ],
-   "out_start": 81.2,
+   "out_start": 88.267,
    "pedacos": [
     {
-     "fonte_de": 276.667,
-     "fonte_ate": 277.7,
-     "saida_de": 81.2
+     "fonte_de": 276.533,
+     "fonte_ate": 277.733,
+     "saida_de": 88.267
     },
     {
-     "fonte_de": 277.967,
-     "fonte_ate": 279.033,
-     "saida_de": 82.233
+     "fonte_de": 277.933,
+     "fonte_ate": 279.133,
+     "saida_de": 89.467
     },
     {
-     "fonte_de": 279.367,
-     "fonte_ate": 281.6,
-     "saida_de": 83.3
+     "fonte_de": 279.3,
+     "fonte_ate": 281.733,
+     "saida_de": 90.667
     }
    ],
-   "out_end": 85.533
+   "out_end": 93.1
   },
   {
    "id": 12,
@@ -746,58 +637,32 @@
    "pausas": [
     [
      299.2,
-     299.33
+     299.22
     ],
     [
-     300.01,
-     300.13
-    ],
-    [
-     309.5,
-     309.51
-    ],
-    [
-     310.07,
-     310.19
-    ],
-    [
-     310.63,
-     310.91
-    ],
-    [
-     313.11,
-     313.2
+     310.7,
+     310.86
     ]
    ],
-   "out_start": 85.533,
+   "out_start": 93.1,
    "pedacos": [
     {
-     "fonte_de": 299.333,
-     "fonte_ate": 300.0,
-     "saida_de": 85.533
-    },
-    {
-     "fonte_de": 300.133,
+     "fonte_de": 299.233,
      "fonte_ate": 302.233,
-     "saida_de": 86.2
+     "saida_de": 93.1
     },
     {
      "fonte_de": 309.5,
-     "fonte_ate": 310.067,
-     "saida_de": 88.3
+     "fonte_ate": 310.7,
+     "saida_de": 96.1
     },
     {
-     "fonte_de": 310.2,
-     "fonte_ate": 310.633,
-     "saida_de": 88.867
-    },
-    {
-     "fonte_de": 310.9,
-     "fonte_ate": 313.1,
-     "saida_de": 89.3
+     "fonte_de": 310.867,
+     "fonte_ate": 313.2,
+     "saida_de": 97.3
     }
    ],
-   "out_end": 91.5
+   "out_end": 99.633
   },
   {
    "id": 13,
@@ -810,40 +675,40 @@
    "pausas": [
     [
      333.55,
-     333.68
+     333.57
     ],
     [
-     334.24,
-     334.56
+     334.27,
+     334.49
     ],
     [
-     335.9,
-     336.08
+     335.93,
+     336.03
     ],
     [
-     342.06,
+     342.23,
      342.4
     ]
    ],
-   "out_start": 91.5,
+   "out_start": 99.633,
    "pedacos": [
     {
-     "fonte_de": 333.667,
-     "fonte_ate": 334.233,
-     "saida_de": 91.5
+     "fonte_de": 333.567,
+     "fonte_ate": 334.267,
+     "saida_de": 99.633
     },
     {
-     "fonte_de": 334.567,
-     "fonte_ate": 335.9,
-     "saida_de": 92.067
+     "fonte_de": 334.5,
+     "fonte_ate": 335.933,
+     "saida_de": 100.333
     },
     {
-     "fonte_de": 336.067,
-     "fonte_ate": 342.067,
-     "saida_de": 93.4
+     "fonte_de": 336.033,
+     "fonte_ate": 342.233,
+     "saida_de": 101.767
     }
    ],
-   "out_end": 99.4
+   "out_end": 107.967
   }
  ]
 }
