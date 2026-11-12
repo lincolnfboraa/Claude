@@ -20,7 +20,9 @@ Aprovado em 12/11/2026 no Reels "Energéticos e rim". Projeto de referência: es
 ## 3. Edição de fala
 - Transcrever tudo com tempos por palavra (faster-whisper medium). Em dúvida, alinhar com wav2vec2 PT
   (`jonatasgrosman/wav2vec2-large-xlsr-53-portuguese`, alinhamento CTC) e comparar transcrições alternativas pelo score.
-- Cortar: pausas (silêncio acima de 0,25 s vira ~0,14 s; `apara_pausas.py`), vícios ("assim", "eles" repetido, "disso"),
+- **Nunca cortar pedaço de palavra.** Finais fracos ("s" de "diabetes", "f", "x") ficam abaixo do limiar de silêncio:
+  usar limiar -45 dB, pausa mínima 0,30 s, manter 0,10 s em cada lado e 0,18 s nas bordas de cada trecho, e conferir na re-transcrição.
+- Cortar: pausas (`apara_pausas.py`), vícios ("assim", "eles" repetido, "disso"),
   construções truncadas e números que ela mesma corrigiu.
 - Cortar informação que se contradiz no vídeo (ex.: limite de 400 mg/dia × 300 mg por dose).
 - Nunca inventar fala nem montar frase que ela não disse. Erro de concordância sem corte possível fica no áudio,
@@ -45,7 +47,7 @@ Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesita�
 ## 6. Legenda
 - Padrão minimal do CapCut: **branca, sem cor de destaque**, Poppins SemiBold, sombra suave de ~35%, sem contorno.
 - Embaixo, mas acima da faixa da interface do Reels: base do texto em até ~1500 px (em 1080x1920).
-- Blocos curtos (2 a 5 palavras), sincronizados com a fala. Ortografia corrigida.
+- Blocos curtos (2 a 5 palavras), sincronizados com a fala. Ortografia corrigida. **Sem pontos** (vírgula e interrogação podem ficar).
 
 ## 7. Frases de destaque
 - **No máximo 3 ou 4 por vídeo**, nos pontos-chave (gancho, clímax, virada).
