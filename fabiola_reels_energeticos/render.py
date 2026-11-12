@@ -14,7 +14,7 @@ OH = int(sys.argv[4]) if len(sys.argv) > 4 else 1920
 OW = OH*9//16
 _f = os.path.join(src_dir, t['segmentos'][0]['fonte'] + '.mov')
 W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
-                                '-of', 'csv=p=0', _f], capture_output=True, text=True).stdout.split()[0].split(','))
+                                '-of', 'csv=p=0', _f], capture_output=True, text=True).stdout.split()[0].split(',')[:2])
 if W > H: W, H = H, W          # originais do iPhone: gravados deitados, com rotação nos metadados
 HDR = os.environ.get('RENDER_HDR') == '1'   # 1 = usa os .MOV originais em HLG, sem conversão de cor (só cortes e recortes)
 args, fc, cat = ['ffmpeg', '-v', 'error', '-y'], [], []
