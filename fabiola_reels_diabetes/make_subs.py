@@ -231,18 +231,27 @@ destaque(["do filtro de café"], [
     dict(txt="filtro de café", fonte='Merriweather Black Italic', papel='grande', cor=AZUL, alinh='c', cue='filtro', alvo=780, fs_max=230, sp=-2),
 ], fundo_y=FUNDO_DESTAQUE)
 
-# ---------- título: faixa no peito, como nos vídeos aprovados (cor do tema: azul do símbolo do diabetes) ----------
-AZUL_DIAB = '&H9C4F1B&'    # #1B4F9C
+# ---------- título T1b (aprovado): rótulo espaçado + "Diabetes" em serifa itálica creme + pergunta, mesma largura, sem caixa ----------
+import math
 t0, t1 = 0.0, seg[1]['out_end'] - 0.05
-PF = 'Playfair Display'
-fs_t = ajusta_fs("DIABETES", PF, 760, 6, 150)
-by, bh = 1010, 230
+lab, sub = 'DIA MUNDIAL DO DIABETES', 'o que faz no seu rim?'
+fl, spl = 56, 9
+wl = largura(lab, 'Poppins Medium', fl, spl)                       # largura de referência do bloco
+fsM = 250; spM = (wl - largura('Diabetes', 'Merriweather Black Italic', fsM, 0)) / 7
+fsQ = 80
+while largura(sub, 'Poppins SemiBold', fsQ, -1) < wl: fsQ += 1
+capf_ = lambda f, fs: (FONTES[f][3] - FONTES[f][2]) * fs
 def rect(x, y, w, h): return f"m {x:.0f} {y:.0f} l {x+w:.0f} {y:.0f} l {x+w:.0f} {y+h:.0f} l {x:.0f} {y+h:.0f}"
-FADE = "\\fad(200,250)"
-dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c{AZUL_DIAB}\\1a&H18&\\bord0\\shad0{FADE}\\p1}}{rect(0, by, 1080, bh)}")
-y1 = by + 26 - FONTES[PF][2]*fs_t
-dlg(1, t0, t1, 'Card', f"{{\\an7\\pos({540 - largura('DIABETES', PF, fs_t, 6)/2:.0f},{y1:.0f}){FADE}\\fn{PF}\\fs{fs_t}\\fsp6\\c&HFFFFFF&\\bord0\\shad0}}DIABETES")
-dlg(1, t0+0.3, t1, 'Card', f"{{\\an2\\pos(540,{by+bh-22:.0f}){FADE}\\fnPoppins\\b1\\fs96\\c&HFFFFFF&\\bord0\\shad0}}o que ele pode fazer no seu rim?")
+for i in range(60):   # degradê suave atrás do título (sem faixa chapada)
+    v = math.sin(math.pi*(i+0.5)/60)**1.6*0.6; y0 = 1150-320 + i*640/60
+    dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H120A06&\\1a&H{int(255-v*255):02X}&\\bord0\\shad0\\fad(300,300)\\p1}}{rect(0, y0, 1080, 640/60+1)}")
+def tit(tt0, f, txt_, fs, sp, base, cor):
+    top = base - FONTES[f][3]*fs; w = largura(txt_, f, fs, sp)
+    fn = '\\fnPoppins\\b1' if f == 'Poppins Bold' else f'\\fn{f}'
+    dlg(2, tt0, t1, 'Card', f"{{\\an7\\move({540-w/2:.0f},{top+18:.0f},{540-w/2:.0f},{top:.0f},0,450)\\fad(350,300){fn}\\fs{fs}\\fsp{sp:.1f}\\c{cor}{SOMBRA}}}{txt_}")
+b1 = 1010; tit(t0, 'Poppins Medium', lab, fl, spl, b1, AZUL)
+b2 = b1 + 16 + capf_('Merriweather Black Italic', fsM); tit(t0+0.15, 'Merriweather Black Italic', 'Diabetes', fsM, spM, b2, AZUL)
+b3 = b2 + capf_('Poppins SemiBold', fsQ)*0.78 + 26; tit(t0+0.3, 'Poppins SemiBold', sub, fsQ, -1, b3, BR)
 
 # ---------- legendas comuns ----------
 for b in blocos:
