@@ -82,6 +82,7 @@ FONTES = {  # nome ASS -> (arquivo, fator de escala libass medido, topo das mai�
     'Poppins ExtraBold': ('Poppins-ExtraBold.ttf', 0.557, 0.24, 0.628),
     'Poppins Black': ('Poppins-Black.ttf', 0.5565, 0.24, 0.628),
     'Playfair Display': ('PlayfairDisplay.ttf', 0.7037, 0.32, 0.818),
+    'Merriweather Black Italic': ('Merriweather-BlackItalic.ttf', 0.573, 0.28, 0.71),   # preset lettering 24
     'Inter': ('/usr/share/fonts/opentype/inter/Inter-Regular.otf', 0.8116, 0.185, 0.775),      # substituta gratuita da Helvetica Neue
     'Inter Bold': ('/usr/share/fonts/opentype/inter/Inter-Bold.otf', 0.8108, 0.185, 0.775),
 }
@@ -209,10 +210,12 @@ destaque(["A incidência de doença renal em pacientes diabéticos gira em torno
     dict(txt="doença renal em diabéticos", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='doença', dx=6, fs=104),
     dict(txt="30% a 40%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='30', alvo=780),
 ], fundo_y=FUNDO_DESTAQUE)
-# 2) CURIOSIDADE "o fundo do olho reflete / LESÃO RENAL"
-destaque(["e ele reflete também a lesão renal."], [
-    dict(txt="o fundo do olho reflete", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='reflete', dx=6),
-    dict(txt="LESÃO RENAL", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='lesão', alvo=820),
+# 2) CURIOSIDADE no estilo do preset "lettering 24": serifa itálica pesada (Merriweather Black Italic) em creme,
+#    pequenas em sans nas pontas, linhas coladas
+destaque(["e ele reflete também a lesão renal.", "Você sabia disso?"], [
+    dict(txt="o fundo do olho reflete", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='reflete', dx=4),
+    dict(txt="lesão renal", fonte='Merriweather Black Italic', papel='grande', cor=AZUL, alinh='c', cue='lesão', alvo=860, sp=-2, gap=8),
+    dict(txt="você sabia?", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='sabia', dx=0, gap=4),
 ], fundo_y=FUNDO_DESTAQUE)
 # 3) VIRADA no estilo do preset "lettering 01" (Helvetica -> Inter, letras juntas, subida aleatória letra a letra)
 destaque(["quando a gente já perdeu mais de 60% da função."], [

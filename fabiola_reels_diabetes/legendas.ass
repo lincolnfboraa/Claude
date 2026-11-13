@@ -15,8 +15,9 @@ Style: Card,Poppins,60,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,0,0,0,0,100,1
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 3,0:00:20.10,0:00:25.40,K,,0,0,0,,{\an7\move(158,1323,158,1299,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs104\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}doença renal em diabéticos
 Dialogue: 3,0:00:23.36,0:00:25.40,K,,0,0,0,,{\an5\pos(540,1444)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs262\fsp-4\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}30% a 40%
-Dialogue: 3,0:00:33.80,0:00:36.36,K,,0,0,0,,{\an9\move(943,1307,943,1283,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o fundo do olho reflete
-Dialogue: 3,0:00:35.50,0:00:36.36,K,,0,0,0,,{\an5\pos(540,1449)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnPoppins Black\b0\fs230\fsp-4\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}LESÃO RENAL
+Dialogue: 3,0:00:33.80,0:00:37.70,K,,0,0,0,,{\an7\move(116,1236,116,1212,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}o fundo do olho reflete
+Dialogue: 3,0:00:35.50,0:00:37.70,K,,0,0,0,,{\an5\pos(540,1363)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnMerriweather Black Italic\b0\fs312\fsp-2\c&HA7B9C8&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}lesão renal
+Dialogue: 3,0:00:36.56,0:00:37.70,K,,0,0,0,,{\an9\move(968,1428,968,1404,0,180)\fad(110,140)\fnPoppins SemiBold\b0\fs118\fsp-1\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}você sabia?
 Dialogue: 2,0:01:25.13,0:01:25.17,K,,0,0,0,,{\an7\pos(236.4,1310.0)\fnInter\b0\fs96\fsp-3\c&HFFFFFF&\1a&HFF&\bord3\3c&H000000&\3a&HF4&\blur7\shad6\4c&H000000&\4a&HEC&}j
 Dialogue: 4,0:01:25.13,0:01:25.17,K,,0,0,0,,{\an7\pos(236.4,1310.0)\fnInter\b0\fs96\fsp-3\c&HFFFFFF&\bord0\shad0\blur3.3\1a&HAE&}j
 Dialogue: 2,0:01:25.17,0:01:25.20,K,,0,0,0,,{\an7\pos(236.4,1302.0)\fnInter\b0\fs96\fsp-3\c&HFFFFFF&\1a&HFF&\bord3\3c&H000000&\3a&HDB&\blur7\shad6\4c&H000000&\4a&HBD&}j
@@ -892,7 +893,6 @@ Dialogue: 2,0:00:28.10,0:00:29.00,Sub,,0,0,0,,{\blur5}O fundo do olho
 Dialogue: 2,0:00:29.00,0:00:30.24,Sub,,0,0,0,,{\blur5}é um exame
 Dialogue: 2,0:00:30.24,0:00:31.68,Sub,,0,0,0,,{\blur5}extremamente importante
 Dialogue: 2,0:00:31.68,0:00:33.08,Sub,,0,0,0,,{\blur5}em pacientes diabéticos
-Dialogue: 2,0:00:36.36,0:00:37.30,Sub,,0,0,0,,{\blur5}Você sabia disso?
 Dialogue: 2,0:00:37.70,0:00:39.08,Sub,,0,0,0,,{\blur5}Os vasos que têm
 Dialogue: 2,0:00:39.08,0:00:40.06,Sub,,0,0,0,,{\blur5}dentro do olho,
 Dialogue: 2,0:00:40.38,0:00:41.80,Sub,,0,0,0,,{\blur5}aqueles microvasos,
