@@ -28,7 +28,6 @@ ROTEIRO = [
     "Às vezes, | a função continua normal, | mas você já tem o início | dessa doença renal.",
     "Lembrando que a doença renal | só começa a ter sintomas | quando a gente já perdeu mais de 60% da função.",
     "A maioria das vezes | você não percebe, | você só vai perceber | no exame de sangue.",
-    "Hoje em dia, | nós temos inúmeras | medicações novas, | então nós temos | muitas coisas | para fazer por você.",
     "Então, a minha dica aqui | é de que você peça | para o teu médico | fazer um exame de urina | e um exame de creatinina | para você.",
 ]
 

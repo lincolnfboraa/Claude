@@ -361,32 +361,6 @@
    ]
   },
   {
-   "id": 12,
-   "fonte": "IMG_DIAB",
-   "in": 299.2,
-   "out": 313.2,
-   "quadro": "aberto",
-   "funcao": "ESPERANÇA",
-   "fala": "Hoje em dia, nós temos inúmeras medicações novas, então nós temos muitas coisas para fazer por você.",
-   "cortes": [
-    {
-     "de": 302.22,
-     "ate": 309.5,
-     "motivo": "trecho longo sobre literatura médica"
-    }
-   ],
-   "pausas": [
-    [
-     299.2,
-     299.22
-    ],
-    [
-     310.7,
-     310.86
-    ]
-   ]
-  },
-  {
    "id": 13,
    "fonte": "IMG_DIAB",
    "in": 333.55,
@@ -412,6 +386,13 @@
      342.4
     ]
    ]
+  }
+ ],
+ "removidos": [
+  {
+   "id": 12,
+   "fala": "Hoje em dia, nós temos inúmeras medicações novas...",
+   "motivo": "pedido da Bora (1:33-1:40 não ficou legal)"
   }
  ]
 }

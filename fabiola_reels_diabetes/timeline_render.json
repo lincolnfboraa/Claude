@@ -620,51 +620,6 @@
    "out_end": 93.1
   },
   {
-   "id": 12,
-   "fonte": "IMG_DIAB",
-   "in": 299.2,
-   "out": 313.2,
-   "quadro": "aberto",
-   "funcao": "ESPERANÇA",
-   "fala": "Hoje em dia, nós temos inúmeras medicações novas, então nós temos muitas coisas para fazer por você.",
-   "cortes": [
-    {
-     "de": 302.22,
-     "ate": 309.5,
-     "motivo": "trecho longo sobre literatura médica"
-    }
-   ],
-   "pausas": [
-    [
-     299.2,
-     299.22
-    ],
-    [
-     310.7,
-     310.86
-    ]
-   ],
-   "out_start": 93.1,
-   "pedacos": [
-    {
-     "fonte_de": 299.233,
-     "fonte_ate": 302.233,
-     "saida_de": 93.1
-    },
-    {
-     "fonte_de": 309.5,
-     "fonte_ate": 310.7,
-     "saida_de": 96.1
-    },
-    {
-     "fonte_de": 310.867,
-     "fonte_ate": 313.2,
-     "saida_de": 97.3
-    }
-   ],
-   "out_end": 99.633
-  },
-  {
    "id": 13,
    "fonte": "IMG_DIAB",
    "in": 333.55,
@@ -690,25 +645,32 @@
      342.4
     ]
    ],
-   "out_start": 99.633,
+   "out_start": 93.1,
    "pedacos": [
     {
      "fonte_de": 333.567,
      "fonte_ate": 334.267,
-     "saida_de": 99.633
+     "saida_de": 93.1
     },
     {
      "fonte_de": 334.5,
      "fonte_ate": 335.933,
-     "saida_de": 100.333
+     "saida_de": 93.8
     },
     {
      "fonte_de": 336.033,
      "fonte_ate": 342.233,
-     "saida_de": 101.767
+     "saida_de": 95.233
     }
    ],
-   "out_end": 107.967
+   "out_end": 101.433
+  }
+ ],
+ "removidos": [
+  {
+   "id": 12,
+   "fala": "Hoje em dia, nós temos inúmeras medicações novas...",
+   "motivo": "pedido da Bora (1:33-1:40 não ficou legal)"
   }
  ]
 }
