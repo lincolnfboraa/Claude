@@ -65,6 +65,7 @@ Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesita�
   na mesma posição dos letterings (altura da legenda), sem linhas pequenas. Não é dentro da legenda.
 
 ## 8. O que não usar
+- Degradê feito de faixas empilhadas (cria linhas horizontais no render). Usar UM retângulo com desfoque alto (\blur90).
 - Bloco com o nome da médica.
 - Azul vivo ou azul-marinho nas palavras em destaque.
 - Cards demais. Cards informativos só quando explicam algo (ex.: nome difícil de substância), em marinho #0F1C4A.

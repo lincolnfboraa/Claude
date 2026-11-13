@@ -270,9 +270,8 @@ fsQ = 80
 while largura(sub, 'Poppins SemiBold', fsQ, -1) < wl: fsQ += 1
 capf_ = lambda f, fs: (FONTES[f][3] - FONTES[f][2]) * fs
 def rect(x, y, w, h): return f"m {x:.0f} {y:.0f} l {x+w:.0f} {y:.0f} l {x+w:.0f} {y+h:.0f} l {x:.0f} {y+h:.0f}"
-for i in range(60):   # degradê suave atrás do título (sem faixa chapada)
-    v = math.sin(math.pi*(i+0.5)/60)**1.6*0.6; y0 = 1150-320 + i*640/60
-    dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H120A06&\\1a&H{int(255-v*255):02X}&\\bord0\\shad0\\fad(300,300)\\p1}}{rect(0, y0, 1080, 640/60+1)}")
+# degradê suave atrás do título: UM retângulo com desfoque alto (contínuo; faixas empilhadas criavam linhas no render)
+dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H120A06&\\1a&H6E&\\bord0\\shad0\\blur90\\fad(300,300)\\p1}}{rect(-300, 960, 1680, 380)}")
 def tit(tt0, f, txt_, fs, sp, base, cor):
     top = base - FONTES[f][3]*fs; w = largura(txt_, f, fs, sp)
     fn = '\\fnPoppins\\b1' if f == 'Poppins Bold' else f'\\fn{f}'
