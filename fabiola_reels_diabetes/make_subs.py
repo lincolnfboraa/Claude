@@ -124,7 +124,12 @@ def linha_letras(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, sement
     topo = base_y - FONTES[fonte][3]*fs
     fn = {'Poppins Bold': '\\fnPoppins\\b1', 'Inter Bold': '\\fnInter\\b1'}.get(fonte, f'\\fn{fonte}\\b0')
     sombra = SOMBRA_MARINHO if cor == NAVY else SOMBRA
-    base_tag = f"{fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}"
+    tag = f"{fn}\\fs{fs}\\fsp{sp}\\c{cor}"
+    def sombra_tag(a):   # camada de baixo: só sombra/contorno, acompanhando o fade da letra
+        op = 1 - a/255                                   # opacidade da letra; a sombra acompanha proporcionalmente
+        a3 = int(255 - (255 - 0x9A)*op*op); a4 = int(255 - (255 - 0x48)*op*op)
+        return (f"\\1a&HFF&\\bord3\\3c&H000000&\\3a&H{a3:02X}&\\blur7"
+                f"\\shad6\\4c&H000000&\\4a&H{a4:02X}&")
     Q = 1/30
     for i, ch in enumerate(txt):
         if ch == ' ': continue
@@ -134,11 +139,14 @@ def linha_letras(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, sement
         n = int(dur / Q)
         for f in range(n):
             p = 1 - (1 - (f + 1)/n) ** 3                 # ease-out cúbico
-            a = max(0, 1 - p*1.8)                        # some a transparência rápido
+            a = int(max(0, 1 - p*1.8) * 255)             # transparência da letra (some rápido)
             y = topo + dy*(1 - p)
             ta = t0 + atraso + f*Q
-            dlg(3, ta, ta + Q + 0.001, 'K', f"{{\\an7\\pos({cx:.1f},{y:.1f})\\alpha&H{int(a*255):02X}&\\blur{(1-p)*6:.1f}{base_tag}}}{ch}")
-        dlg(3, t0 + atraso + n*Q, t1, 'K', f"{{\\an7\\pos({cx:.1f},{topo:.1f})\\fad(0,140){base_tag}}}{ch}")
+            dlg(2, ta, ta + Q + 0.001, 'K', f"{{\\an7\\pos({cx:.1f},{y:.1f}){tag}{sombra_tag(a)}}}{ch}")
+            dlg(4, ta, ta + Q + 0.001, 'K', f"{{\\an7\\pos({cx:.1f},{y:.1f}){tag}\\bord0\\shad0\\blur{(1-p)*4:.1f}\\1a&H{a:02X}&}}{ch}")
+        tf = t0 + atraso + n*Q
+        dlg(2, tf, t1, 'K', f"{{\\an7\\pos({cx:.1f},{topo:.1f})\\fad(0,140){tag}{sombra_tag(0)}}}{ch}")
+        dlg(4, tf, t1, 'K', f"{{\\an7\\pos({cx:.1f},{topo:.1f})\\fad(0,140){tag}\\bord0\\shad0}}{ch}")
     return w
 
 def ajusta_fs(txt, fonte, alvo, sp, fs_max):
