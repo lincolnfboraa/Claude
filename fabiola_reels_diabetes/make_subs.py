@@ -17,17 +17,17 @@ segs = json.load(open(os.path.join(here, 'timeline_render.json')))['segmentos']
 seg = {s['id']: s for s in segs}
 
 ROTEIRO = [
-    "Seu pai deve ter, | sua mãe deve ter, | seu avô deve ter, | o seu vizinho deve ter. | É uma *epidemia mundial*.",
+    "Seu pai deve ter, | sua mãe deve ter, | seu avô deve ter, | o seu vizinho deve ter. | É uma epidemia mundial.",
     "Nesse mês de novembro, | a gente tem uma data | muito importante, | que é o Dia Mundial | do Diabetes.",
     "Mas o diabetes | vai muito além | desse açúcar no sangue.",
     "O que esse diabetes | pode fazer no seu rim?",
     "A incidência de doença renal em pacientes diabéticos gira em torno de 30% a 40%.",
     "Vocês já viram falar | do fundo do olho | para o diabético? | O fundo do olho | é um exame | extremamente importante | em pacientes diabéticos | e ele reflete também a lesão renal. | Você sabia disso?",
     "Os vasos que têm | dentro do olho, | aqueles microvasos, | eles são parecidos | com os microvasos | que têm dentro do rim. | Quando a gente consegue | ver lesão nesses microvasos | no olho, | a gente já sabe | que tem lesão no rim.",
-    "As primeiras lesões de rim | acontecem com a | perda de proteína. | É aquela história | do *filtro de café* | que perde o pó. | Quando você perde esse pó, | você mostra que o teu rim, | o teu filtro, | não está íntegro, | ele tem furos a mais | que estão passando | o que não deveria passar.",
+    "As primeiras lesões de rim | acontecem com a | perda de proteína. | É aquela história | do filtro de café | que perde o pó. | Quando você perde esse pó, | você mostra que o teu rim, | o teu filtro, | não está íntegro, | ele tem furos a mais | que estão passando | o que não deveria passar.",
     "Às vezes, | a função continua normal, | mas você já tem o início | dessa doença renal.",
     "Lembrando que a doença renal | só começa a ter sintomas | quando a gente já perdeu mais de 60% da função.",
-    "A maioria das vezes | você não percebe, | você só vai perceber | no *exame de sangue*.",
+    "A maioria das vezes | você não percebe, | você só vai perceber | no exame de sangue.",
     "Hoje em dia, | nós temos inúmeras | medicações novas, | então nós temos | muitas coisas | para fazer por você.",
     "Então, a minha dica aqui | é de que você peça | para o teu médico | fazer um exame de urina | e um exame de creatinina | para você.",
 ]
@@ -223,6 +223,14 @@ destaque(["quando a gente já perdeu mais de 60% da função."], [
     dict(txt="60% da função", fonte='Inter Bold', papel='grande', cor=AZUL, alinh='c', cue='60', alvo=860, fs_max=260, sp=-8, letras=True, gap=10),
 ], fundo_y=FUNDO_DESTAQUE)
 
+# PALAVRA SOLTA (dinamismo): só a palavra-chave, grande, em serifa itálica creme, na posição dos letterings
+destaque(["É uma epidemia mundial."], [
+    dict(txt="epidemia mundial", fonte='Merriweather Black Italic', papel='grande', cor=AZUL, alinh='c', cue='epidemia', alvo=820, fs_max=230, sp=-2),
+], fundo_y=FUNDO_DESTAQUE)
+destaque(["do filtro de café"], [
+    dict(txt="filtro de café", fonte='Merriweather Black Italic', papel='grande', cor=AZUL, alinh='c', cue='filtro', alvo=780, fs_max=230, sp=-2),
+], fundo_y=FUNDO_DESTAQUE)
+
 # ---------- título: faixa no peito, como nos vídeos aprovados (cor do tema: azul do símbolo do diabetes) ----------
 AZUL_DIAB = '&H9C4F1B&'    # #1B4F9C
 t0, t1 = 0.0, seg[1]['out_end'] - 0.05
@@ -239,8 +247,7 @@ dlg(1, t0+0.3, t1, 'Card', f"{{\\an2\\pos(540,{by+bh-22:.0f}){FADE}\\fnPoppins\\
 # ---------- legendas comuns ----------
 for b in blocos:
     if b.get('oculto'): continue
-    # padrão: legenda sem pontos; *palavra* = destaque pontual em serifa itálica creme (Merriweather), um pouco maior
-    s = re.sub(r'\*(.+?)\*', lambda m: '{\\fnMerriweather Black Italic\\fs110\\fsp-1\\c' + AZUL + '}' + m.group(1) + '{\\r}', b['txt'].replace('.', ''))
+    s = b['txt'].replace('*', '').replace('.', '')   # padrão: legenda sem pontos
     dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}")
 
 head = """[Script Info]

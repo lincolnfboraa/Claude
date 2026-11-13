@@ -61,8 +61,8 @@ Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesita�
 ## 7b. Dinamismo (aprovado no vídeo de diabetes)
 - Não usar sempre o mesmo destaque: alternar entre Poppins com "pop", serifa itálica creme (Merriweather Black Italic, estilo do preset
   "lettering 24") e lettering letra a letra (preset "lettering 01": letras sobem juntas, com ease-out e sombra em camada separada).
-- Palavra solta: 2 a 3 vezes por vídeo, uma palavra-chave da legenda em serifa itálica creme (~25% maior), com o resto da frase em branco.
-  No roteiro de `make_subs.py`, marcar com *asteriscos*.
+- Palavra solta: 2 a 3 vezes por vídeo, só a palavra-chave, grande, em serifa itálica creme (Merriweather Black Italic),
+  na mesma posição dos letterings (altura da legenda), sem linhas pequenas. Não é dentro da legenda.
 
 ## 8. O que não usar
 - Bloco com o nome da médica.

@@ -9,7 +9,8 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.
 - No máximo 3 ou 4 frases de destaque, com linhas coladas e a palavra principal em creme #C8B9A7.
 - **Dinamismo:** variar o estilo dos destaques no mesmo vídeo (Poppins pop, serifa itálica creme Merriweather Black Italic, lettering letra a letra)
-  e, de vez em quando (2 a 3 por vídeo), destacar só uma palavra-chave dentro da legenda em serifa itálica creme, um pouco maior.
+  e, de vez em quando (2 a 3 por vídeo), uma **palavra solta**: só a palavra-chave, grande, em serifa itálica creme, na posição dos letterings
+  (não dentro da legenda).
 - Título no estilo dos posts dela: caixa marinho #0F1C4A com serifa + caixinha bege #C8B9A7 com itálico.
 - Primeiras versões e validações em 480p (480x854, `render.py ... 854`), de preferência por trechos curtos; qualidade cheia só na final aprovada.
 - Roteiro e ganchos: seguir `fabiola_reels_energeticos/ANALISE_REFERENCIAS.md` e `GUIA_ROTEIRO_GRAVACAO.md`.
