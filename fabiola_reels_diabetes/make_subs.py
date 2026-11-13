@@ -82,6 +82,8 @@ FONTES = {  # nome ASS -> (arquivo, fator de escala libass medido, topo das mai�
     'Poppins ExtraBold': ('Poppins-ExtraBold.ttf', 0.557, 0.24, 0.628),
     'Poppins Black': ('Poppins-Black.ttf', 0.5565, 0.24, 0.628),
     'Playfair Display': ('PlayfairDisplay.ttf', 0.7037, 0.32, 0.818),
+    'Inter': ('/usr/share/fonts/opentype/inter/Inter-Regular.otf', 0.8116, 0.185, 0.775),      # substituta gratuita da Helvetica Neue
+    'Inter Bold': ('/usr/share/fonts/opentype/inter/Inter-Bold.otf', 0.8108, 0.185, 0.775),
 }
 _pil = {}
 def largura(txt, fonte, fs, sp=0):
@@ -106,9 +108,26 @@ def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slid
     else:                  # desliza 24 px de baixo pra cima
         an, xx = {'l': (7, x), 'r': (9, x), 'c': (8, x)}[alinh]
         anim = f"\\an{an}\\move({xx:.0f},{topo+24:.0f},{xx:.0f},{topo:.0f},0,180)"
-    fn = '\\fnPoppins\\b1' if fonte == 'Poppins Bold' else f'\\fn{fonte}\\b0'
+    fn = {'Poppins Bold': '\\fnPoppins\\b1', 'Inter Bold': '\\fnInter\\b1'}.get(fonte, f'\\fn{fonte}\\b0')
     sombra = SOMBRA_MARINHO if cor == NAVY else SOMBRA
     dlg(3, t0, t1, 'K', f"{{{anim}\\fad(110,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}}}{txt}")
+    return w
+
+import random
+def linha_letras(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, semente=7):
+    """Recria o preset 'lettering 01' do CapCut: cada letra sobe de uma altura aleatória (0,6 s), com fade,
+    e entra em cascata. Posição de cada letra pela largura acumulada do texto."""
+    rnd = random.Random(semente + len(txt))
+    w = largura(txt, fonte, fs, sp)
+    esq = {'l': x, 'r': x - w, 'c': x - w/2}[alinh]
+    topo = base_y - FONTES[fonte][3]*fs
+    fn = {'Poppins Bold': '\\fnPoppins\\b1', 'Inter Bold': '\\fnInter\\b1'}.get(fonte, f'\\fn{fonte}\\b0')
+    sombra = SOMBRA_MARINHO if cor == NAVY else SOMBRA
+    for i, ch in enumerate(txt):
+        if ch == ' ': continue
+        cx = esq + (largura(txt[:i] + 'x', fonte, fs, sp) - largura('x', fonte, fs, 0) if i else 0)
+        d0 = int(i*28 + rnd.uniform(0, 60)); dy = rnd.uniform(0.35, 1.1)*fs*0.55
+        dlg(3, t0, t1, 'K', f"{{\\an7\\move({cx:.0f},{topo+dy:.0f},{cx:.0f},{topo:.0f},{d0},{d0+600})\\alpha&HFF&\\t({d0},{d0+320},\\alpha&H00&)\\fad(0,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}}}{ch}")
     return w
 
 def ajusta_fs(txt, fonte, alvo, sp, fs_max):
@@ -119,11 +138,13 @@ def ajusta_fs(txt, fonte, alvo, sp, fs_max):
 BAIXA = set('acemnorsuvwxz .,?!:;-–')   # letras sem haste/acento: topo na altura-x
 DESC = set('gjpqyç')                      # letras com haste descendente
 ACENTO_MAI = set('ÃÕÁÉÍÓÚÂÊÔÀ')           # maiúsculas acentuadas: o acento sobe acima da altura da maiúscula
-def topo_glifo(txt, fs):   # distância da linha de base até o topo visível da linha
-    if any(c in ACENTO_MAI for c in txt): return 0.50 * fs
-    return (0.388 if any(c not in BAIXA for c in txt) else 0.305) * fs
-def desc_glifo(txt, fs):   # quanto a linha desce abaixo da base
-    return 0.10*fs if any(c in DESC for c in txt) else 0.0
+def capf(fonte): return FONTES.get(fonte, FONTES['Poppins SemiBold'])[3] - FONTES.get(fonte, FONTES['Poppins SemiBold'])[2]
+def topo_glifo(txt, fs, fonte='Poppins SemiBold'):   # distância da linha de base até o topo visível da linha
+    c = capf(fonte)
+    if any(ch in ACENTO_MAI for ch in txt): return 1.29 * c * fs
+    return (c if any(ch not in BAIXA for ch in txt) else 0.78 * c) * fs
+def desc_glifo(txt, fs, fonte='Poppins SemiBold'):   # quanto a linha desce abaixo da base
+    return 0.26 * capf(fonte) * fs if any(ch in DESC for ch in txt) else 0.0
 
 def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6, fundo_y=None):
     """Frase de destaque: linhas empilhadas de cima pra baixo, cada uma ENCOSTADA na anterior
@@ -142,21 +163,24 @@ def destaque(chunk_txts, linhas, centro_y=1010, alvo=830, centro_x=540, gap=6, f
     # empilhamento vertical colado
     y, topo_bloco = 0.0, None
     for i, L in enumerate(linhas):
-        alto = topo_glifo(L['txt'], L['fs'])
+        alto = topo_glifo(L['txt'], L['fs'], L['fonte'])
         if i == 0:
             L['base'] = alto; topo_bloco = 0.0
         else:
             P = linhas[i-1]
-            L['base'] = P['base'] + desc_glifo(P['txt'], P['fs'])*0.6 + L.get('gap', gap) + alto
-    fundo = linhas[-1]['base'] + desc_glifo(linhas[-1]['txt'], linhas[-1]['fs'])
+            L['base'] = P['base'] + desc_glifo(P['txt'], P['fs'], P['fonte'])*0.6 + L.get('gap', gap) + alto
+    fundo = linhas[-1]['base'] + desc_glifo(linhas[-1]['txt'], linhas[-1]['fs'], linhas[-1]['fonte'])
     desloc = (fundo_y - fundo) if fundo_y else (centro_y - fundo/2)   # fundo_y: ancora a base do bloco (altura da legenda)
     ref = max((L for L in linhas if L['papel'] == 'grande'), key=lambda L: L['w'])
     esq, dir_ = centro_x - ref['w']/2, centro_x + ref['w']/2
     for L in linhas:
         x = {'l': esq + L.get('dx', 0), 'r': dir_ - L.get('dx', 0), 'c': centro_x}[L['alinh']]
         tc = word_start(L['cue'], t0) - 0.04 if L.get('cue') else t0
-        linha(tc, t1, L['txt'], L['fonte'], L['fs'], L['cor'], x, L['base'] + desloc, L['alinh'], L['sp'],
-              'pop' if L['papel'] == 'grande' else 'slide')
+        if L.get('letras'):
+            linha_letras(tc, t1, L['txt'], L['fonte'], L['fs'], L['cor'], x, L['base'] + desloc, L['alinh'], L['sp'])
+        else:
+            linha(tc, t1, L['txt'], L['fonte'], L['fs'], L['cor'], x, L['base'] + desloc, L['alinh'], L['sp'],
+                  'pop' if L['papel'] == 'grande' else 'slide')
     return t0, t1
 
 BR = '&HFFFFFF&'
@@ -171,11 +195,10 @@ destaque(["e ele reflete também a lesão renal."], [
     dict(txt="o fundo do olho reflete", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='reflete', dx=6),
     dict(txt="LESÃO RENAL", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='lesão', alvo=820),
 ], fundo_y=FUNDO_DESTAQUE)
-# 3) VIRADA "quando já perdeu mais de / 60% / da função"
+# 3) VIRADA no estilo do preset "lettering 01" (Helvetica -> Inter, letras juntas, subida aleatória letra a letra)
 destaque(["quando a gente já perdeu mais de 60% da função."], [
-    dict(txt="já perdeu mais de", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='c', cue='perdeu'),
-    dict(txt="60%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='60', alvo=520, fs_max=420),
-    dict(txt="da função", fonte='Poppins Bold', papel='pequena', cor=BR, alinh='c', cue='função', gap=2),
+    dict(txt="já perdeu mais de", fonte='Inter', papel='pequena', cor=BR, alinh='c', cue='perdeu', fs=96, sp=-3, letras=True),
+    dict(txt="60% da função", fonte='Inter Bold', papel='grande', cor=AZUL, alinh='c', cue='60', alvo=860, fs_max=260, sp=-8, letras=True, gap=10),
 ], fundo_y=FUNDO_DESTAQUE)
 
 # ---------- título: faixa no peito, como nos vídeos aprovados (cor do tema: azul do símbolo do diabetes) ----------
