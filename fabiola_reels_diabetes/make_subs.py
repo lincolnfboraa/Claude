@@ -305,9 +305,9 @@ for ci, b in enumerate(blocos):
         dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnInter\\b0\\fs64\\fsp-2\\c&HFFFFFF&{SH_LEG}}}{partes.strip()}")
     elif modo == 'forte':     # negrito médio, entra inteira com um pop curto
         dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnPoppins\\b1\\fs118\\fsp-3\\c&HFFFFFF&{SH_LEG}\\fscx90\\fscy90\\t(0,90,\\fscx100\\fscy100)}}{s}")
-    elif modo == 'gigante':   # negrito enorme ocupando a largura
-        fs = ajusta_fs(s, 'Poppins Black', 1000, -4, 300)
-        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG+10})\\fnPoppins Black\\fs{fs}\\fsp-4\\c&HFFFFFF&{SH_LEG}\\fscx86\\fscy86\\t(0,110,\\fscx100\\fscy100)}}{s}")
+    elif modo == 'gigante':   # negrito médio um pouco maior que o 'forte'
+        fs = ajusta_fs(s, 'Poppins Black', 760, -3, 150)   # médio (não estoura a largura)
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG+10})\\fnPoppins Black\\fs{fs}\\fsp-3\\c&HFFFFFF&{SH_LEG}\\fscx86\\fscy86\\t(0,110,\\fscx100\\fscy100)}}{s}")
     else:                     # espaçada: palavras afastadas, uma a uma
         partes = '\\h\\h\\h\\h'.join(f"{{\\alpha&HFF&\\t({int((t['s']-b['s'])*1000)},{int((t['s']-b['s'])*1000)+90},\\alpha&H00&)}}{t['tok'].replace('.', '')}" for t in pal)
         dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnInter\\b0\\fs84\\fsp-1\\c&HFFFFFF&{SH_LEG}}}{partes}")
