@@ -24,16 +24,16 @@ def prepara(arq, largura):
     base.alpha_composite(sh.filter(ImageFilter.GaussianBlur(largura * 0.04)))
     base.alpha_composite(im, (pad, pad))
     return base
-OLHO = prepara('olho_3d_recorte.png', 500 * k)
-RIM = prepara('rim_3d_recorte.png', 400 * k)
+OLHO = prepara('olho_3d_recorte.png', 390 * k)
+RIM = prepara('rim_3d_recorte.png', 320 * k)
 
 def ease_out(x): x = max(0.0, min(1.0, x)); return 1 - (1 - x) ** 3
 def ease_in(x): x = max(0.0, min(1.0, x)); return x ** 3
 
 os.makedirs(out, exist_ok=True)
 #           imagem  entra  centro final (x, y)      vem de      giro inicial  fase
-OBJ = [(OLHO, t_olho, (150 * k, 470 * k), -1, -14, 0.0),
-       (RIM, t_rim, (950 * k, 520 * k), +1, 12, 1.9)]
+OBJ = [(OLHO, t_olho, (118 * k, 450 * k), -1, -14, 0.0),
+       (RIM, t_rim, (985 * k, 500 * k), +1, 12, 1.9)]
 for i in range(int(DUR * FPS)):
     t = i / FPS
     fr = Image.new('RGBA', (OW, OH), (0, 0, 0, 0))
