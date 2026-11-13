@@ -58,6 +58,12 @@ Manter a personalidade dela ("tá?", "menina!", "por favor"); cortar só hesita�
 - Posição: na altura da legenda, um pouco acima. A do gancho pode ficar no peito, desde que não cubra o objeto que ela mostra.
 - Enquanto o destaque está na tela, a legenda comum daquele trecho some.
 
+## 7b. Dinamismo (aprovado no vídeo de diabetes)
+- Não usar sempre o mesmo destaque: alternar entre Poppins com "pop", serifa itálica creme (Merriweather Black Italic, estilo do preset
+  "lettering 24") e lettering letra a letra (preset "lettering 01": letras sobem juntas, com ease-out e sombra em camada separada).
+- Palavra solta: 2 a 3 vezes por vídeo, uma palavra-chave da legenda em serifa itálica creme (~25% maior), com o resto da frase em branco.
+  No roteiro de `make_subs.py`, marcar com *asteriscos*.
+
 ## 8. O que não usar
 - Bloco com o nome da médica.
 - Azul vivo ou azul-marinho nas palavras em destaque.
