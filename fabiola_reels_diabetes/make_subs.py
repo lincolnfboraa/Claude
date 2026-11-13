@@ -280,10 +280,37 @@ b2 = b1 + 16 + capf_('Merriweather Black Italic', fsM); tit(t0+0.15, 'Merriweath
 b3 = b2 + capf_('Poppins SemiBold', fsQ)*0.78 + 26; tit(t0+0.3, 'Poppins SemiBold', sub, fsQ, -1, b3, BR)
 
 # ---------- legendas comuns ----------
-for b in blocos:
+LEGENDA_DINAMICA = os.environ.get('LEGENDA_DINAMICA') == '1'
+Y_LEG = 1920 - 345                     # linha de base da legenda (mesma zona segura do Reels)
+SH_LEG = '\\bord1\\3a&HFF&\\shad3\\4c&H000000&\\4a&H70&\\blur4'
+_ciclo = {'curta': 0, 'media': 0}
+def modo_legenda(ci, n_pal, txt):
+    """Jogo de legendas: alterna fina (palavra por palavra), forte, gigante e espaçada, por fala."""
+    if n_pal <= 2:
+        _ciclo['curta'] += 1
+        return ['forte', 'espacada', 'gigante'][_ciclo['curta'] % 3] if len(txt) <= 18 else 'forte'
+    if n_pal == 3:
+        _ciclo['media'] += 1
+        return 'gigante' if _ciclo['media'] % 3 == 0 and len(txt) <= 20 else 'forte'
+    return 'fina'
+for ci, b in enumerate(blocos):
     if b.get('oculto'): continue
     s = b['txt'].replace('*', '').replace('.', '')   # padrão: legenda sem pontos
-    dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}")
+    if not LEGENDA_DINAMICA:
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}"); continue
+    pal = [t for t in tokens if t['ci'] == ci]
+    modo = modo_legenda(ci, len(pal), s)
+    if modo == 'fina':        # pequena e leve, a frase se monta palavra por palavra
+        partes = ''.join(f"{{\\alpha&HFF&\\t({int((t['s']-b['s'])*1000)},{int((t['s']-b['s'])*1000)+90},\\alpha&H00&)}}{t['tok'].replace('.', '').replace('*', '')} " for t in pal)
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnInter\\b0\\fs64\\fsp-2\\c&HFFFFFF&{SH_LEG}}}{partes.strip()}")
+    elif modo == 'forte':     # negrito médio, entra inteira com um pop curto
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnPoppins\\b1\\fs118\\fsp-3\\c&HFFFFFF&{SH_LEG}\\fscx90\\fscy90\\t(0,90,\\fscx100\\fscy100)}}{s}")
+    elif modo == 'gigante':   # negrito enorme ocupando a largura
+        fs = ajusta_fs(s, 'Poppins Black', 1000, -4, 300)
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG+10})\\fnPoppins Black\\fs{fs}\\fsp-4\\c&HFFFFFF&{SH_LEG}\\fscx86\\fscy86\\t(0,110,\\fscx100\\fscy100)}}{s}")
+    else:                     # espaçada: palavras afastadas, uma a uma
+        partes = '\\h\\h\\h\\h'.join(f"{{\\alpha&HFF&\\t({int((t['s']-b['s'])*1000)},{int((t['s']-b['s'])*1000)+90},\\alpha&H00&)}}{t['tok'].replace('.', '')}" for t in pal)
+        dlg(2, b['s'], b['e'], 'Sub', f"{{\\an2\\pos(540,{Y_LEG})\\fnInter\\b0\\fs84\\fsp-1\\c&HFFFFFF&{SH_LEG}}}{partes}")
 
 head = """[Script Info]
 ScriptType: v4.00+
