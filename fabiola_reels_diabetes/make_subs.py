@@ -210,6 +210,34 @@ destaque(["A incidência de doença renal em pacientes diabéticos gira em torno
     dict(txt="doença renal em diabéticos", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='doença', dx=6, fs=104),
     dict(txt="30% a 40%", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='30', alvo=780),
 ], fundo_y=FUNDO_DESTAQUE)
+# 1b) bonequinhos acendendo junto do destaque "30% a 40%" (na mesma área do lettering, sem tela separada)
+def boneco(x, y, s):
+    """silhueta de pessoa (cabeça + tronco) em desenho ASS, canto superior esquerdo em (x,y), altura ~ 100*s"""
+    r = 17*s; cx = x + 30*s; cy = y + r
+    c = 0.552*r
+    cab = (f"m {cx:.1f} {cy-r:.1f} b {cx+c:.1f} {cy-r:.1f} {cx+r:.1f} {cy-c:.1f} {cx+r:.1f} {cy:.1f} "
+           f"b {cx+r:.1f} {cy+c:.1f} {cx+c:.1f} {cy+r:.1f} {cx:.1f} {cy+r:.1f} b {cx-c:.1f} {cy+r:.1f} {cx-r:.1f} {cy+c:.1f} {cx-r:.1f} {cy:.1f} "
+           f"b {cx-r:.1f} {cy-c:.1f} {cx-c:.1f} {cy-r:.1f} {cx:.1f} {cy-r:.1f}")
+    t0y = y + 2*r + 7*s; t1y = y + 100*s
+    tronco = (f" m {x:.1f} {t1y:.1f} l {x:.1f} {t0y+24*s:.1f} b {x:.1f} {t0y+6*s:.1f} {x+12*s:.1f} {t0y:.1f} {x+30*s:.1f} {t0y:.1f} "
+              f"b {x+48*s:.1f} {t0y:.1f} {x+60*s:.1f} {t0y+6*s:.1f} {x+60*s:.1f} {t0y+24*s:.1f} l {x+60*s:.1f} {t1y:.1f}")
+    return cab + tronco
+_ix = [i for i, b in enumerate(blocos) if b['txt'].startswith('A incidência')][0]
+tb0 = blocos[_ix]['s'] - 0.05
+tb1 = blocos[_ix+1]['s'] if _ix+1 < len(blocos) else FIM
+t30, t40 = word_start('30', tb0), word_start('40', tb0)
+esp, s_ = 80, 0.95
+x0 = 540 - (9*esp + 60*s_)/2; ytop = 1172
+for i in range(10):
+    xi = x0 + i*esp
+    ent = int((i*45))           # entrada em cascata
+    base_tag = f"{{\\an7\\pos({xi:.0f},{ytop})\\org({xi+30*s_:.0f},{ytop+50*s_:.0f})\\bord0\\shad3\\4c&H000000&\\4a&HA0&\\fscx100\\fscy100\\1c&HFFFFFF&\\1a&HFF&\\t({ent},{ent+250},\\1a&HB4&)"
+    if i < 4:
+        ta = (t30 if i < 3 else t40) - tb0 + (i % 3)*0.12
+        ms = int(ta*1000)
+        base_tag += f"\\t({ms},{ms+160},\\1c{AZUL}\\1a&H00&\\4a&H50&\\fscx112\\fscy112)\\t({ms+160},{ms+320},\\fscx100\\fscy100)"
+    dlg(3, tb0, tb1, 'K', base_tag + f"\\fad(0,180)\\p1}}{boneco(0, 0, s_)}")
+
 # 2) CURIOSIDADE no estilo do preset "lettering 24": serifa itálica pesada (Merriweather Black Italic) em creme,
 #    pequenas em sans nas pontas, linhas coladas
 destaque(["e ele reflete também a lesão renal.", "Você sabia disso?"], [
