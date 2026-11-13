@@ -114,20 +114,31 @@ def linha(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, entrada='slid
     return w
 
 import random
-def linha_letras(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, semente=7):
-    """Recria o preset 'lettering 01' do CapCut: cada letra sobe de uma altura aleatória (0,6 s), com fade,
-    e entra em cascata. Posição de cada letra pela largura acumulada do texto."""
+def linha_letras(t0, t1, txt, fonte, fs, cor, x, base_y, alinh='l', sp=0, semente=7, dur=0.55):
+    """Recria o preset 'lettering 01' do CapCut ('Subida aleatória' + 'Deslizar para cima' + fade):
+    todas as letras sobem JUNTAS, cada uma com atraso e altura aleatórios pequenos, com curva de desaceleração
+    (ease-out) e desfoque que some. Calculado quadro a quadro (30 fps) porque o \\move do ASS é linear."""
     rnd = random.Random(semente + len(txt))
     w = largura(txt, fonte, fs, sp)
     esq = {'l': x, 'r': x - w, 'c': x - w/2}[alinh]
     topo = base_y - FONTES[fonte][3]*fs
     fn = {'Poppins Bold': '\\fnPoppins\\b1', 'Inter Bold': '\\fnInter\\b1'}.get(fonte, f'\\fn{fonte}\\b0')
     sombra = SOMBRA_MARINHO if cor == NAVY else SOMBRA
+    base_tag = f"{fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}"
+    Q = 1/30
     for i, ch in enumerate(txt):
         if ch == ' ': continue
         cx = esq + (largura(txt[:i] + 'x', fonte, fs, sp) - largura('x', fonte, fs, 0) if i else 0)
-        d0 = int(i*28 + rnd.uniform(0, 60)); dy = rnd.uniform(0.35, 1.1)*fs*0.55
-        dlg(3, t0, t1, 'K', f"{{\\an7\\move({cx:.0f},{topo+dy:.0f},{cx:.0f},{topo:.0f},{d0},{d0+600})\\alpha&HFF&\\t({d0},{d0+320},\\alpha&H00&)\\fad(0,140){fn}\\fs{fs}\\fsp{sp}\\c{cor}{sombra}}}{ch}")
+        atraso = rnd.uniform(0, 0.16)
+        dy = fs * (0.22 + rnd.uniform(0, 0.38))          # altura aleatória de partida
+        n = int(dur / Q)
+        for f in range(n):
+            p = 1 - (1 - (f + 1)/n) ** 3                 # ease-out cúbico
+            a = max(0, 1 - p*1.8)                        # some a transparência rápido
+            y = topo + dy*(1 - p)
+            ta = t0 + atraso + f*Q
+            dlg(3, ta, ta + Q + 0.001, 'K', f"{{\\an7\\pos({cx:.1f},{y:.1f})\\alpha&H{int(a*255):02X}&\\blur{(1-p)*6:.1f}{base_tag}}}{ch}")
+        dlg(3, t0 + atraso + n*Q, t1, 'K', f"{{\\an7\\pos({cx:.1f},{topo:.1f})\\fad(0,140){base_tag}}}{ch}")
     return w
 
 def ajusta_fs(txt, fonte, alvo, sp, fs_max):
