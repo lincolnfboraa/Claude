@@ -119,6 +119,9 @@ textarea{width:100%;min-height:96px;border:0;border-radius:14px;background:var(-
 .prev{border-radius:16px;padding:18px 14px;text-align:center;background:linear-gradient(170deg,#4A6A8E,#1B3350 70%);font-size:15px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
 .prev em{font:italic 900 22px Georgia,serif;display:block;margin-top:4px}
 .rola{max-height:calc(62px * 5);overflow-y:auto;overscroll-behavior:contain;scroll-snap-type:y proximity}.rola .row{min-height:62px;scroll-snap-align:start}
+.hcli{display:flex;gap:6px;overflow-x:auto;margin:0 -16px;padding:4px 16px 6px;scroll-snap-type:x proximity;scrollbar-width:none}.hcli::-webkit-scrollbar{display:none}
+.hc{flex:0 0 76px;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;text-align:center;line-height:1.25;color:var(--sub)}
+.hc .av{width:54px;height:54px;font-size:16px;transition:box-shadow .2s}.hc.on{color:var(--txt);font-weight:600}.hc.on .av{box-shadow:0 0 0 2px var(--bg2),0 0 0 4px var(--orange)}
 .empty{color:var(--sub);font-size:14px;padding:14px}
 @media (prefers-reduced-motion:reduce){.view,.sheet,.toast,.dim{transition:none}}
 </style>
@@ -210,7 +213,7 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.cor
  return `<div class="opts">${ops.map(x=>`<button class="op ${x.toLowerCase()===atual.toLowerCase()?'on':''}" style="background:${x}" data-cor="${k}:${x}" aria-label="Cor ${x}"></button>`).join('')}
  <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
 function sheetNova(pre){if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}const c=cli(S.novaCli);if(!S.cores)S.cores={...c.texto};return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Nova edição</b><button data-iniciar>Iniciar</button></div>
- <h3>Cliente</h3><div class="group">${DB.clientes.map(x=>`<button class="row" data-nc="${x.id}"><span class="av ${x.cls}">${x.ini}</span><span class="tx"><b>${x.nome}</b><small>${x.area}</small></span>${x.id===S.novaCli?'<span class="check">✓</span>':''}</button>`).join('')}</div>
+ <h3>Cliente</h3><div class="hcli" id="hcli">${DB.clientes.map(x=>`<button class="hc ${x.id===S.novaCli?'on':''}" data-nc="${x.id}"><span class="av ${x.cls}">${x.ini}</span><span>${x.nome}</span></button>`).join('')}</div>
  <h3>Vídeo bruto</h3><label class="drop" for="arq">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}<b id="arqn">${S.arqn||'Escolher do iPhone'}</b>ou puxar da pasta ${c.nome.split(' ').pop()} no Drive</label><input type="file" id="arq" accept="video/*" hidden>
  <h3>Cores do texto</h3><div class="group" style="padding:14px">
   <div class="prev"><span style="color:${S.cores.leg}">o que esse canudinho tem a ver</span><em style="color:${S.cores.dest}">canudinho</em></div>
@@ -259,7 +262,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.rmdna){lerDraft();S.draft.dna.splice(+d.rmdna,1);$('#sheet').innerHTML=sheetEditar()}
  else if(d.rmreg){lerDraft();S.draft.regras.splice(+d.rmreg,1);$('#sheet').innerHTML=sheetEditar()}
  else if('salvar' in d){lerDraft();Object.assign(cli(S.draftId),S.draft);if(S.novaCli===S.draftId)S.cores=null;close();render();toast('Cliente atualizado')}
- else if(d.nc){if(d.nc!==S.novaCli){S.novaCli=d.nc;S.cores=null}$('#sheet').innerHTML=sheetNova()}
+ else if(d.nc){if(d.nc!==S.novaCli){S.novaCli=d.nc;S.cores=null}const x=$('#hcli').scrollLeft;$('#sheet').innerHTML=sheetNova();const h=$('#hcli');h.scrollLeft=x;const o=h.querySelector('.on');if(o){const l=o.offsetLeft-16,r=o.offsetLeft+o.offsetWidth-h.clientWidth+16;if(h.scrollLeft>l)h.scrollTo({left:l,behavior:'smooth'});else if(h.scrollLeft<r)h.scrollTo({left:r,behavior:'smooth'})}}
  else if('iniciar' in d){const n=($('#arqn').textContent.startsWith('Escolher')?'Novo vídeo':$('#arqn').textContent);
   const v={id:'n'+Date.now(),cli:S.novaCli,cores:{...S.cores},t:'Novo vídeo',tema:n.slice(0,12),sub:'em edição',dur:'—',st:'run',v:1,prog:.05,hist:[]};DB.videos.unshift(v);close();
   S.tab='inicio';S.stack=[{v:'inicio'}];render();toast('Editando no padrão '+cli(v.cli).nome.split(' ').slice(0,2).join(' '));andar(v)}
