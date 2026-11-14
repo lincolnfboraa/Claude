@@ -138,6 +138,11 @@ textarea{width:100%;min-height:96px;border:0;border-radius:14px;background:var(-
 .acoes .capbtn{padding:12px}.tag.info{color:var(--txt);cursor:pointer}
 .rolav{max-height:290px;overflow-y:auto;overscroll-behavior:contain}
 a.row{color:inherit;text-decoration:none}
+.stbtn{display:flex;align-items:center;gap:7px;height:34px;padding:0 12px;border-radius:17px;background:var(--cell);font-size:12.5px;font-weight:600;color:var(--sub)}
+.stbtn svg{width:15px;height:15px;stroke:var(--ok)}.stbtn.on{background:rgba(255,97,21,.16);color:var(--txt)}
+.spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,97,21,.35);border-top-color:var(--orange);animation:gira .9s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+.barra{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden}.barra i{display:block;height:100%;background:var(--orange);border-radius:3px;transition:width .6s}
 .empty{color:var(--sub);font-size:14px;padding:14px}
 @media (prefers-reduced-motion:reduce){.view,.sheet,.toast,.dim{transition:none}}
 </style>
@@ -200,7 +205,15 @@ const prov=c=>c.status!=='base_confirmada';
 const pillDNA=c=>prov(c)?'<span class="dnap pv">DNA provisório</span>':'<span class="dnap okp">Base confirmada</span>';
 const ORIGEM={observada_em_aprovados:'observada nos aprovados',observada_validar:'observada, a validar',pendente:'pendente: aguardando arquivos oficiais',aprovado:'aprovado'};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2400)}
-const rot=v=>v.media&&v.media.andamento&&v.st!=='wait'?v.media.andamento:(v.st==='ok'&&!(vatual(v)||{}).final&&!(v.media||{}).final_pronto?'Aprovado · 4K na fila':ST[v.st][0]);
+const emProducao=()=>todos().filter(v=>v.st==='run'||(v.st==='ok'&&!(vatual(v)||{}).final&&!(v.media||{}).final_pronto));
+const pct=v=>{const p=(v.media||{}).progresso;return typeof p==='number'?Math.max(0,Math.min(100,Math.round(p))):null};
+function btnStatus(){const n=emProducao().length;return `<button class="stbtn ${n?'on':''}" data-status aria-label="Status das edições">${n?'<span class="spin"></span>':SV('<path d="M5 12l4 4L19 6"/>')}<span>${n?n+' em produção':'Tudo pronto'}</span></button>`}
+function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:52px"></span><b>Em produção</b><button data-close>OK</button></div>
+ ${l.length?`<div class="group">${l.map(v=>{const p=pct(v),m=v.media||{},fin=v.st==='ok';return `<button class="row" data-stgo="${v.id}"><span class="tx"><b>${esc(v.tema)} <span style="color:var(--sub);font-weight:400">· ${esc(cli(v.cli).nome)}</span></b>
+  <small>${esc(m.andamento||(fin?'4K na fila':'v'+vatual(v).n+' na fila'))}${p!=null?' · '+p+'%':''}</small><span class="barra"><i style="width:${p!=null?p:0}%"></i></span></span>${ic.chev}</button>`}).join('')}</div>
+  <p class="note2">A porcentagem avança a cada etapa (transcrição, cortes, textos, render). O app confere sozinho a cada 20 segundos.</p>`
+ :'<div class="group empty">Nenhum vídeo em produção agora.</div>'}`}
+const rot=v=>v.media&&v.media.andamento&&v.st!=='wait'?(pct(v)!=null?pct(v)+'% · ':'')+v.media.andamento:(v.st==='ok'&&!(vatual(v)||{}).final&&!(v.media||{}).final_pronto?'Aprovado · 4K na fila':ST[v.st][0]);
 function cover(v,big){return `<div class="cover ${v.c2?'c2':''}"><span class="st pillst ${ST[v.st][1]}">${rot(v)}</span>
  <div class="tt">${esc(v.t).toUpperCase()}<i>${esc(v.tema)}</i><span>${esc(v.sub)}</span></div>${big?'<button class="play" data-play="'+v.id+'" aria-label="Reproduzir">'+SV('<path d="M8 5l11 7-11 7z" fill="#fff" stroke="none"/>')+'</button>':''}</div>`}
 function reel(v){return `<button class="reel" data-push="video:${v.id}">${cover(v)}<b>${esc(v.tema)}</b><small>${esc(cli(v.cli).nome)} · v${v.versoes.length}</small></button>`}
@@ -219,7 +232,7 @@ const V={
  carregando(){return `<div class="nav"><img class="brand" src="${LOGO}" alt="Bora soluções digitais"><span></span></div><p class="lead" style="margin-top:30px">Carregando os perfis dos clientes…</p>`},
  erro(){return `<div class="nav"><img class="brand" src="${LOGO}" alt="Bora soluções digitais"><span></span></div><p class="lead" style="margin-top:30px">Não consegui carregar os dados do Supabase. Confira a internet e se seu usuário está na tabela equipe.</p>`},
  inicio(){const t=todos(),w=t.filter(v=>v.st==='wait'),r=t.filter(v=>v.st==='run');
-  return `<div class="nav"><img class="brand" src="${LOGO}" alt="Bora soluções digitais"><button class="round" aria-label="Notificações">${SV('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/>')}</button></div>
+  return `<div class="nav"><img class="brand" src="${LOGO}" alt="Bora soluções digitais">${btnStatus()}</div>
   <button class="cta" data-sheet="nova" style="margin-top:8px"><span class="p">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}</span><span><b>Nova edição</b><small>Sobe o bruto, volta a prévia em 480p</small></span></button>
   ${w.length||r.length?`<h3>Na sua mesa</h3><div class="reels">${[...w,...r].map(reel).join('')}</div>`:''}
   <h3>Clientes <button data-tab="clientes">Ver todos</button></h3><div class="group rola">${DB.clientes.map(cliRow).join('')}</div>`},
@@ -354,6 +367,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.aprovar){const v=vid(d.aprovar);(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));await recarregar();toast('Aprovado. Final sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})()}
  else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado no Supabase':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
  else if('sair' in d){sb.auth.signOut().then(()=>{S.stack=[{v:'login'}];render()})}
+ else if('status' in d){sheet(sheetStatus())}
+ else if(d.stgo){close();S.stack.push({v:'video:'+d.stgo});render('push')}
  else if(d.info){const v=vid(d.info),m=v.media||{};sheet(`<div class="grab"></div><div class="sh"><span style="width:52px"></span><b>Mídia original</b><button data-close>OK</button></div>
   <div class="group">${par('Arquivo',m.arq||'—')}${par('Resolução',m.res||'Inspecionando')}${par('Quadros',m.fps||'—')}${par('Cor',m.cor||'—')}${par('Preservação','Cor, pele, rosto e enquadramento como gravados; sem filtro ou suavização')}${par('Final','Renderizado de novo a partir dos originais, na resolução nativa')}</div>`)}
  else if(d.play){const v=vid(d.play),a=vatual(v);if(!a.previa)return toast('A prévia da v'+a.n+' ainda não foi enviada');
@@ -366,7 +381,8 @@ document.addEventListener('change',e=>{if(e.target.id==='upprev'&&e.target.files
    await q(sb.from('versoes').update({previa_path:path}).eq('id',a.id));await recarregar();toast('Prévia da v'+a.n+' enviada')})();return}
 if(e.target.id==='arq'&&e.target.files[0]){S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
  if(e.target.dataset.cc){S.cores[e.target.dataset.cc]=e.target.value;$('#sheet').innerHTML=sheetNova()}});
-setInterval(()=>{if(document.hidden||!DB.clientes.length||$('#sheet').classList.contains('on')||S.stack[S.stack.length-1].v.startsWith('login'))return;if($('#vid video'))return;
+setInterval(()=>{if(!document.hidden&&DB.clientes.length&&$('#sheet [data-stgo]')){carregarTudo().then(()=>{$('#sheet').innerHTML=sheetStatus()}).catch(()=>{});return}
+ if(document.hidden||!DB.clientes.length||$('#sheet').classList.contains('on')||S.stack[S.stack.length-1].v.startsWith('login'))return;if($('#vid video'))return;
  const el=$('#stack').lastElementChild,sc=el?el.scrollTop:0;carregarTudo().then(()=>{render();const n=$('#stack').lastElementChild;if(n)n.scrollTop=sc}).catch(()=>{})},20000);
 async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:'inicio'}];render()}catch(e){S.stack=[{v:'erro'}];render()}}
 sb.auth.getSession().then(({data})=>{if(data.session)iniciar();else{S.stack=[{v:'login'}];render()}});
