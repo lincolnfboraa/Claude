@@ -11,13 +11,3 @@ services:
       - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez
     mem_limit: 4g
     cpus: 3.5
-  bora-caddy:
-    image: caddy:2.8
-    container_name: bora-caddy
-    restart: unless-stopped
-    env_file: /opt/bora/bora.env
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ../app:/srv/studio:ro
-      - /opt/bora/caddy:/data
