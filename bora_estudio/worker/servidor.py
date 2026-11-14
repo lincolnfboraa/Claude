@@ -87,7 +87,8 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/upload/'):                  # quanto do arquivo já chegou (pra retomar)
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
-            pid = u.path.split('/')[2]; arq = os.path.join(pasta(pid), 'original.parcial')
+            partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
+            arq = os.path.join(pasta(pid), f'original_{n:02d}.parcial')
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
         self._r(200, {'ok': True, 'na_fila': FILA.qsize()})
     def do_PUT(self):
@@ -95,7 +96,8 @@ class H(BaseHTTPRequestHandler):
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
         if not u.path.startswith('/upload/'): return self._r(404, {'erro': 'rota'})
         if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
-        pid = u.path.split('/')[2]; arq = os.path.join(pasta(pid), 'original.parcial')
+        partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
+        arq = os.path.join(pasta(pid), f'original_{n:02d}.parcial')
         atual = os.path.getsize(arq) if os.path.exists(arq) else 0
         if int(q.get('offset', ['0'])[0]) != atual: return self._r(409, {'recebido': atual})
         n = int(self.headers.get('Content-Length', 0))
@@ -110,18 +112,24 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/upload/') and u.path.endswith('/fim'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = u.path.split('/')[2]; d = pasta(pid); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
-            parcial = os.path.join(d, 'original.parcial')
-            if not os.path.exists(parcial) or os.path.getsize(parcial) != int(corpo.get('tamanho', -1)):
-                return self._r(409, {'erro': 'arquivo incompleto'})
-            ext = os.path.splitext(corpo.get('nome', 'video.mov'))[1].lower() or '.mov'
-            final = os.path.join(d, 'original' + ext); os.replace(parcial, final)
-            info = inspecionar(final)
-            aviso = None if info['hdr'] else 'O vídeo chegou sem HDR. No iPhone, escolha Opções > Atual na Fototeca pra mandar o original'
+            lista = corpo.get('arquivos') or [{'nome': corpo.get('nome', 'video.mov'), 'tamanho': corpo.get('tamanho', -1)}]
+            arquivos = []
+            for i, a in enumerate(lista, 1):
+                parcial = os.path.join(d, f'original_{i:02d}.parcial')
+                if not os.path.exists(parcial) or os.path.getsize(parcial) != int(a.get('tamanho', -1)):
+                    return self._r(409, {'erro': f'arquivo {i} incompleto'})
+                ext = os.path.splitext(a.get('nome', 'video.mov'))[1].lower() or '.mov'
+                final = os.path.join(d, f'original_{i:02d}{ext}'); os.replace(parcial, final)
+                arquivos.append({'nome': a.get('nome'), 'caminho': final, **inspecionar(final)})
+            info = {k: arquivos[0][k] for k in ('res', 'fps', 'cor')}
+            sem_hdr = [x['nome'] for x in arquivos if not x['hdr']]
+            aviso = None if not sem_hdr else ('Chegou sem HDR: ' + ', '.join(sem_hdr) + '. No iPhone, escolha Opções > Atual na Fototeca pra mandar o original')
             m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
-            m.update({**info, 'arq': corpo.get('nome'), 'original_local': final, 'aguardando_upload': False, 'aviso': aviso})
+            m.update({**info, 'arq': arquivos[0]['nome'] if len(arquivos) == 1 else f'{len(arquivos)} vídeos', 'arquivos': arquivos,
+                      'dur': f"{round(sum(float(x['dur'].split()[0]) for x in arquivos))} s", 'aguardando_upload': False, 'aviso': aviso})
             sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
             sb('POST', '/rest/v1/versoes', {'projeto_id': pid, 'numero': 1, 'status': 'editando', 'resumo': 'Primeira versão'})
-            return self._r(200, {'ok': True, **info, 'aviso': aviso})
+            return self._r(200, {'ok': True, 'arquivos': len(arquivos), 'aviso': aviso})
         if self.headers.get('X-Bora-Token') != TOKEN: return self._r(401, {'erro': 'token'})
         p = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
         if 'table' in p:                                   # aviso direto do Supabase (Database Webhook)
