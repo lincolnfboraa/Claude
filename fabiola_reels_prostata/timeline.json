@@ -205,8 +205,8 @@
    "fonte": "IMG_2589",
    "in": 56.05,
    "out": 64.2,
-   "quadro": "split",
-   "funcao": "VIRADA (tela dividida: obstrução -> rim)",
+   "quadro": "aberto",
+   "funcao": "VIRADA",
    "fala": "quando fecha essa passagem de urina, você pode fazer uma obstrução da urina e fazer uma insuficiência renal.",
    "pausas": [
     [

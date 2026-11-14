@@ -261,10 +261,6 @@ def modo_legenda(ci, n_pal, txt):
 for ci, b in enumerate(blocos):
     if b.get('oculto'): continue
     s = b['txt'].replace('*', '').replace('.', '')   # padrão: legenda sem pontos
-    # tela dividida: a médica fica na metade de baixo, então a legenda sobe para logo abaixo do painel
-    sp = seg.get(10)
-    if sp and b['s'] >= sp['out_start'] - 0.05 and b['s'] < sp['out_end']:
-        dlg(2, b['s'], min(b['e'], sp['out_end']), 'Sub', f"{{\\an2\\pos(540,1020)\\blur5}}{s}"); continue
     if not LEGENDA_DINAMICA:
         dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}"); continue
     pal = [t for t in tokens if t['ci'] == ci]
