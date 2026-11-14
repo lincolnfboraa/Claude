@@ -8,6 +8,8 @@ import numpy as np
 
 base, ass, out = sys.argv[1], sys.argv[2], sys.argv[3]
 crf = sys.argv[4] if len(sys.argv) > 4 else '14'
+# brilho do branco dos textos em luz de cena HLG: 0,62 ~ 91% do sinal (branco bem branco no iPhone; 0,2647 = branco de referência, fica acinzentado)
+BRILHO = float(os.environ.get('BRILHO_TEXTO', '0.62'))
 here = os.path.dirname(os.path.abspath(__file__))
 pr = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
                                 'stream=width,height,r_frame_rate,nb_frames:format=duration', '-of', 'json', base],
@@ -31,7 +33,7 @@ enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-i', base,
                         '-x265-params', X265, '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc',
                         '-movflags', '+faststart', out], stdin=subprocess.PIPE)
 
-# SDR (BT.709) -> HLG (BT.2020), branco SDR no branco de referência HLG (sinal 0,75 = luz de cena 0,2647)
+# SDR (BT.709) -> HLG (BT.2020); o branco SDR vai para BRILHO (luz de cena)
 M = np.array([[0.6274, 0.3293, 0.0433], [0.0691, 0.9195, 0.0114], [0.0164, 0.0880, 0.8956]], np.float32)
 A_, B_, C_ = 0.17883277, 0.28466892, 0.55991073
 def hlg(E):
@@ -51,7 +53,7 @@ while True:
     cor = np.clip(Bf / np.maximum(a, 1e-4)[..., None], 0, 1)
     lin = cor ** 2.4                                   # BT.1886
     l2020 = lin @ M.T
-    sig = hlg(l2020 * 0.2647)
+    sig = hlg(l2020 * BRILHO)
     o = np.empty((H, W, 4), np.uint16)
     o[..., :3] = (sig * 65535).astype(np.uint16); o[..., 3] = (a * 65535).astype(np.uint16)
     enc.stdin.write(o.tobytes())
