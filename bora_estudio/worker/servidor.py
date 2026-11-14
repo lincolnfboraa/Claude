@@ -10,7 +10,7 @@ FILA = queue.Queue()
 
 def sb(metodo, path, corpo=None):
     r = urllib.request.Request(URL + path, method=metodo, data=json.dumps(corpo).encode() if corpo is not None else None,
-                               headers={'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'})
+                               headers={'apikey': KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'})
     return json.load(urllib.request.urlopen(r, timeout=60))
 
 def etapa(projeto_id, texto, pct, **extra):
