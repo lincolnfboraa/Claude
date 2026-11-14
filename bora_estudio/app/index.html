@@ -3,6 +3,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@600;700&display=swap">
 <style>
+[hidden]{display:none!important}
 /* Layout: app iOS-like num frame de celular. Pilha de navegação (push), barras translúcidas, listas agrupadas, sheets de baixo pra cima */
 :root{
   --bg:#06182C; --bg2:#0A2340; --glass:rgba(16,42,72,.62); --cell:rgba(255,255,255,.055); --sep:rgba(255,255,255,.08);
@@ -174,7 +175,7 @@ async function carregarTudo(){
  DB.clientes=cs.map(c=>{const d=(dna.find(x=>x.cliente_id===c.id)||{}),w=c.nome.split(' ');
   const projetos=projs.filter(p=>p.cliente_id===c.id).map(p=>{const m=p.original_meta||{},vs=vers.filter(v=>v.projeto_id===p.id);
    return {id:p.id,cli:c.id,t:m.rotulo||'',tema:p.titulo,sub:m.pergunta||'',dur:m.dur||'—',st:STP[p.status],prog:null,c2:0,media:m,cores:p.cores_texto,
-    versoes:vs.map(v=>({id:v.id,n:v.numero,st:v.status,resumo:v.resumo,feedback:v.feedback,sugerir:v.sugerir_dna}))}});
+    versoes:vs.map(v=>({id:v.id,previa:v.previa_path,n:v.numero,st:v.status,resumo:v.resumo,feedback:v.feedback,sugerir:v.sugerir_dna}))}});
   return {...(d.dna||{}),id:c.id,nome:c.nome,segmento:c.segmento,status:c.status,status_nota:c.status_nota,drive:c.drive_pasta_id,
    dna_versao_id:d.dna_versao_id,dna_numero:d.numero||0,regras_confirmadas:(d.dna||{}).regras_confirmadas||[],
    paleta:(d.dna||{}).paleta||{cores:[],origem:'pendente'},texto:(d.dna||{}).texto||{legenda:'#FFFFFF',destaque:null,origem:'pendente'},
@@ -196,7 +197,7 @@ const pillDNA=c=>prov(c)?'<span class="dnap pv">DNA provisório</span>':'<span c
 const ORIGEM={observada_em_aprovados:'observada nos aprovados',observada_validar:'observada, a validar',pendente:'pendente: aguardando arquivos oficiais',aprovado:'aprovado'};
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2400)}
 function cover(v,big){return `<div class="cover ${v.c2?'c2':''}"><span class="st pillst ${ST[v.st][1]}">${ST[v.st][0]}</span>
- <div class="tt">${esc(v.t).toUpperCase()}<i>${esc(v.tema)}</i><span>${esc(v.sub)}</span></div>${big?'<button class="play" aria-label="Reproduzir">'+SV('<path d="M8 5l11 7-11 7z" fill="#fff" stroke="none"/>')+'</button>':''}</div>`}
+ <div class="tt">${esc(v.t).toUpperCase()}<i>${esc(v.tema)}</i><span>${esc(v.sub)}</span></div>${big?'<button class="play" data-play="'+v.id+'" aria-label="Reproduzir">'+SV('<path d="M8 5l11 7-11 7z" fill="#fff" stroke="none"/>')+'</button>':''}</div>`}
 function reel(v){return `<button class="reel" data-push="video:${v.id}">${cover(v)}<b>${esc(v.tema)}</b><small>${esc(cli(v.cli).nome)} · v${v.versoes.length}</small></button>`}
 function cliRow(c){const p=c.projetos.filter(v=>v.st==='wait').length;
  return `<button class="row" data-push="cliente:${c.id}"><span class="av ${c.cls}">${c.ini}</span><span class="tx"><b>${esc(c.nome)}</b><small>${esc(c.segmento)}${prov(c)?' · <span style="color:var(--warn)">provisório</span>':''}</small></span>${p?`<span class="badge">${p}</span>`:''}${ic.chev}</button>`}
@@ -254,7 +255,8 @@ const V={
   ${(c.referencias_conhecidas||[]).length?`<h3>Citadas, não analisadas</h3><div class="group">${linhas(c.referencias_conhecidas)}</div>`:''}`},
  video(id){const v=vid(id),c=cli(v.cli),a=vatual(v),m=v.media||{};
   return `<div class="nav solid"><button class="back" data-pop>‹ ${esc(c.nome)}</button><span class="t">${esc(v.tema)}</span><button class="round" aria-label="Compartilhar" data-toast="Link da prévia copiado">${SV('<path d="M12 15V3M8 7l4-4 4 4M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/>')}</button></div>
-  <div class="vid">${cover(v,1)}</div>
+  <div class="vid" id="vid">${cover(v,1)}</div>
+  ${a.previa?'':`<label class="capbtn" style="display:block;text-align:center;margin:12px auto 0;width:66%;cursor:pointer">Enviar prévia da v${a.n} (.mp4)<input type="file" id="upprev" data-proj="${v.id}" accept="video/mp4,video/quicktime" hidden></label>`}
   <div class="tags"><span class="tag">v${a.n} · prévia 480p do original</span><span class="tag">${v.dur}</span><span class="tag">sem música</span></div>
   ${v.st==='run'?`<h3>Editando no DNA ${esc(c.nome)}</h3><div class="group">${['Original inspecionado (resolução, fps, cor)','Transcrição','Storytelling e gancho','Cortes de pausa','Textos e B-rolls','Prévia 480p do original'].map((e,i)=>`<div class="row plain"><span class="tx"><b style="font-size:14px;color:${i/6<v.prog?'var(--txt)':'var(--sub)'}">${e}</b></span>${i/6<v.prog-.17?'<span class="check">✓</span>':i/6<v.prog?'<span style="color:var(--sub);font-size:13px">agora</span>':''}</div>`).join('')}</div>`:''}
   <h3>Mídia original</h3><div class="group">${par('Arquivo',m.arq||'—')}${par('Formato',[m.res,m.fps,m.cor].filter(Boolean).join(' · ')||'Inspecionando')}${par('Preservação','Cor, pele, rosto e enquadramento como gravados; sem filtro ou suavização')}${par('Final',v.st==='ok'?'Renderizado de novo a partir dos originais':'Após aprovação, renderiza dos originais em '+(m.res||'resolução nativa')+(m.fps?' · '+m.fps:''))}</div>
@@ -343,9 +345,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.aprovar){const v=vid(d.aprovar);(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));await recarregar();toast('Aprovado. Final sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})()}
  else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado no Supabase':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
  else if('sair' in d){sb.auth.signOut().then(()=>{S.stack=[{v:'login'}];render()})}
+ else if(d.play){const v=vid(d.play),a=vatual(v);if(!a.previa)return toast('A prévia da v'+a.n+' ainda não foi enviada');
+  (async()=>{const {data,error}=await sb.storage.from('previas').createSignedUrl(a.previa,3600);if(error)return toast('Não abriu a prévia: '+error.message);
+   $('#vid').innerHTML=`<video src="${data.signedUrl}" controls autoplay playsinline style="width:100%;aspect-ratio:9/16;border-radius:22px;background:#000"></video>`})()}
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
-document.addEventListener('change',e=>{if(e.target.id==='arq'&&e.target.files[0]){S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
+document.addEventListener('change',e=>{if(e.target.id==='upprev'&&e.target.files[0]){const v=vid(e.target.dataset.proj),a=vatual(v),f=e.target.files[0],path=`${v.cli}/${v.id}/v${a.n}.mp4`;
+  toast('Enviando prévia…');(async()=>{const {error}=await sb.storage.from('previas').upload(path,f,{upsert:true,contentType:'video/mp4'});if(error)return toast('Falhou: '+error.message);
+   await q(sb.from('versoes').update({previa_path:path}).eq('id',a.id));await recarregar();toast('Prévia da v'+a.n+' enviada')})();return}
+if(e.target.id==='arq'&&e.target.files[0]){S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
  if(e.target.dataset.cc){S.cores[e.target.dataset.cc]=e.target.value;$('#sheet').innerHTML=sheetNova()}});
 async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:'inicio'}];render()}catch(e){S.stack=[{v:'erro'}];render()}}
 sb.auth.getSession().then(({data})=>{if(data.session)iniciar();else{S.stack=[{v:'login'}];render()}});
