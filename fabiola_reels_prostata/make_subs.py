@@ -211,11 +211,7 @@ destaque(["Um deles é quando você tem que forçar pra fazer xixi."], [
     dict(txt="FORÇAR", fonte='Poppins Black', papel='grande', cor=AZUL, alinh='c', cue='forçar', alvo=720, fs_max=330),
     dict(txt="pra fazer xixi", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='r', cue='fazer', dx=6, gap=2),
 ], fundo_y=FUNDO_DESTAQUE)
-# 2) VIRADA (serifa itálica, estilo lettering 24): "e fazer uma / insuficiência renal"
-destaque(["e fazer uma insuficiência renal."], [
-    dict(txt="e fazer uma", fonte='Poppins SemiBold', papel='pequena', cor=BR, alinh='l', cue='fazer', dx=4),
-    dict(txt="insuficiência renal", fonte='Merriweather Black Italic', papel='grande', cor=AZUL, alinh='c', cue='insuficiência', alvo=880, sp=-2, gap=8),
-], fundo_y=FUNDO_DESTAQUE)
+# (destaque 'insuficiência renal' removido: a tela dividida já ilustra a obstrução e os rins)
 # 3) MECANISMO 2 (lettering letra a letra, Inter): "das medicações / quimioterápicas"
 destaque(["das medicações quimioterápicas"], [
     dict(txt="das medicações", fonte='Inter', papel='pequena', cor=BR, alinh='c', cue='medicações', fs=96, sp=-3, letras=True),
@@ -265,6 +261,10 @@ def modo_legenda(ci, n_pal, txt):
 for ci, b in enumerate(blocos):
     if b.get('oculto'): continue
     s = b['txt'].replace('*', '').replace('.', '')   # padrão: legenda sem pontos
+    # tela dividida: a médica fica na metade de baixo, então a legenda sobe para logo abaixo do painel
+    sp = seg.get(10)
+    if sp and b['s'] >= sp['out_start'] - 0.05 and b['s'] < sp['out_end']:
+        dlg(2, b['s'], min(b['e'], sp['out_end']), 'Sub', f"{{\\an2\\pos(540,1020)\\blur5}}{s}"); continue
     if not LEGENDA_DINAMICA:
         dlg(2, b['s'], b['e'], 'Sub', f"{{\\blur5}}{s}"); continue
     pal = [t for t in tokens if t['ci'] == ci]

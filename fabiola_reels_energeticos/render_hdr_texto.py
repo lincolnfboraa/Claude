@@ -2,7 +2,8 @@
 """Aplica os textos (ASS) sobre o vídeo HDR original SEM alterar a imagem: o vídeo base é o HDR (HLG, BT.2020, 10 bits)
 gerado por render_hdr.py; os textos são renderizados duas vezes (fundo preto e fundo branco) para obter a transparência real,
 convertidos de SDR (BT.709) para HLG/BT.2020 no branco de referência (75% do sinal) e sobrepostos.
-Uso: python3 render_hdr_texto.py <base_hdr.mp4> <legendas.ass> <saida.mp4> [crf=14]"""
+Uso: python3 render_hdr_texto.py <base_hdr.mp4> <legendas.ass|-> <saida.mp4> [crf=14]
+Camadas de imagem: CAMADAS='pasta1:inicio1,pasta2:inicio2' (sequências l%04d.png RGBA); BRILHO_TEXTO ajusta o brilho"""
 import sys, os, subprocess, json
 import numpy as np
 
@@ -18,10 +19,19 @@ st = pr['streams'][0]; W, H = st['width'], st['height']; FR = st['r_frame_rate']
 dur = float(pr['format']['duration'])
 fontes = os.path.join(here, 'fonts')
 
+CAMADAS = [c.rsplit(':', 1) for c in os.environ.get('CAMADAS', '').split(',') if c]
 def leitor(cor):
-    return subprocess.Popen(['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', f'color=c={cor}:s={W}x{H}:r={FR}:d={dur}',
-                             '-vf', f'subtitles={ass}:fontsdir={fontes}', '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-'],
-                            stdout=subprocess.PIPE)
+    args = ['ffmpeg', '-v', 'error', '-f', 'lavfi', '-i', f'color=c={cor}:s={W}x{H}:r={FR}:d={dur}']
+    fc, ult = [], '0:v'
+    for j, (pasta, ini) in enumerate(CAMADAS, 1):
+        args += ['-framerate', FR, '-i', os.path.join(pasta, 'l%04d.png')]
+        fc.append(f'[{j}:v]setpts=PTS+{float(ini)}/TB[c{j}];[{ult}][c{j}]overlay=eof_action=pass:format=rgb[o{j}]'); ult = f'o{j}'
+    if ass not in ('-', ''):
+        fc.append(f'[{ult}]subtitles={ass}:fontsdir={fontes}[o99]'); ult = 'o99'
+    if not fc: fc.append(f'[{ult}]null[o99]'); ult = 'o99'
+    args += ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-frames:v', str(int(round(dur * eval(FR)))),
+             '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']
+    return subprocess.Popen(args, stdout=subprocess.PIPE)
 pb, pw = leitor('black'), leitor('white')
 X265 = 'colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc:range=limited:no-sao=1:no-strong-intra-smoothing=1'
 enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-i', base,

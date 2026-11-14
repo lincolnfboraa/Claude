@@ -40,6 +40,10 @@
   "fechado": {
    "zoom": 1.48,
    "face_y": 0.26
+  },
+  "split": {
+   "zoom": 1.6,
+   "face_y": 0.7
   }
  },
  "centro_rosto": {
@@ -185,15 +189,26 @@
    "id": 7,
    "fonte": "IMG_2589",
    "in": 53.15,
-   "out": 67.3,
+   "out": 56.05,
    "quadro": "aberto",
    "funcao": "VIRADA",
-   "fala": "Uma das coisas que pode acontecer é que quando fecha essa passagem de urina, você pode fazer uma obstrução da urina e fazer uma insuficiência renal. Hoje em dia, como a gente chama, uma injúria renal aguda.",
+   "fala": "Uma das coisas que pode acontecer é que",
    "pausas": [
     [
      53.15,
      53.59
-    ],
+    ]
+   ]
+  },
+  {
+   "id": 10,
+   "fonte": "IMG_2589",
+   "in": 56.05,
+   "out": 64.2,
+   "quadro": "split",
+   "funcao": "VIRADA (tela dividida: obstrução -> rim)",
+   "fala": "quando fecha essa passagem de urina, você pode fazer uma obstrução da urina e fazer uma insuficiência renal.",
+   "pausas": [
     [
      57.05,
      57.23
@@ -201,9 +216,24 @@
     [
      58.95,
      59.05
+    ]
+   ]
+  },
+  {
+   "id": 11,
+   "fonte": "IMG_2589",
+   "in": 64.2,
+   "out": 67.3,
+   "quadro": "aberto",
+   "funcao": "VIRADA",
+   "fala": "Hoje em dia, como a gente chama, uma injúria renal aguda.",
+   "pausas": [
+    [
+     64.2,
+     64.24
     ],
     [
-     67.27,
+     67.26,
      67.3
     ]
    ]
