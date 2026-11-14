@@ -1,0 +1,254 @@
+{
+ "projeto": "Dra. Fabiola Pedron | Novembro Azul: câncer de próstata e o rim | Reels v1",
+ "saida": {
+  "w": 1080,
+  "h": 1920,
+  "fps": "30000/1001"
+ },
+ "fontes": {
+  "IMG_2589": {
+   "drive_id": "1HsvZpS64RCucEPl2YboG8CjDXCmiWlx_",
+   "arquivo": "Cancer de prostata/IMG_2589.MOV (iPhone 4K HLG, 91,5 s)"
+  }
+ },
+ "removidos": [
+  {
+   "de": 0,
+   "ate": 2.48,
+   "motivo": "'Agora' (início)"
+  },
+  {
+   "de": 38.8,
+   "ate": 45.6,
+   "motivo": "'Existem outras coisas... procurar o urologista' (vago; a orientação está no fechamento)"
+  },
+  {
+   "de": 76.95,
+   "ate": 83.75,
+   "motivo": "'outras situações independente do seu cuidado' (vago)"
+  }
+ ],
+ "enquadramentos": {
+  "aberto": {
+   "zoom": 1.18,
+   "face_y": 0.3
+  },
+  "medio": {
+   "zoom": 1.32,
+   "face_y": 0.28
+  },
+  "fechado": {
+   "zoom": 1.48,
+   "face_y": 0.26
+  }
+ },
+ "centro_rosto": {
+  "IMG_2589": [
+   0.47,
+   0.4
+  ]
+ },
+ "pausas_auto": {
+  "limiar_db": -45,
+  "min_s": 0.3,
+  "mantem_s": 0.1,
+  "borda_s": 0.18
+ },
+ "segmentos": [
+  {
+   "id": 1,
+   "fonte": "IMG_2589",
+   "in": 2.48,
+   "out": 6.1,
+   "quadro": "medio",
+   "funcao": "GANCHO (objeto real: canudinho)",
+   "fala": "Eu vou falar o que esse canudinho tem a ver com câncer de próstata.",
+   "pausas": [
+    [
+     6.08,
+     6.1
+    ]
+   ]
+  },
+  {
+   "id": 2,
+   "fonte": "IMG_2589",
+   "in": 7.3,
+   "out": 21.7,
+   "quadro": "aberto",
+   "funcao": "ANALOGIA",
+   "fala": "Quando a gente pensa na próstata, a gente tem que entender que a próstata, ela engloba a uretra. É como se você tivesse um canudinho onde passa o xixi e ela vai fechando.",
+   "pausas": [
+    [
+     10.94,
+     11.08
+    ],
+    [
+     14.24,
+     14.46
+    ],
+    [
+     18.98,
+     19.2
+    ],
+    [
+     19.94,
+     20.36
+    ],
+    [
+     21.56,
+     21.7
+    ]
+   ]
+  },
+  {
+   "id": 3,
+   "fonte": "IMG_2589",
+   "in": 21.7,
+   "out": 24.7,
+   "quadro": "medio",
+   "funcao": "ANALOGIA",
+   "fala": "Quando ela vai crescendo, ela vai fechando esse buraco.",
+   "pausas": [
+    [
+     21.7,
+     21.82
+    ]
+   ]
+  },
+  {
+   "id": 4,
+   "fonte": "IMG_2589",
+   "in": 24.7,
+   "out": 33.6,
+   "quadro": "aberto",
+   "funcao": "IDENTIFICAÇÃO (sintoma)",
+   "fala": "Então, existem alguns sintomas de câncer de próstata que você precisa saber. Um deles é quando você tem que forçar para fazer xixi.",
+   "pausas": [
+    [
+     24.7,
+     24.74
+    ],
+    [
+     28.04,
+     28.18
+    ],
+    [
+     29.58,
+     29.94
+    ],
+    [
+     30.68,
+     30.8
+    ]
+   ]
+  },
+  {
+   "id": 5,
+   "fonte": "IMG_2589",
+   "in": 33.6,
+   "out": 38.8,
+   "quadro": "fechado",
+   "funcao": "IDENTIFICAÇÃO",
+   "fala": "E aí significa que isso aqui está fechando, esse buraquinho está fechando.",
+   "pausas": [
+    [
+     33.6,
+     33.64
+    ],
+    [
+     38.7,
+     38.8
+    ]
+   ]
+  },
+  {
+   "id": 6,
+   "fonte": "IMG_2589",
+   "in": 45.6,
+   "out": 53.15,
+   "quadro": "medio",
+   "funcao": "VIRADA (o rim)",
+   "fala": "Mas, falando do seu rim, a gente tem que entender que o câncer de próstata pode ter efeitos no seu rim.",
+   "pausas": [
+    [
+     46.16,
+     46.34
+    ],
+    [
+     50.52,
+     50.68
+    ]
+   ]
+  },
+  {
+   "id": 7,
+   "fonte": "IMG_2589",
+   "in": 53.15,
+   "out": 67.3,
+   "quadro": "aberto",
+   "funcao": "VIRADA",
+   "fala": "Uma das coisas que pode acontecer é que quando fecha essa passagem de urina, você pode fazer uma obstrução da urina e fazer uma insuficiência renal. Hoje em dia, como a gente chama, uma injúria renal aguda.",
+   "pausas": [
+    [
+     53.15,
+     53.59
+    ],
+    [
+     57.05,
+     57.23
+    ],
+    [
+     58.95,
+     59.05
+    ],
+    [
+     67.27,
+     67.3
+    ]
+   ]
+  },
+  {
+   "id": 8,
+   "fonte": "IMG_2589",
+   "in": 67.5,
+   "out": 76.95,
+   "quadro": "medio",
+   "funcao": "MECANISMO 2 (quimioterapia)",
+   "fala": "Existem outros mecanismos que podem provocar problema renal, principalmente com o uso das medicações quimioterápicas para o tratamento do câncer.",
+   "pausas": [
+    [
+     69.72,
+     69.86
+    ],
+    [
+     71.38,
+     71.54
+    ],
+    [
+     74.88,
+     75.14
+    ],
+    [
+     76.92,
+     76.95
+    ]
+   ]
+  },
+  {
+   "id": 9,
+   "fonte": "IMG_2589",
+   "in": 83.75,
+   "out": 90.2,
+   "quadro": "fechado",
+   "funcao": "FECHAMENTO (ação)",
+   "fala": "Por isso, procure um urologista e, se você tiver problema renal, entre em contato com o nefrologista.",
+   "pausas": [
+    [
+     89.63,
+     90.2
+    ]
+   ]
+  }
+ ]
+}

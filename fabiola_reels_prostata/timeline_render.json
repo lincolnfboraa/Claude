@@ -1,0 +1,405 @@
+{
+ "projeto": "Dra. Fabiola Pedron | Novembro Azul: câncer de próstata e o rim | Reels v1",
+ "saida": {
+  "w": 1080,
+  "h": 1920,
+  "fps": "30000/1001"
+ },
+ "fontes": {
+  "IMG_2589": {
+   "drive_id": "1HsvZpS64RCucEPl2YboG8CjDXCmiWlx_",
+   "arquivo": "Cancer de prostata/IMG_2589.MOV (iPhone 4K HLG, 91,5 s)"
+  }
+ },
+ "removidos": [
+  {
+   "de": 0,
+   "ate": 2.48,
+   "motivo": "'Agora' (início)"
+  },
+  {
+   "de": 38.8,
+   "ate": 45.6,
+   "motivo": "'Existem outras coisas... procurar o urologista' (vago; a orientação está no fechamento)"
+  },
+  {
+   "de": 76.95,
+   "ate": 83.75,
+   "motivo": "'outras situações independente do seu cuidado' (vago)"
+  }
+ ],
+ "enquadramentos": {
+  "aberto": {
+   "zoom": 1.18,
+   "face_y": 0.3
+  },
+  "medio": {
+   "zoom": 1.32,
+   "face_y": 0.28
+  },
+  "fechado": {
+   "zoom": 1.48,
+   "face_y": 0.26
+  }
+ },
+ "centro_rosto": {
+  "IMG_2589": [
+   0.47,
+   0.4
+  ]
+ },
+ "pausas_auto": {
+  "limiar_db": -45,
+  "min_s": 0.3,
+  "mantem_s": 0.1,
+  "borda_s": 0.18
+ },
+ "segmentos": [
+  {
+   "id": 1,
+   "fonte": "IMG_2589",
+   "in": 2.48,
+   "out": 6.1,
+   "quadro": "medio",
+   "funcao": "GANCHO (objeto real: canudinho)",
+   "fala": "Eu vou falar o que esse canudinho tem a ver com câncer de próstata.",
+   "pausas": [
+    [
+     6.08,
+     6.1
+    ]
+   ],
+   "out_start": 0.0,
+   "pedacos": [
+    {
+     "fonte_de": 2.469,
+     "fonte_ate": 6.073,
+     "saida_de": 0.0
+    }
+   ],
+   "out_end": 3.604
+  },
+  {
+   "id": 2,
+   "fonte": "IMG_2589",
+   "in": 7.3,
+   "out": 21.7,
+   "quadro": "aberto",
+   "funcao": "ANALOGIA",
+   "fala": "Quando a gente pensa na próstata, a gente tem que entender que a próstata, ela engloba a uretra. É como se você tivesse um canudinho onde passa o xixi e ela vai fechando.",
+   "pausas": [
+    [
+     10.94,
+     11.08
+    ],
+    [
+     14.24,
+     14.46
+    ],
+    [
+     18.98,
+     19.2
+    ],
+    [
+     19.94,
+     20.36
+    ],
+    [
+     21.56,
+     21.7
+    ]
+   ],
+   "out_start": 3.604,
+   "pedacos": [
+    {
+     "fonte_de": 7.307,
+     "fonte_ate": 10.944,
+     "saida_de": 3.604
+    },
+    {
+     "fonte_de": 11.078,
+     "fonte_ate": 14.248,
+     "saida_de": 7.241
+    },
+    {
+     "fonte_de": 14.448,
+     "fonte_ate": 18.986,
+     "saida_de": 10.41
+    },
+    {
+     "fonte_de": 19.186,
+     "fonte_ate": 19.953,
+     "saida_de": 14.948
+    },
+    {
+     "fonte_de": 20.354,
+     "fonte_ate": 21.555,
+     "saida_de": 15.716
+    }
+   ],
+   "out_end": 16.917
+  },
+  {
+   "id": 3,
+   "fonte": "IMG_2589",
+   "in": 21.7,
+   "out": 24.7,
+   "quadro": "medio",
+   "funcao": "ANALOGIA",
+   "fala": "Quando ela vai crescendo, ela vai fechando esse buraco.",
+   "pausas": [
+    [
+     21.7,
+     21.82
+    ]
+   ],
+   "out_start": 16.917,
+   "pedacos": [
+    {
+     "fonte_de": 21.822,
+     "fonte_ate": 24.691,
+     "saida_de": 16.917
+    }
+   ],
+   "out_end": 19.786
+  },
+  {
+   "id": 4,
+   "fonte": "IMG_2589",
+   "in": 24.7,
+   "out": 33.6,
+   "quadro": "aberto",
+   "funcao": "IDENTIFICAÇÃO (sintoma)",
+   "fala": "Então, existem alguns sintomas de câncer de próstata que você precisa saber. Um deles é quando você tem que forçar para fazer xixi.",
+   "pausas": [
+    [
+     24.7,
+     24.74
+    ],
+    [
+     28.04,
+     28.18
+    ],
+    [
+     29.58,
+     29.94
+    ],
+    [
+     30.68,
+     30.8
+    ]
+   ],
+   "out_start": 19.786,
+   "pedacos": [
+    {
+     "fonte_de": 24.725,
+     "fonte_ate": 28.028,
+     "saida_de": 19.786
+    },
+    {
+     "fonte_de": 28.195,
+     "fonte_ate": 29.596,
+     "saida_de": 23.09
+    },
+    {
+     "fonte_de": 29.93,
+     "fonte_ate": 30.664,
+     "saida_de": 24.491
+    },
+    {
+     "fonte_de": 30.797,
+     "fonte_ate": 33.6,
+     "saida_de": 25.225
+    }
+   ],
+   "out_end": 28.028
+  },
+  {
+   "id": 5,
+   "fonte": "IMG_2589",
+   "in": 33.6,
+   "out": 38.8,
+   "quadro": "fechado",
+   "funcao": "IDENTIFICAÇÃO",
+   "fala": "E aí significa que isso aqui está fechando, esse buraquinho está fechando.",
+   "pausas": [
+    [
+     33.6,
+     33.64
+    ],
+    [
+     38.7,
+     38.8
+    ]
+   ],
+   "out_start": 28.028,
+   "pedacos": [
+    {
+     "fonte_de": 33.634,
+     "fonte_ate": 38.705,
+     "saida_de": 28.028
+    }
+   ],
+   "out_end": 33.1
+  },
+  {
+   "id": 6,
+   "fonte": "IMG_2589",
+   "in": 45.6,
+   "out": 53.15,
+   "quadro": "medio",
+   "funcao": "VIRADA (o rim)",
+   "fala": "Mas, falando do seu rim, a gente tem que entender que o câncer de próstata pode ter efeitos no seu rim.",
+   "pausas": [
+    [
+     46.16,
+     46.34
+    ],
+    [
+     50.52,
+     50.68
+    ]
+   ],
+   "out_start": 33.1,
+   "pedacos": [
+    {
+     "fonte_de": 45.612,
+     "fonte_ate": 46.146,
+     "saida_de": 33.1
+    },
+    {
+     "fonte_de": 46.346,
+     "fonte_ate": 50.517,
+     "saida_de": 33.634
+    },
+    {
+     "fonte_de": 50.684,
+     "fonte_ate": 53.153,
+     "saida_de": 37.804
+    }
+   ],
+   "out_end": 40.274
+  },
+  {
+   "id": 7,
+   "fonte": "IMG_2589",
+   "in": 53.15,
+   "out": 67.3,
+   "quadro": "aberto",
+   "funcao": "VIRADA",
+   "fala": "Uma das coisas que pode acontecer é que quando fecha essa passagem de urina, você pode fazer uma obstrução da urina e fazer uma insuficiência renal. Hoje em dia, como a gente chama, uma injúria renal aguda.",
+   "pausas": [
+    [
+     53.15,
+     53.59
+    ],
+    [
+     57.05,
+     57.23
+    ],
+    [
+     58.95,
+     59.05
+    ],
+    [
+     67.27,
+     67.3
+    ]
+   ],
+   "out_start": 40.274,
+   "pedacos": [
+    {
+     "fonte_de": 53.587,
+     "fonte_ate": 57.057,
+     "saida_de": 40.274
+    },
+    {
+     "fonte_de": 57.224,
+     "fonte_ate": 58.959,
+     "saida_de": 43.744
+    },
+    {
+     "fonte_de": 59.059,
+     "fonte_ate": 67.267,
+     "saida_de": 45.479
+    }
+   ],
+   "out_end": 53.687
+  },
+  {
+   "id": 8,
+   "fonte": "IMG_2589",
+   "in": 67.5,
+   "out": 76.95,
+   "quadro": "medio",
+   "funcao": "MECANISMO 2 (quimioterapia)",
+   "fala": "Existem outros mecanismos que podem provocar problema renal, principalmente com o uso das medicações quimioterápicas para o tratamento do câncer.",
+   "pausas": [
+    [
+     69.72,
+     69.86
+    ],
+    [
+     71.38,
+     71.54
+    ],
+    [
+     74.88,
+     75.14
+    ],
+    [
+     76.92,
+     76.95
+    ]
+   ],
+   "out_start": 53.687,
+   "pedacos": [
+    {
+     "fonte_de": 67.501,
+     "fonte_ate": 69.736,
+     "saida_de": 53.687
+    },
+    {
+     "fonte_de": 69.87,
+     "fonte_ate": 71.371,
+     "saida_de": 55.923
+    },
+    {
+     "fonte_de": 71.538,
+     "fonte_ate": 74.875,
+     "saida_de": 57.424
+    },
+    {
+     "fonte_de": 75.142,
+     "fonte_ate": 76.91,
+     "saida_de": 60.761
+    }
+   ],
+   "out_end": 62.529
+  },
+  {
+   "id": 9,
+   "fonte": "IMG_2589",
+   "in": 83.75,
+   "out": 90.2,
+   "quadro": "fechado",
+   "funcao": "FECHAMENTO (ação)",
+   "fala": "Por isso, procure um urologista e, se você tiver problema renal, entre em contato com o nefrologista.",
+   "pausas": [
+    [
+     89.63,
+     90.2
+    ]
+   ],
+   "out_start": 62.529,
+   "pedacos": [
+    {
+     "fonte_de": 83.75,
+     "fonte_ate": 89.623,
+     "saida_de": 62.529
+    }
+   ],
+   "out_end": 68.402
+  }
+ ]
+}
