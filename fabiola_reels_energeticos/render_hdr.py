@@ -44,6 +44,12 @@ for s in t['segmentos']:
         audio_in += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', f]
         audio_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur-0.012,0):.4f}:d=0.012[a{n}]")
 
+_off = 0.0
+for s_ in t['segmentos']:
+    s_['out_start'] = round(_off, 3)
+    for fa, fb in pedacos(s_): _off += (fb - fa) / FPS
+    s_['out_end'] = round(_off, 3)
+json.dump(t, open(os.path.join(here, 'timeline_render.json'), 'w'), ensure_ascii=False, indent=1)
 with ThreadPoolExecutor(2) as ex:
     for r in ex.map(lambda a: subprocess.run(a).returncode, jobs):
         if r: sys.exit('falha ao codificar um trecho')

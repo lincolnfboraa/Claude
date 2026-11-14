@@ -14,8 +14,8 @@
  "removidos": [
   {
    "de": 0,
-   "ate": 2.48,
-   "motivo": "'Agora' (início)"
+   "ate": 3.12,
+   "motivo": "'Agora eu vou falar' (não agrega; gancho começa na pergunta)"
   },
   {
    "de": 38.8,
@@ -58,11 +58,11 @@
   {
    "id": 1,
    "fonte": "IMG_2589",
-   "in": 2.48,
+   "in": 3.12,
    "out": 6.1,
    "quadro": "medio",
    "funcao": "GANCHO (objeto real: canudinho)",
-   "fala": "Eu vou falar o que esse canudinho tem a ver com câncer de próstata.",
+   "fala": "O que esse canudinho tem a ver com câncer de próstata?",
    "pausas": [
     [
      6.08,

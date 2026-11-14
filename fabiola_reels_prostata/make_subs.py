@@ -17,7 +17,7 @@ segs = json.load(open(os.path.join(here, 'timeline_render.json')))['segmentos']
 seg = {s['id']: s for s in segs}
 
 ROTEIRO = [
-    "Eu vou falar | o que esse canudinho | tem a ver | com câncer de próstata.",
+    "O que esse canudinho | tem a ver | com câncer de próstata?",
     "Quando a gente pensa na próstata, | a gente tem que entender | que a próstata, | ela engloba a uretra. | É como se você tivesse | um canudinho | onde passa o xixi | e ela vai fechando.",
     "Quando ela vai crescendo, | ela vai fechando | esse buraco.",
     "Então, existem alguns sintomas | de câncer de próstata | que você precisa saber. | Um deles é quando você tem que forçar pra fazer xixi.",
