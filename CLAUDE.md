@@ -14,7 +14,10 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - Título (aprovado no diabetes, "T1b"): sem caixa, degradê escuro suave atrás, na altura do peito. Três linhas coladas e com a MESMA largura:
   rótulo espaçado em Poppins Medium creme (ex.: DIA MUNDIAL DO DIABETES) + TEMA em Merriweather Black Italic creme (espaçado até a largura do rótulo)
   + pergunta curta em Poppins SemiBold branco. Sem filetes. Entrada suave (sobe 18 px + fade, em cascata).
-- Primeiras versões e validações em 480p (480x854, `render.py ... 854`), de preferência por trechos curtos; qualidade cheia só na final aprovada.
+- **NUNCA converter HDR para SDR, nem nos previews.** Todo render (inclusive 480p) sai do .MOV original em HDR (HLG/BT.2020/10 bits):
+  `render_hdr.py <pasta> base.mp4 <altura>` + `render_hdr_texto.py base.mp4 legendas.ass saida.mp4` (textos convertidos para HLG
+  no branco de referência, imagem intocada). `render.py` com intermediários SDR NÃO deve mais ser usado para entregas.
+- Primeiras versões e validações em 480p (altura 854), de preferência por trechos curtos; qualidade cheia só na final aprovada.
 - Roteiro e ganchos: seguir `fabiola_reels_energeticos/ANALISE_REFERENCIAS.md` e `GUIA_ROTEIRO_GRAVACAO.md`.
 - **Entrega de vídeo:** validações (480p) vão como .mp4 normal no chat (`display: render`), pra reproduzir direto.
   Só a **versão final 4K** vai dentro de um .zip (zip -0), com `display: attach`, pra baixar no celular.
