@@ -71,3 +71,16 @@ Nunca abre com "Olá, pessoal". Quando há boas-vindas ("Olá, bem-vindos à min
 - ⚠ Título no topo em vez de faixa no peito: decisão nossa por causa das latas na mesa.
   Nos próximos, gravar deixando espaço para a faixa.
 - ⚠ Faltou **abertura com ação** (ela poderia abrir a lata, ler o rótulo): fica no guia de gravação.
+
+## 7. Referência nova: "Diabetes e rim" (versão final aprovada pela cliente, 14/11/2026)
+Arquivo no Drive: pasta "Referencias" (copy_5110CC6A-…mov), 4K 2160x3840, 30 fps, 101,5 s, -13,6 LUFS.
+Montagem nossa (pasta `fabiola_reels_diabetes/`) + finalização da Bora no CapCut. O que a Bora acrescentou:
+- **Trilha contínua** do início ao fim, mixada um pouco abaixo da voz (voz ainda dominante) e reduzindo no final; loudness final ~-14 LUFS.
+- **Voz reprocessada** na finalização (EQ/limpeza do CapCut): por isso a nossa entrega deve sair com a voz limpa, sem exagerar no tratamento.
+- **Transição de luz (vazamento de luz)** em ~25 s, na troca de assunto (fim do "30% a 40%" para "Vocês já viram falar do fundo do olho").
+  Padrão: uma transição de luz só, na virada de bloco de conteúdo, não em todo corte.
+- **Efeitos sonoros pontuais** acompanhando entradas de elementos (destaques, objetos laterais), sem som em cada legenda.
+- Mantido integralmente: título T1b, legenda minimal, bonequinhos do 30–40%, destaque "lesão renal", olho e rim 3D laterais,
+  take real do pó de café com "filtro de café", lettering do 60%.
+Conclusão: a divisão de trabalho funciona como combinado. Nós entregamos storytelling, cortes, textos e B-rolls; a Bora entra com trilha,
+efeitos sonoros e no máximo 1 a 2 transições de luz nas viradas de assunto. Entregar sempre também a versão **sem legenda** e o **.srt**.
