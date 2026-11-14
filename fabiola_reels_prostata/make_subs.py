@@ -225,14 +225,14 @@ destaque(["com o nefrologista."], [
 # ---------- título T1b: rótulo espaçado + tema em serifa itálica + pergunta, MESMA largura, sem caixa ----------
 import math
 t0, t1 = 0.0, seg[1]['out_end'] + 1.0
-lab, tema, sub = 'NOVEMBRO AZUL', 'Próstata', 'e o seu rim?'
+lab, tema, sub = 'NOVEMBRO AZUL', 'Próstata', 'pode prejudicar seus rins?'
 fl, spl, fsM = 56, 9, 250
 wl0 = largura(lab, 'Poppins Medium', fl, spl); wt0 = largura(tema, 'Merriweather Black Italic', fsM, 0)
-W = max(wl0, wt0)
+fsQ = 80                                          # pergunta com tamanho fixo de leitura; as linhas de cima se espaçam até a largura dela
+W = max(wl0, wt0, largura(sub, 'Poppins SemiBold', fsQ, -1))
 spl = spl + (W - wl0) / (len(lab) - 1)            # o mais estreito ganha espaçamento até a largura do bloco
 spM = (W - wt0) / (len(tema) - 1)
-fsQ = 80
-while largura(sub, 'Poppins SemiBold', fsQ, -1) < W: fsQ += 1
+while largura(sub, 'Poppins SemiBold', fsQ + 1, -1) <= W: fsQ += 1
 capf_ = lambda f, fs: (FONTES[f][3] - FONTES[f][2]) * fs
 def rect(x, y, w, h): return f"m {x:.0f} {y:.0f} l {x+w:.0f} {y:.0f} l {x+w:.0f} {y+h:.0f} l {x:.0f} {y+h:.0f}"
 dlg(0, t0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H120A06&\\1a&H6E&\\bord0\\shad0\\blur90\\fad(300,300)\\p1}}{rect(-300, 960, 1680, 400)}")

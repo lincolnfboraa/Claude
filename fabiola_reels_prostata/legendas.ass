@@ -971,9 +971,9 @@ Dialogue: 2,0:00:59.75,0:01:00.08,K,,0,0,0,,{\an7\pos(895.7,1338.7)\fad(0,140)\f
 Dialogue: 4,0:00:59.75,0:01:00.08,K,,0,0,0,,{\an7\pos(895.7,1338.7)\fad(0,140)\fnInter\b1\fs150\fsp-8\c&HD8B08F&\bord0\shad0}s
 Dialogue: 3,0:01:07.02,0:00:52.99,K,,0,0,0,,{\an5\pos(540,1404)\fscx72\fscy72\t(0,150,\fscx106\fscy106)\t(150,240,\fscx100\fscy100)\fad(110,140)\fnMerriweather Black Italic\b0\fs230\fsp-2\c&HD8B08F&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}nefrologista
 Dialogue: 0,0:00:00.00,0:00:03.94,Card,,0,0,0,,{\an7\pos(0,0)\1c&H120A06&\1a&H6E&\bord0\shad0\blur90\fad(300,300)\p1}m -300 960 l 1380 960 l 1380 1360 l -300 1360
-Dialogue: 2,0:00:00.00,0:00:03.94,Card,,0,0,0,,{\an7\move(264,993,264,975,0,450)\fad(350,300)\fnPoppins Medium\fs56\fsp24.4\c&HD8B08F&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}NOVEMBRO AZUL
-Dialogue: 2,0:00:00.15,0:00:03.94,Card,,0,0,0,,{\an7\move(264,974,264,956,0,450)\fad(350,300)\fnMerriweather Black Italic\fs250\fsp0.0\c&HD8B08F&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}Próstata
-Dialogue: 2,0:00:00.30,0:00:03.94,Card,,0,0,0,,{\an7\move(262,1123,262,1105,0,450)\fad(350,300)\fnPoppins SemiBold\fs168\fsp-1.0\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}e o seu rim?
+Dialogue: 2,0:00:00.00,0:00:03.94,Card,,0,0,0,,{\an7\move(254,993,254,975,0,450)\fad(350,300)\fnPoppins Medium\fs56\fsp26.0\c&HD8B08F&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}NOVEMBRO AZUL
+Dialogue: 2,0:00:00.15,0:00:03.94,Card,,0,0,0,,{\an7\move(254,974,254,956,0,450)\fad(350,300)\fnMerriweather Black Italic\fs250\fsp2.7\c&HD8B08F&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}Próstata
+Dialogue: 2,0:00:00.30,0:00:03.94,Card,,0,0,0,,{\an7\move(254,1151,254,1133,0,450)\fad(350,300)\fnPoppins SemiBold\fs80\fsp-1.0\c&HFFFFFF&\bord3\3c&H000000&\3a&H9A&\blur7\shad6\4c&H000000&\4a&H48&}pode prejudicar seus rins?
 Dialogue: 2,0:00:00.00,0:00:01.12,Sub,,0,0,0,,{\blur5}O que esse canudinho
 Dialogue: 2,0:00:01.12,0:00:01.56,Sub,,0,0,0,,{\blur5}tem a ver
 Dialogue: 2,0:00:01.56,0:00:02.96,Sub,,0,0,0,,{\blur5}com câncer de próstata?
