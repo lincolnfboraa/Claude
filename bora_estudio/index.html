@@ -101,6 +101,23 @@ textarea{width:100%;min-height:96px;border:0;border-radius:14px;background:var(-
   background:rgba(30,60,96,.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .toast.on{transform:translate(-50%,0)}
 .sw-col{display:inline-block;width:22px;height:22px;border-radius:50%;margin-left:-6px;border:2px solid var(--bg)}
+.fld{width:100%;border:0;background:transparent;color:var(--txt);font:inherit;font-size:15px;padding:0}
+.fld:focus{outline:none}.fld.s{color:var(--sub);font-size:13px}
+.x{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.1);color:var(--sub);font-size:14px;flex:none;display:grid;place-items:center}
+.add{color:var(--orange);font-size:15px;font-weight:500}
+.pal{display:flex;gap:12px;flex-wrap:wrap;padding:14px}
+.pc{position:relative;width:46px;height:46px}
+.pc input{width:46px;height:46px;border-radius:50%;border:2px solid rgba(255,255,255,.2);padding:0;background:none;cursor:pointer;overflow:hidden}
+.pc input::-webkit-color-swatch-wrapper{padding:0}.pc input::-webkit-color-swatch{border:0;border-radius:50%}.pc input::-moz-color-swatch{border:0;border-radius:50%}
+.pc .x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;font-size:11px;background:#2A4A70}
+.pc.new{border:1.5px dashed rgba(255,255,255,.3);border-radius:50%;display:grid;place-items:center;color:var(--sub);font-size:22px}
+.opts{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.op{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.18);flex:none}
+.op.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--orange)}
+.op.cus{position:relative;overflow:hidden;background:conic-gradient(#f55,#fd5,#5d8,#5bf,#a6f,#f55)}
+.op.cus input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.prev{border-radius:16px;padding:18px 14px;text-align:center;background:linear-gradient(170deg,#4A6A8E,#1B3350 70%);font-size:15px;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.prev em{font:italic 900 22px Georgia,serif;display:block;margin-top:4px}
 .empty{color:var(--sub);font-size:14px;padding:14px}
 @media (prefers-reduced-motion:reduce){.view,.sheet,.toast,.dim{transition:none}}
 </style>
@@ -124,11 +141,11 @@ textarea{width:100%;min-height:96px;border:0;border-radius:14px;background:var(-
 const ic={chev:'<span class="chev">›</span>'};
 const DB={
  clientes:[
-  {id:'fabiola',nome:'Dra. Fabiola Pedron',area:'Nefrologia · Reels educativos',ini:'FP',cls:'f',cores:['#C8B9A7','#8FB0D8','#0F1C4A'],
+  {id:'fabiola',nome:'Dra. Fabiola Pedron',area:'Nefrologia · Reels educativos',ini:'FP',cls:'f',cores:['#C8B9A7','#8FB0D8','#0F1C4A'],texto:{leg:'#FFFFFF',dest:'#C8B9A7'},
    dna:[['Imagem','HDR original, sem filtro'],['Legenda','Branca, minúscula, sem ponto'],['Título','Rótulo, tema em serifa, pergunta'],['Destaques','3 a 4, estilos variados'],['Palavra solta','2 a 3 por vídeo'],['Ritmo','Pausas cortadas, fala natural'],['Música e SFX','Bora, no CapCut']],
    regras:['Gancho direto na pergunta, sem "agora eu vou falar"','B-roll animado é vídeo de verdade, não imagem deslizando','Branco da legenda forte, nada acinzentado','Nunca cortar final de palavra']},
-  {id:'vida',nome:'Clínica Vida',area:'Odontologia · Stories',ini:'CV',cls:'',cores:['#2E7D6B','#F3EEE6'],dna:[['Imagem','Original, sem filtro'],['Legenda','Aprendendo']],regras:[]},
-  {id:'casa',nome:'Casa Moura Arquitetura',area:'Arquitetura · Reels',ini:'CM',cls:'',cores:['#B9875A','#1E1E1E'],dna:[['Imagem','Original, sem filtro']],regras:[]}],
+  {id:'vida',nome:'Clínica Vida',area:'Odontologia · Stories',ini:'CV',cls:'',cores:['#2E7D6B','#F3EEE6'],texto:{leg:'#FFFFFF',dest:'#2E7D6B'},dna:[['Imagem','Original, sem filtro'],['Legenda','Aprendendo']],regras:[]},
+  {id:'casa',nome:'Casa Moura Arquitetura',area:'Arquitetura · Reels',ini:'CM',cls:'',cores:['#B9875A','#1E1E1E'],texto:{leg:'#FFFFFF',dest:'#B9875A'},dna:[['Imagem','Original, sem filtro']],regras:[]}],
  videos:[
   {id:'prostata',cli:'fabiola',t:'Novembro Azul',tema:'Próstata',sub:'pode prejudicar seus rins?',dur:'91 s',st:'wait',v:2,
    hist:[['v1','Primeira versão',"Gancho começando em \"o que esse canudinho\""],['v2','Seu ajuste','Subtítulo "pode prejudicar seus rins?" e linhas alinhadas']]},
@@ -137,7 +154,7 @@ const DB={
   {id:'implante',cli:'vida',t:'Antes e depois',tema:'Implante',sub:'dói mesmo?',dur:'38 s',st:'run',v:1,c2:1,prog:.62,hist:[]}]
 };
 const ST={ok:['Aprovado','ok'],wait:['Pra validar','wait'],run:['Editando','run']};
-const S={stack:[{v:'inicio'}],tab:'inicio',seg:'videos',dnaOn:true,novaCli:'fabiola'};
+const S={cores:null,arqn:'',stack:[{v:'inicio'}],tab:'inicio',seg:'videos',dnaOn:true,novaCli:'fabiola'};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id), vid=id=>DB.videos.find(v=>v.id===id);
 const SV=(d)=>`<svg class="ico" viewBox="0 0 24 24">${d}</svg>`;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2200)}
@@ -163,13 +180,14 @@ const V={
   <div class="group">${DB.clientes.map(c=>`<button class="row" data-push="cliente:${c.id}:dna"><span class="av ${c.cls}">${c.ini}</span><span class="tx"><b>${c.nome}</b><small>${c.dna.length+c.regras.length} regras · ${c.regras.length} aprendidas em ajustes</small></span>${ic.chev}</button>`).join('')}</div>
   <h3>Regras da casa</h3><div class="group">${['Nunca aplicar filtro ou suavização','Música e efeitos ficam com a Bora','Prévia em 480p, final em 4K'].map(x=>`<div class="row plain"><span class="tx"><b style="font-size:14px">${x}</b></span></div>`).join('')}</div>`},
  cliente(id,seg){const c=cli(id);seg=seg||S.seg;const vs=DB.videos.filter(v=>v.cli===id);
-  return `<div class="nav"><button class="back" data-pop>‹ Voltar</button><span class="t">${c.nome}</span><button class="round" aria-label="Mais">${SV('<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>')}</button></div>
+  return `<div class="nav"><button class="back" data-pop>‹ Voltar</button><span class="t">${c.nome}</span><button class="back" data-sheet="editar:${id}">Editar</button></div>
   <div class="head"><span class="av ${c.cls}">${c.ini}</span><h1>${c.nome}</h1><p>${c.area}</p>
    <div class="stats"><span><b>${vs.length}</b>vídeos</span><span><b>${vs.filter(v=>v.st==='ok').length}</b>aprovados</span><span><b>${c.regras.length}</b>aprendidas</span></div>
    <div class="cap"><button class="capbtn pri" data-sheet="nova:${id}">Nova edição</button><button class="capbtn" data-toast="Abrindo a pasta da cliente no Drive">Pasta no Drive</button></div></div>
   <div class="seg" data-cli="${id}">${[['videos','Vídeos'],['dna','DNA'],['refs','Referências']].map(([k,n])=>`<button data-seg="${k}" class="${seg===k?'on':''}">${n}</button>`).join('')}</div>
   ${seg==='videos'?`<h3>Vídeos</h3>${vs.length?`<div class="group">${vs.map(vidRow).join('')}</div>`:'<div class="group empty">Nenhum vídeo ainda</div>'}`:''}
   ${seg==='dna'?`<h3>Padrão</h3><div class="group">${c.dna.map(([a,b])=>`<div class="row plain"><span class="tx"><small style="margin:0">${a}</small><b style="font-size:14px">${b}</b></span></div>`).join('')}
+    <div class="row plain"><span class="tx"><small style="margin:0">Cores do texto</small><b style="font-size:14px">Legenda <span class="sw-col" style="background:${c.texto.leg};margin:0 10px 0 4px;vertical-align:-5px"></span>Destaque <span class="sw-col" style="background:${c.texto.dest};margin:0 0 0 4px;vertical-align:-5px"></span></b></span></div>
     <div class="row plain"><span class="tx"><small style="margin:0">Paleta</small></span><span style="padding-left:6px">${c.cores.map(x=>`<span class="sw-col" style="background:${x}"></span>`).join('')}</span></div></div>
    <h3>Aprendido nos ajustes</h3><div class="group">${c.regras.map(x=>`<div class="row plain"><span class="tx"><b style="font-size:14px">${x}</b></span></div>`).join('')||'<div class="empty">Cada ajuste que você pedir pode virar regra aqui</div>'}</div>`:''}
   ${seg==='refs'?`<h3>Aprovados que guiam o padrão</h3><div class="reels">${vs.filter(v=>v.st==='ok').map(reel).join('')||'<p class="empty">A primeira aprovação vira referência</p>'}</div>`:''}`},
@@ -182,10 +200,27 @@ const V={
   ${v.st==='ok'?`<h3>Entrega</h3><div class="group">${[['Final 4K HDR','.zip pra baixar no celular'],['Sem legenda','pra trilha e efeitos no CapCut'],['Legendas .srt',''],['Capa','1080 × 1920']].map(([a,b])=>`<button class="row plain" data-toast="Baixando ${a}"><span class="tx"><b>${a}</b>${b?`<small>${b}</small>`:''}</span><span style="color:var(--orange)">${SV('<path d="M12 4v12M7 11l5 5 5-5M5 20h14"/>')}</span></button>`).join('')}</div>`:''}
   ${v.st==='wait'?`<div class="dock" data-dock><button class="capbtn" data-sheet="ajuste:${id}">Pedir ajuste</button><button class="capbtn pri" data-aprovar="${id}">Aprovar</button></div>`:''}`}
 };
-function sheetNova(pre){if(pre)S.novaCli=pre;const c=cli(S.novaCli);return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Nova edição</b><button data-iniciar>Iniciar</button></div>
+function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.cores])];
+ return `<div class="opts">${ops.map(x=>`<button class="op ${x.toLowerCase()===atual.toLowerCase()?'on':''}" style="background:${x}" data-cor="${k}:${x}" aria-label="Cor ${x}"></button>`).join('')}
+ <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
+function sheetNova(pre){if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}const c=cli(S.novaCli);if(!S.cores)S.cores={...c.texto};return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Nova edição</b><button data-iniciar>Iniciar</button></div>
  <h3>Cliente</h3><div class="group">${DB.clientes.map(x=>`<button class="row" data-nc="${x.id}"><span class="av ${x.cls}">${x.ini}</span><span class="tx"><b>${x.nome}</b><small>${x.area}</small></span>${x.id===S.novaCli?'<span class="check">✓</span>':''}</button>`).join('')}</div>
- <h3>Vídeo bruto</h3><label class="drop" for="arq">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}<b id="arqn">Escolher do iPhone</b>ou puxar da pasta ${c.nome.split(' ').pop()} no Drive</label><input type="file" id="arq" accept="video/*" hidden>
+ <h3>Vídeo bruto</h3><label class="drop" for="arq">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}<b id="arqn">${S.arqn||'Escolher do iPhone'}</b>ou puxar da pasta ${c.nome.split(' ').pop()} no Drive</label><input type="file" id="arq" accept="video/*" hidden>
+ <h3>Cores do texto</h3><div class="group" style="padding:14px">
+  <div class="prev"><span style="color:${S.cores.leg}">o que esse canudinho tem a ver</span><em style="color:${S.cores.dest}">canudinho</em></div>
+  <div style="margin-top:14px;font-size:14px;font-weight:500">Legenda</div>${corOpts('leg',c)}
+  <div style="margin-top:14px;font-size:14px;font-weight:500">Palavras em destaque</div>${corOpts('dest',c)}
+ </div>
  <h3>Vai sair com</h3><div class="group"><div class="row plain"><span class="tx"><b style="font-size:14px">Padrão ${c.nome}</b><small>${c.dna.slice(0,3).map(x=>x[1]).join(' · ')}</small></span></div></div>`}
+function sheetEditar(){const c=S.draft;return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Editar cliente</b><button data-salvar>Salvar</button></div>
+ <h3>Informações</h3><div class="group"><div class="row plain"><input class="fld" id="e_nome" value="${c.nome}" aria-label="Nome"></div><div class="row plain"><input class="fld" id="e_area" value="${c.area}" aria-label="Nicho e formato"></div></div>
+ <h3>Paleta</h3><div class="group"><div class="pal">${c.cores.map((x,i)=>`<span class="pc"><input type="color" class="e_cor" value="${x}" aria-label="Cor ${i+1}"><button class="x" data-rmcor="${i}" aria-label="Remover cor">×</button></span>`).join('')}<button class="pc new" data-addcor aria-label="Adicionar cor">+</button></div></div>
+ <h3>Cores padrão do texto</h3><div class="group">${[['leg','Legenda'],['dest','Destaques']].map(([k,n])=>`<div class="row plain"><span class="tx"><b>${n}</b></span><span class="pc" style="width:34px;height:34px"><input type="color" id="e_${k}" value="${c.texto[k]}" style="width:34px;height:34px" aria-label="Cor ${n}"></span></div>`).join('')}</div>
+ <h3>DNA</h3><div class="group">${c.dna.map(([a,b],i)=>`<div class="row plain"><span class="tx"><input class="fld s e_k" value="${a}" aria-label="Item"><input class="fld e_v" value="${b}" aria-label="Regra"></span><button class="x" data-rmdna="${i}" aria-label="Remover">×</button></div>`).join('')}
+  <button class="row plain add" data-adddna>+ Adicionar item</button></div>
+ <h3>Aprendido nos ajustes</h3><div class="group">${c.regras.map((x,i)=>`<div class="row plain"><span class="tx"><input class="fld e_r" value="${x.replace(/"/g,'&quot;')}" aria-label="Regra aprendida"></span><button class="x" data-rmreg="${i}" aria-label="Remover">×</button></div>`).join('')||'<div class="empty">Nada ainda</div>'}</div>`}
+function lerDraft(){const d=S.draft,q=s=>[...document.querySelectorAll(s)].map(e=>e.value);d.nome=$('#e_nome').value;d.area=$('#e_area').value;d.cores=q('.e_cor');
+ d.texto={leg:$('#e_leg').value,dest:$('#e_dest').value};const k=q('.e_k'),v=q('.e_v');d.dna=k.map((x,i)=>[x,v[i]]);d.regras=q('.e_r')}
 function sheetAjuste(id){const v=vid(id),c=cli(v.cli);return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Pedir ajuste</b><button data-enviar="${id}">Enviar</button></div>
  <p class="lead" style="margin:6px 0 10px">Escreve do seu jeito, como falaria com o editor</p>
  <textarea id="aj" placeholder="Ex.: muda o subtítulo pra 'pode prejudicar seus rins?' e deixa as três linhas alinhadas"></textarea>
@@ -209,10 +244,18 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.push){const[p,id,seg]=d.push.split(':');if(seg)S.seg=seg;else if(p==='cliente')S.seg='videos';S.stack.push({v:p+':'+id});render('push')}
  else if('pop' in d){S.stack.pop();render('pop')}
  else if(d.seg){S.seg=d.seg;const top=S.stack[S.stack.length-1];render()}
- else if(d.sheet){const[k,a]=d.sheet.split(':');sheet(k==='nova'?sheetNova(a):sheetAjuste(a))}
- else if(d.nc){S.novaCli=d.nc;$('#sheet').innerHTML=sheetNova()}
+ else if(d.sheet){const[k,a]=d.sheet.split(':');if(k==='editar'){const c=cli(a);S.draft=JSON.parse(JSON.stringify(c));S.draftId=a;return sheet(sheetEditar())}
+  if(k==='nova'){S.arqn='';if(!a)S.cores=null}sheet(k==='nova'?sheetNova(a):sheetAjuste(a))}
+ else if(d.cor){const[k,x]=d.cor.split(':');S.cores[k]=x;$('#sheet').innerHTML=sheetNova()}
+ else if('addcor' in d){lerDraft();S.draft.cores.push('#FF6115');$('#sheet').innerHTML=sheetEditar()}
+ else if(d.rmcor){lerDraft();S.draft.cores.splice(+d.rmcor,1);$('#sheet').innerHTML=sheetEditar()}
+ else if('adddna' in d){lerDraft();S.draft.dna.push(['Novo item','']);$('#sheet').innerHTML=sheetEditar();const v=[...document.querySelectorAll('.e_v')].pop();v&&v.focus()}
+ else if(d.rmdna){lerDraft();S.draft.dna.splice(+d.rmdna,1);$('#sheet').innerHTML=sheetEditar()}
+ else if(d.rmreg){lerDraft();S.draft.regras.splice(+d.rmreg,1);$('#sheet').innerHTML=sheetEditar()}
+ else if('salvar' in d){lerDraft();Object.assign(cli(S.draftId),S.draft);if(S.novaCli===S.draftId)S.cores=null;close();render();toast('Cliente atualizado')}
+ else if(d.nc){if(d.nc!==S.novaCli){S.novaCli=d.nc;S.cores=null}$('#sheet').innerHTML=sheetNova()}
  else if('iniciar' in d){const n=($('#arqn').textContent.startsWith('Escolher')?'Novo vídeo':$('#arqn').textContent);
-  const v={id:'n'+Date.now(),cli:S.novaCli,t:'Novo vídeo',tema:n.slice(0,12),sub:'em edição',dur:'—',st:'run',v:1,prog:.05,hist:[]};DB.videos.unshift(v);close();
+  const v={id:'n'+Date.now(),cli:S.novaCli,cores:{...S.cores},t:'Novo vídeo',tema:n.slice(0,12),sub:'em edição',dur:'—',st:'run',v:1,prog:.05,hist:[]};DB.videos.unshift(v);close();
   S.tab='inicio';S.stack=[{v:'inicio'}];render();toast('Editando no padrão '+cli(v.cli).nome.split(' ').slice(0,2).join(' '));andar(v)}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
  else if('sw' in d){S.dnaOn=!S.dnaOn;b.querySelector('.sw').classList.toggle('off',!S.dnaOn)}
@@ -220,7 +263,8 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   if(S.dnaOn)cli(v.cli).regras.unshift(t);v.v++;v.hist.push(['v'+v.v,'Seu ajuste',t]);v.st='run';v.prog=.05;close();render();toast(S.dnaOn?'Ajuste enviado e guardado no DNA':'Ajuste enviado');andar(v)}
  else if(d.aprovar){const v=vid(d.aprovar);v.st='ok';v.hist.push(['v'+v.v,'Aprovado','Gerando 4K, versão sem legenda, .srt e capa']);render();toast('Aprovado. Gerando o 4K')}
  else if(d.toast)toast(d.toast)});
-document.addEventListener('change',e=>{if(e.target.id==='arq'&&e.target.files[0])$('#arqn').textContent=e.target.files[0].name.replace(/\.[^.]+$/,'')});
+document.addEventListener('change',e=>{if(e.target.id==='arq'&&e.target.files[0]){S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
+ if(e.target.dataset.cc){S.cores[e.target.dataset.cc]=e.target.value;$('#sheet').innerHTML=sheetNova()}});
 function andar(v){const t=setInterval(()=>{v.prog=Math.min(1,v.prog+.12);if(v.prog>=1){clearInterval(t);v.st='wait';if(!v.hist.length)v.hist.push(['v1','Primeira versão','Cortes, storytelling e textos no padrão da cliente']);toast(v.tema+': prévia pronta pra validar')}
  const top=S.stack[S.stack.length-1].v;if(!$('#sheet').classList.contains('on')){const sc=$('#stack').lastElementChild.scrollTop;render();$('#stack').lastElementChild.scrollTop=sc}},700)}
 render();
