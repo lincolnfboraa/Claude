@@ -1,0 +1,20 @@
+# HTTPS automático (Let's Encrypt) pro app e pro editor
+studio.borasolucoesdigitais.com {
+	encode gzip
+	header /config.js Cache-Control "no-store"
+	respond /config.js "window.BORA_SUPA={url:'{$SUPABASE_URL}',anon:'{$SUPABASE_ANON}',editor:'https://editor.borasolucoesdigitais.com'};" 200
+	root * /srv/studio
+	file_server
+}
+
+editor.borasolucoesdigitais.com {
+	request_body {
+		max_size 6GB
+	}
+	reverse_proxy bora-editor:8787 {
+		transport http {
+			read_timeout 30m
+			write_timeout 30m
+		}
+	}
+}

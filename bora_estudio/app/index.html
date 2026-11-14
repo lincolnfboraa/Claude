@@ -170,6 +170,7 @@ const ic={chev:'<span class="chev">›</span>'};
 /* ---------- dados: Supabase (RLS: só quem está na tabela equipe enxerga) ---------- */
 const SUPA_URL=(window.BORA_SUPA||{}).url, SUPA_ANON=(window.BORA_SUPA||{}).anon;
 const sb=supabase.createClient(SUPA_URL,SUPA_ANON);
+const EDITOR=(window.BORA_SUPA||{}).editor||'';
 const DB={global:null,clientes:[]};
 const STP={editando:'run',revisao:'wait',aprovado:'ok'};
 function falha(e){console.error(e);toast('Não salvou: '+(e.message||e));throw e}
@@ -278,6 +279,7 @@ const V={
   <div class="tags"><span class="tag">v${a.n} · prévia 480p do original</span><span class="tag">${v.dur}</span><span class="tag">sem música</span><button class="tag info" data-info="${id}" aria-label="Detalhes da mídia original">ⓘ Original ${m.res?m.res.replace(' × ','×'):''}</button></div>
   ${v.st==='run'?`<h3>Editando no DNA ${esc(c.nome)}</h3><div class="group">${['Original inspecionado (resolução, fps, cor)','Transcrição','Storytelling e gancho','Cortes de pausa','Textos e B-rolls','Prévia 480p do original'].map((e,i)=>`<div class="row plain"><span class="tx"><b style="font-size:14px;color:${i/6<v.prog?'var(--txt)':'var(--sub)'}">${e}</b></span>${i/6<v.prog-.17?'<span class="check">✓</span>':i/6<v.prog?'<span style="color:var(--sub);font-size:13px">agora</span>':''}</div>`).join('')}</div>`:''}
   ${v.st==='ok'&&!a.final&&!m.final_pronto?`<div class="acoes" style="grid-template-columns:1fr"><button class="capbtn" data-sheet="ajuste:${id}">Pedir ajuste antes do 4K</button></div>`:''}
+  ${m.aviso?`<div class="aviso pv" style="margin-top:12px"><b>Atenção</b>${esc(m.aviso)}</div>`:''}
   ${v.st==='run'&&m.andamento?`<p class="note2" style="text-align:center">${esc(m.andamento)}</p>`:''}
   ${v.st==='wait'?`<div class="acoes"><button class="capbtn" data-sheet="ajuste:${id}">Pedir ajuste</button><button class="capbtn pri" data-aprovar="${id}">Aprovar</button></div>`:''}
   ${v.versoes.length?`<h3>Versões</h3><div class="group tl rolav">${v.versoes.slice().reverse().map(x=>`<div class="row"><span class="dot ${x.st}"></span><span class="tx"><b>v${x.n} · ${{ajuste:'Ajuste pedido',revisao:'Aguardando revisão',aprovada:'Aprovada',editando:'Editando'}[x.st]}</b><small style="white-space:normal">${esc(x.resumo)}</small>${x.feedback?`<span class="fb">Seu feedback: ${esc(x.feedback)}</span>`:''}</span></div>`).join('')}</div>`:''}
@@ -292,7 +294,8 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.pal
 function sheetNova(pre){if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}const c=cli(S.novaCli);if(!S.cores)S.cores={leg:c.texto.legenda||'#FFFFFF',dest:c.texto.destaque||'#FFFFFF'};
  return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Nova edição</b><button data-iniciar>Iniciar</button></div>
  <h3>Cliente</h3><div class="hcli" id="hcli">${DB.clientes.map(x=>`<button class="hc ${x.id===S.novaCli?'on':''}" data-nc="${x.id}"><span class="av ${x.cls}">${x.ini}</span><span>${esc(x.nome)}</span></button>`).join('')}</div>
- <h3>Vídeo bruto</h3><label class="drop" for="arq">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}<b id="arqn">${esc(S.arqn)||'Escolher do iPhone'}</b>ou puxar da pasta ${esc(c.nome.split(' ').pop())} no Drive</label><input type="file" id="arq" accept="video/*" hidden>
+ <h3>Vídeo bruto</h3><label class="drop" for="arq">${SV('<path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>')}<b id="arqn">${esc(S.arqn)||'Escolher do iPhone'}</b>da Fototeca, da câmera ou dos Arquivos</label>
+ <p class="note2">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p><input type="file" id="arq" accept="video/*" hidden>
  <h3>Cores do texto</h3><div class="group" style="padding:14px">
   <div class="prev"><span style="color:${S.cores.leg}">uma frase da legenda</span><em style="color:${S.cores.dest}">destaque</em></div>
   <div style="margin-top:14px;font-size:14px;font-weight:500">Legenda</div>${corOpts('leg',c)}
@@ -354,10 +357,18 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    await q(sb.from('dna_versoes').insert({cliente_id:c.id,numero:c.dna_numero+1,dna,motivo:'Edição manual do perfil',confirmado_por:(await sb.auth.getUser()).data.user.id}));
    if(S.novaCli===c.id)S.cores=null;close();await recarregar();toast('Perfil salvo como DNA v'+(c.dna_numero+1))})()}
  else if(d.nc){if(d.nc!==S.novaCli){S.novaCli=d.nc;S.cores=null}const x=$('#hcli').scrollLeft;$('#sheet').innerHTML=sheetNova();const h=$('#hcli');h.scrollLeft=x;const o=h.querySelector('.on');if(o){const l=o.offsetLeft-16,r=o.offsetLeft+o.offsetWidth-h.clientWidth+16;if(h.scrollLeft>l)h.scrollTo({left:l,behavior:'smooth'});else if(h.scrollLeft<r)h.scrollTo({left:r,behavior:'smooth'})}}
- else if('iniciar' in d){const c=cli(S.novaCli),n=S.arqn||'Novo vídeo';
-  (async()=>{const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:S.arqn||'Arquivo do Drive'}}).select());
-   await q(sb.from('versoes').insert({projeto_id:p.id,numero:1,status:'editando',resumo:'Primeira versão no DNA de '+c.nome}));
-   close();S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();toast('Projeto criado. Na fila do render')})()}
+ else if('iniciar' in d){const c=cli(S.novaCli),f=S.arquivo;if(!f)return toast('Escolha o vídeo bruto primeiro');if(!EDITOR)return toast('Endereço do editor não configurado');
+  (async()=>{const n=f.name.replace(/\.[^.]+$/,'');
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:f.name,aguardando_upload:true,andamento:'Enviando o original',progresso:0}}).select());
+   $('#sheet').innerHTML=`<div class="grab"></div><div class="sh"><span style="width:52px"></span><b>Enviando o original</b><span style="width:52px"></span></div>
+    <div class="group" style="padding:16px"><b style="font-size:14px">${esc(f.name)}</b><small style="display:block;color:var(--sub);margin-top:4px" id="upinfo">Preparando…</small><span class="barra" style="height:8px"><i id="upbar"></i></span></div>
+    <p class="note2">Pode deixar o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
+   try{await enviarOriginal(p.id,f,(x,t)=>{$('#upbar').style.width=(x/t*100)+'%';$('#upinfo').textContent=`${(x/1048576).toFixed(0)} de ${(t/1048576).toFixed(0)} MB`});
+    const tok=(await sb.auth.getSession()).data.session.access_token;
+    const r=await fetch(`${EDITOR}/upload/${p.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({nome:f.name,tamanho:f.size})});
+    const j=await r.json();if(!r.ok)throw new Error(j.erro||'falha ao concluir');
+    S.arquivo=null;close();S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();toast(j.aviso?'Enviado, mas sem HDR: veja o aviso':'Original recebido. Editando no DNA de '+c.nome)}
+   catch(e){toast('Envio parou: '+e.message+'. Tente de novo');$('#upinfo').textContent='Envio interrompido. Feche e toque em Nova edição de novo pra retomar.'}})()}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
  else if('sw' in d){S.sugerir=!S.sugerir;b.querySelector('.sw').classList.toggle('off',!S.sugerir)}
  else if(d.enviar){const t=$('#aj').value.trim();if(!t)return toast('Escreve o que precisa mudar');const v=vid(d.enviar),a=vatual(v);
@@ -376,10 +387,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    $('#vid').innerHTML=`<video src="${data.signedUrl}" controls autoplay playsinline style="width:100%;aspect-ratio:9/16;border-radius:22px;background:#000"></video>`})()}
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
+async function enviarOriginal(pid,f,prog){const PED=8<<20,tok=async()=>(await sb.auth.getSession()).data.session.access_token;
+ let off=(await (await fetch(`${EDITOR}/upload/${pid}`,{headers:{Authorization:'Bearer '+await tok()}})).json()).recebido||0;
+ while(off<f.size){let ok=false;for(let t=0;t<5&&!ok;t++){try{const r=await fetch(`${EDITOR}/upload/${pid}?offset=${off}`,{method:'PUT',headers:{Authorization:'Bearer '+await tok()},body:f.slice(off,off+PED)});
+   const j=await r.json();if(r.ok||r.status===409){off=j.recebido;ok=true}else throw new Error(j.erro)}catch(e){await new Promise(z=>setTimeout(z,1500*(t+1)))}}
+  if(!ok)throw new Error('sem conexão com o editor');prog(off,f.size)}}
 document.addEventListener('change',e=>{if(e.target.id==='upprev'&&e.target.files[0]){const v=vid(e.target.dataset.proj),a=vatual(v),f=e.target.files[0],path=`${v.cli}/${v.id}/v${a.n}.mp4`;
   toast('Enviando prévia…');(async()=>{const {error}=await sb.storage.from('previas').upload(path,f,{upsert:true,contentType:'video/mp4'});if(error)return toast('Falhou: '+error.message);
    await q(sb.from('versoes').update({previa_path:path}).eq('id',a.id));await recarregar();toast('Prévia da v'+a.n+' enviada')})();return}
-if(e.target.id==='arq'&&e.target.files[0]){S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
+if(e.target.id==='arq'&&e.target.files[0]){S.arquivo=e.target.files[0];S.arqn=e.target.files[0].name.replace(/\.[^.]+$/,'');$('#arqn').textContent=S.arqn}
  if(e.target.dataset.cc){S.cores[e.target.dataset.cc]=e.target.value;$('#sheet').innerHTML=sheetNova()}});
 setInterval(()=>{if(!document.hidden&&DB.clientes.length&&$('#sheet [data-stgo]')){carregarTudo().then(()=>{$('#sheet').innerHTML=sheetStatus()}).catch(()=>{});return}
  if(document.hidden||!DB.clientes.length||$('#sheet').classList.contains('on')||S.stack[S.stack.length-1].v.startsWith('login'))return;if($('#vid video'))return;

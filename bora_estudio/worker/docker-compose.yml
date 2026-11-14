@@ -4,10 +4,20 @@ services:
     build: { context: ../.., dockerfile: bora_estudio/worker/Dockerfile }
     container_name: bora-editor
     restart: unless-stopped
-    env_file: /opt/bora/bora.env          # SUPABASE_URL, SUPABASE_SECRET, ANTHROPIC_API_KEY, BORA_TOKEN
+    env_file: /opt/bora/bora.env          # SUPABASE_URL, SUPABASE_SECRET, SUPABASE_ANON, ANTHROPIC_API_KEY, BORA_TOKEN
     ports: ["8787:8787"]
     volumes:
-      - /opt/bora/trabalho:/trabalho       # arquivos temporários de cada vídeo
+      - /opt/bora/trabalho:/trabalho       # originais e arquivos de trabalho de cada vídeo
       - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez
     mem_limit: 4g
     cpus: 3.5
+  bora-caddy:
+    image: caddy:2.8
+    container_name: bora-caddy
+    restart: unless-stopped
+    env_file: /opt/bora/bora.env
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../app:/srv/studio:ro
+      - /opt/bora/caddy:/data
