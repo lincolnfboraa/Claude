@@ -16,4 +16,6 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   + pergunta curta em Poppins SemiBold branco. Sem filetes. Entrada suave (sobe 18 px + fade, em cascata).
 - Primeiras versões e validações em 480p (480x854, `render.py ... 854`), de preferência por trechos curtos; qualidade cheia só na final aprovada.
 - Roteiro e ganchos: seguir `fabiola_reels_energeticos/ANALISE_REFERENCIAS.md` e `GUIA_ROTEIRO_GRAVACAO.md`.
+- **Entrega de vídeo pro celular:** sempre mandar o MP4 dentro de um .zip (zip -0, sem compressão), com `display: attach`,
+  pra aparecer o ícone de download (o .mp4 solto abre como player no celular). Versão final leve: HEVC (libx265, crf 24, tag hvc1).
 - Respostas em português, linguagem natural, sem travessões.
