@@ -1,0 +1,13 @@
+# Rodar a partir da raiz do repositório:  docker compose -f bora_estudio/worker/docker-compose.yml up -d --build
+services:
+  bora-editor:
+    build: { context: ../.., dockerfile: bora_estudio/worker/Dockerfile }
+    container_name: bora-editor
+    restart: unless-stopped
+    env_file: /opt/bora/bora.env          # SUPABASE_URL, SUPABASE_SECRET, ANTHROPIC_API_KEY, BORA_TOKEN
+    ports: ["8787:8787"]
+    volumes:
+      - /opt/bora/trabalho:/trabalho       # arquivos temporários de cada vídeo
+      - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez
+    mem_limit: 4g
+    cpus: 3.5

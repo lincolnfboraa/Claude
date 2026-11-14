@@ -1,0 +1,95 @@
+{
+ "name": "Bora Studio | pedidos do app",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "bora-studio",
+    "authentication": "headerAuth",
+    "responseMode": "onReceived",
+    "options": {}
+   },
+   "name": "Supabase avisa",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2,
+   "position": [
+    0,
+    0
+   ],
+   "webhookId": "bora-studio",
+   "credentials": {
+    "httpHeaderAuth": {
+     "id": "",
+     "name": "Bora Studio webhook"
+    }
+   }
+  },
+  {
+   "parameters": {
+    "jsCode": "// Traduz o aviso do Supabase em pedido pro editor\nconst b = $input.first().json.body || $input.first().json;\nconst r = b.record || {}, o = b.old_record || {};\nlet p = null;\nif (b.table === 'versoes' && b.type === 'INSERT' && r.status === 'editando')\n  p = { tipo: r.numero > 1 ? 'ajuste' : 'nova_edicao', projeto_id: r.projeto_id, versao_id: r.id, versao: r.numero };\nif (b.table === 'projetos' && b.type === 'UPDATE' && r.status === 'aprovado' && o.status !== 'aprovado')\n  p = { tipo: 'final', projeto_id: r.id, cliente: r.cliente_id };\nreturn p ? [{ json: p }] : [];"
+   },
+   "name": "Montar pedido",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    260,
+    0
+   ]
+  },
+  {
+   "parameters": {
+    "method": "POST",
+    "url": "http://172.17.0.1:8787/pedido",
+    "sendHeaders": true,
+    "headerParameters": {
+     "parameters": [
+      {
+       "name": "X-Bora-Token",
+       "value": "COLE_AQUI_O_BORA_TOKEN"
+      }
+     ]
+    },
+    "sendBody": true,
+    "specifyBody": "json",
+    "jsonBody": "={{ JSON.stringify($json) }}",
+    "options": {
+     "timeout": 20000
+    }
+   },
+   "name": "Enviar pro editor",
+   "type": "n8n-nodes-base.httpRequest",
+   "typeVersion": 4.2,
+   "position": [
+    520,
+    0
+   ]
+  }
+ ],
+ "connections": {
+  "Supabase avisa": {
+   "main": [
+    [
+     {
+      "node": "Montar pedido",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Montar pedido": {
+   "main": [
+    [
+     {
+      "node": "Enviar pro editor",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}
