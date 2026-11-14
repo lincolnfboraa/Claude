@@ -40,7 +40,8 @@ def trabalhador():
     while True:
         p = FILA.get()
         try: processar(p)
-        finally: FILA.task_done()
+        finally:
+            FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
 
 class H(BaseHTTPRequestHandler):
     def _r(self, cod, obj):
@@ -54,9 +55,34 @@ class H(BaseHTTPRequestHandler):
             p = traduzir(p)
             if not p: return self._r(200, {'ok': True, 'ignorado': True})
         if not p.get('projeto_id') or p.get('tipo') not in ('nova_edicao', 'ajuste', 'final'): return self._r(400, {'erro': 'pedido incompleto'})
-        etapa(p['projeto_id'], 'Na fila do editor', 2, andamento_versao=p.get('versao_id'))
-        FILA.put(p); self._r(202, {'ok': True, 'posicao': FILA.qsize()})
+        enfileirar(p); self._r(202, {'ok': True, 'posicao': FILA.qsize()})
 
+EM_FILA = set()
+def enfileirar(p):
+    chave = ('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id'))
+    if chave in EM_FILA: return False
+    EM_FILA.add(chave)
+    etapa(p['projeto_id'], 'Na fila do editor', 2, andamento_versao=chave)
+    FILA.put(p); return True
+
+def vigia():
+    """Consulta o Supabase a cada 10 s (o VPS só faz chamadas de saída; não depende de porta aberta)."""
+    import time
+    while True:
+        try:
+            for v in sb('GET', '/rest/v1/versoes?status=eq.editando&select=id,numero,projeto_id,projetos(original_meta)'):
+                m = (v.get('projetos') or {}).get('original_meta') or {}
+                if m.get('andamento_versao') != v['id']:
+                    enfileirar({'tipo': 'ajuste' if v['numero'] > 1 else 'nova_edicao', 'projeto_id': v['projeto_id'], 'versao_id': v['id'], 'versao': v['numero']})
+            for pr in sb('GET', '/rest/v1/projetos?status=eq.aprovado&select=id,cliente_id,original_meta,versoes(id,numero,final_drive_id)'):
+                m = pr.get('original_meta') or {}; vs = sorted(pr['versoes'], key=lambda x: x['numero'])
+                if vs and not vs[-1]['final_drive_id'] and not m.get('final_pronto') and m.get('andamento_versao') != 'final:' + vs[-1]['id']:
+                    enfileirar({'tipo': 'final', 'projeto_id': pr['id'], 'cliente': pr['cliente_id'], 'versao_id': vs[-1]['id'], 'versao': vs[-1]['numero']})
+        except Exception as e:
+            print('vigia:', e, flush=True)
+        time.sleep(10)
+
+threading.Thread(target=vigia, daemon=True).start()
 threading.Thread(target=trabalhador, daemon=True).start()
 print('Editor Bora Studio ouvindo na porta 8787')
 ThreadingHTTPServer(('0.0.0.0', 8787), H).serve_forever()
