@@ -1,4 +1,11 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#06182C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bora Studio">
+<link rel="apple-touch-icon" href="icone.png">
 <title>Bora Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@600;700&display=swap">
@@ -143,6 +150,17 @@ a.row{color:inherit;text-decoration:none}
 .spin{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,97,21,.35);border-top-color:var(--orange);animation:gira .9s linear infinite}
 @keyframes gira{to{transform:rotate(360deg)}}@media (prefers-reduced-motion:reduce){.spin{animation:none}}
 .barra{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:8px;overflow:hidden}.barra i{display:block;height:100%;background:var(--orange);border-radius:3px;transition:width .6s}
+/* celular: o app ocupa a tela inteira, respeitando a ilha e a barra do iPhone */
+@media (max-width:560px){
+ body{padding:0;align-items:stretch;background:var(--bg)}
+ .phone{max-width:none;height:100dvh;max-height:none;min-height:0;border-radius:0;box-shadow:none}
+ .view{padding-top:env(safe-area-inset-top,0px);padding-bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+ .nav{top:0}
+ .tabbar{bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+ .sheet{padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+ .toast{top:calc(10px + env(safe-area-inset-top,0px))}
+ .fld,textarea,input{font-size:16px}
+}
 .empty{color:var(--sub);font-size:14px;padding:14px}
 @media (prefers-reduced-motion:reduce){.view,.sheet,.toast,.dim{transition:none}}
 </style>
@@ -330,7 +348,7 @@ function render(anim){const st=$('#stack');const top=S.stack[S.stack.length-1];c
  else if(anim==='pop'){el.classList.add('out');requestAnimationFrame(()=>requestAnimationFrame(()=>{el.classList.remove('out');old&&old.classList.add('in')}));setTimeout(()=>old&&old.remove(),400)}
  else old&&old.remove();
  el.addEventListener('scroll',()=>{const n=el.querySelector('.nav');n&&n.classList.toggle('solid',el.scrollTop>40||name==='video')});
- $('#tabbar').hidden=false;
+ $('#tabbar').hidden=['login','carregando','erro'].includes(name);
  document.querySelectorAll('.tabbar [data-tab]').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab))}
 function sheet(html){$('#sheet').innerHTML=html;$('#sheet').classList.add('on');$('#dim').classList.add('on')}
 function close(){$('#sheet').classList.remove('on');$('#dim').classList.remove('on')}
