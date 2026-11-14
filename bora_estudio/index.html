@@ -1,0 +1,202 @@
+<title>Bora Estúdio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: app de celular em blocos (estilo editor de vídeo), centralizado na tela; navegação por abas embaixo */
+:root{
+  --navy:#072440; --navy2:#0B2E52; --navy3:#123A63; --line:#1D4673;
+  --orange:#FF6115; --orange2:#FF7F3F; --cream:#F3EEE6; --muted:#9FB3CA;
+  --ok:#3DD68C; --warn:#FFB547;
+  --display:'Lexend',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:#041729;color:var(--cream);font-family:var(--body);display:flex;justify-content:center;
+  padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.phone{width:100%;max-width:400px;background:var(--navy);border-radius:28px;border:1px solid var(--line);overflow:hidden;display:flex;flex-direction:column;min-height:760px;position:relative}
+.scroll{flex:1;overflow-y:auto;padding:18px 16px 96px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.logo{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:22px;color:var(--orange)}
+.logo small{display:block;font-weight:400;font-size:10px;color:var(--cream);letter-spacing:.04em;margin-top:-4px}
+.pill{font-size:12px;padding:6px 10px;border-radius:99px;background:var(--navy3);color:var(--muted)}
+.hero{border-radius:20px;padding:20px;background:radial-gradient(120% 90% at 85% 10%,#1E5A93 0%,var(--navy2) 55%);border:1px solid var(--line);position:relative;overflow:hidden}
+.hero .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--orange2)}
+.hero h2{font-size:24px;line-height:1.15;margin:6px 0 4px}
+.hero p{margin:0;color:var(--muted);font-size:13px;line-height:1.45;max-width:30ch}
+.rings{position:absolute;right:-30px;top:-30px;width:150px;opacity:.35}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-top:12px}
+.big{border-radius:18px;padding:18px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:120px;text-align:center;font-family:var(--display);font-weight:600;font-size:15px}
+.big.up{background:var(--orange);color:#fff}
+.big.alt{background:var(--navy3);border:1px solid var(--line)}
+.big .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.18);font-size:22px;line-height:1}
+.big.alt .ic{background:var(--navy2)}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:22px 0 10px}
+.sec h3{font-size:15px}.sec span{font-size:12px;color:var(--muted)}
+.clients{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+.cl{flex:0 0 96px;border-radius:14px;background:var(--navy2);border:1px solid var(--line);padding:10px;text-align:left}
+.cl.on{border-color:var(--orange)}
+.av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:600;font-size:14px;background:var(--navy3);color:var(--cream);margin-bottom:8px}
+.cl.on .av{background:var(--orange);color:#fff}
+.cl b{display:block;font-size:12px;font-weight:600}.cl small{font-size:10px;color:var(--muted)}
+.cl.add{display:grid;place-items:center;color:var(--muted);font-size:12px;border-style:dashed}
+.tools{display:grid;grid-template-columns:repeat(3,1fr);gap:16px 8px;margin-top:4px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--cream);text-align:center}
+.tool i{width:44px;height:44px;border-radius:12px;background:var(--navy2);border:1px solid var(--line);display:grid;place-items:center;font-style:normal;color:var(--orange);font-size:18px}
+.card{background:var(--navy2);border:1px solid var(--line);border-radius:16px;padding:14px}
+.list{display:flex;flex-direction:column;gap:10px}
+.proj{display:flex;gap:12px;align-items:center}
+.thumb{width:48px;height:64px;border-radius:8px;background:linear-gradient(160deg,#2b4f78,#0d2240);display:grid;place-items:center;font-size:10px;color:var(--muted);flex:none}
+.proj div{min-width:0;flex:1}.proj b{display:block;font-size:13px}.proj small{color:var(--muted);font-size:11px}
+.st{font-size:10px;padding:4px 8px;border-radius:99px;font-weight:600;white-space:nowrap}
+.st.ok{background:rgba(61,214,140,.15);color:var(--ok)}.st.wait{background:rgba(255,181,71,.15);color:var(--warn)}.st.run{background:rgba(255,97,21,.18);color:var(--orange2)}
+.tabs{position:absolute;left:0;right:0;bottom:0;display:grid;grid-template-columns:repeat(4,1fr);background:#06203A;border-top:1px solid var(--line);padding:8px 4px 12px}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--muted)}
+.tabs button span{font-size:18px}.tabs button.on{color:var(--orange)}
+.back{font-size:13px;color:var(--muted);margin-bottom:12px}
+.steps{display:flex;flex-direction:column;gap:2px;margin-top:12px}
+.step{display:flex;gap:10px;align-items:center;font-size:13px;padding:7px 0;color:var(--muted)}
+.dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none;display:grid;place-items:center;font-size:11px}
+.step.done{color:var(--cream)}.step.done .dot{background:var(--ok);border-color:var(--ok);color:#06203A}
+.step.now{color:var(--cream)}.step.now .dot{border-color:var(--orange);border-top-color:transparent;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.step.now .dot{animation:none}}
+.bar{height:6px;border-radius:9px;background:var(--navy3);overflow:hidden;margin-top:10px}.bar i{display:block;height:100%;background:var(--orange);width:0;transition:width .4s}
+.video{aspect-ratio:9/16;max-width:100%;width:62%;margin:0 auto;border-radius:16px;background:linear-gradient(170deg,#3a5a7c 0%,#1a2f48 60%,#0c1a2c 100%);position:relative;overflow:hidden;border:1px solid var(--line)}
+.video .t1{position:absolute;left:0;right:0;top:46%;text-align:center}
+.video .t1 small{display:block;font-size:7px;letter-spacing:.35em;color:#8FB0D8}
+.video .t1 b{display:block;font-family:Georgia,serif;font-style:italic;font-weight:900;font-size:24px;color:#8FB0D8;letter-spacing:.06em}
+.video .t1 span{font-size:9px;font-weight:600;color:#fff}
+.video .leg{position:absolute;bottom:20%;left:0;right:0;text-align:center;font-size:10px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.video .play{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;color:rgba(255,255,255,.75)}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.tag{font-size:11px;padding:5px 9px;border-radius:99px;background:var(--navy3);color:var(--cream)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.btn{border-radius:12px;padding:13px;font-family:var(--display);font-weight:600;font-size:14px;text-align:center}
+.btn.ok{background:var(--orange);color:#fff}.btn.ghost{background:var(--navy3);border:1px solid var(--line)}
+textarea{width:100%;min-height:90px;border-radius:12px;border:1px solid var(--line);background:var(--navy);color:var(--cream);padding:12px;font:inherit;font-size:13px;resize:vertical}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chip{font-size:11px;padding:6px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.dna{display:flex;flex-direction:column;gap:8px}
+.dna .row{display:flex;justify-content:space-between;gap:10px;font-size:13px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.dna .row span{color:var(--muted)}.dna .row b{font-weight:500;text-align:right}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-left:4px;border:1px solid rgba(255,255,255,.2)}
+.learn{font-size:12px;color:var(--cream);padding:9px 10px;border-radius:10px;background:var(--navy);border:1px solid var(--line);display:flex;gap:8px}
+.learn em{font-style:normal;color:var(--orange2);font-weight:600;flex:none}
+.note{font-size:12px;color:var(--muted);line-height:1.5}
+.toast{position:absolute;left:16px;right:16px;bottom:78px;background:var(--cream);color:var(--navy);border-radius:12px;padding:12px 14px;font-size:13px;font-weight:600;transition:opacity .3s;opacity:0;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+
+<div class="phone">
+  <div class="scroll" id="app"></div>
+  <div class="toast" id="toast"></div>
+  <nav class="tabs" aria-label="Navegação">
+    <button data-tab="inicio" class="on"><span>✂</span>Editar</button>
+    <button data-tab="clientes"><span>◉</span>Clientes</button>
+    <button data-tab="projetos"><span>▤</span>Projetos</button>
+    <button data-tab="dna"><span>✦</span>DNA</button>
+  </nav>
+</div>
+
+<script>
+const RINGS='<svg class="rings" viewBox="0 0 100 100" fill="none" stroke="#FF6115" stroke-width="4" stroke-linecap="round"><path d="M22 14c18-11 40-11 56 0"/><path d="M8 40c8-20 34-32 58-20"/><path d="M50 22a28 28 0 1 1-28 30"/><path d="M80 24c6 6 10 12 12 18"/><path d="M10 66c3 9 9 16 14 20"/><path d="M92 66c-8 20-34 32-58 20"/><path d="M24 92c18 12 40 10 56 0"/></svg>';
+const LOGO='<svg width="30" height="30" viewBox="0 0 100 100" fill="none" stroke="#FF6115" stroke-width="7" stroke-linecap="round"><path d="M50 18a32 32 0 1 1-32 34"/><path d="M8 40c8-20 34-32 58-20"/><path d="M92 62c-8 20-34 32-58 20"/><text x="36" y="66" font-family="Lexend" font-weight="700" font-size="44" fill="#FF6115" stroke="none">b</text></svg>';
+const S={tab:'inicio',cliente:'fabiola',proj:null,versao:1,ajustes:[]};
+const CLIENTES={
+  fabiola:{nome:'Dra. Fabiola Pedron',area:'Nefrologista',ini:'FP',aprov:2,
+    dna:[['Imagem','HDR original do iPhone, sem filtro'],['Legenda','Branca, minúscula, sem pontos'],['Título','Rótulo + tema em serifa itálica + pergunta'],['Destaques','3 a 4 por vídeo, estilos variados'],['Palavra solta','2 a 3, serifa itálica grande'],['Ritmo','Pausas cortadas, fala natural'],['Gancho','Pergunta curiosa logo no 1º segundo'],['Música e SFX','Fica com a Bora (CapCut)']],
+    cores:['#C8B9A7','#8FB0D8','#0F1C4A'],
+    aprendido:['Começar o gancho direto na pergunta, sem "agora eu vou falar"','B-roll animado é vídeo de verdade, não imagem deslizando','Branco da legenda forte, nada acinzentado','Nunca cortar final de palavra (diabetes, não diabé)']},
+  clinica:{nome:'Clínica Vida',area:'Odontologia',ini:'CV',aprov:0,dna:[['Imagem','Original, sem filtro'],['Legenda','A definir'],['Ritmo','A definir']],cores:['#2E7D6B','#FFFFFF'],aprendido:[]}
+};
+const PROJ=[
+  {id:'prostata',t:'Novembro Azul: próstata e rim',c:'fabiola',d:'91 s · 4K HDR',st:'run',lb:'Em validação'},
+  {id:'diabetes',t:'Diabetes e rim',c:'fabiola',d:'101 s · aprovado pela cliente',st:'ok',lb:'Aprovado'},
+  {id:'energeticos',t:'Energéticos e rim',c:'fabiola',d:'64 s · aprovado',st:'ok',lb:'Aprovado'}];
+const ETAPAS=['Recebendo o vídeo do Drive','Transcrevendo palavra por palavra','Montando storytelling e gancho','Cortando pausas e vícios','Textos, destaques e B-rolls no DNA da cliente','Renderizando prévia 480p em HDR'];
+const $=s=>document.querySelector(s), app=$('#app');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200)}
+function header(){return `<div class="top"><div class="logo">${LOGO}<div>bora<small>estúdio de vídeo</small></div></div><span class="pill">${CLIENTES[S.cliente].ini} · ${CLIENTES[S.cliente].nome.split(' ').slice(-1)}</span></div>`}
+
+function inicio(){
+  const c=CLIENTES[S.cliente];
+  return header()+`
+  <section class="hero">${RINGS}<div class="eyebrow">Padrão ${c.nome.split(' ')[0]==='Dra.'?'Dra. '+c.nome.split(' ')[1]:c.nome}</div>
+   <h2>Sobe o vídeo bruto. Volta pronto pra validar.</h2>
+   <p>Cortes, storytelling, legendas, destaques e B-rolls no DNA da cliente. Música e efeitos ficam com a Bora.</p></section>
+  <div class="grid2">
+   <label class="big up" for="arquivo"><span class="ic">＋</span>Novo vídeo<small style="font-weight:400;font-size:11px;opacity:.85">.MOV do iPhone</small></label>
+   <button class="big alt" data-go="drive"><span class="ic">⇪</span>Puxar do Drive</button>
+  </div>
+  <input type="file" id="arquivo" accept="video/*" hidden>
+  <div class="sec"><h3>Clientes</h3><span>${Object.keys(CLIENTES).length} perfis</span></div>
+  <div class="clients">${Object.entries(CLIENTES).map(([k,v])=>`<button class="cl ${k===S.cliente?'on':''}" data-cl="${k}"><div class="av">${v.ini}</div><b>${v.nome.replace('Dra. ','')}</b><small>${v.aprov} aprovados</small></button>`).join('')}<button class="cl add" data-go="novo-cliente">＋ cliente</button></div>
+  <div class="sec"><h3>Ferramentas</h3></div>
+  <div class="tools">${[['✂','Cortes de pausa'],['❝','Storytelling'],['Aa','Legendas'],['★','Destaques'],['▶','B-roll animado'],['⇲','Zoom e reenquadre'],['☰','Teleprompter'],['◐','Capa'],['⤓','Exportar MP4']].map(([i,n])=>`<button class="tool"><i>${i}</i>${n}</button>`).join('')}</div>`;
+}
+function clientes(){
+  const c=CLIENTES[S.cliente];
+  return header()+`<h2 style="font-size:20px;margin-bottom:4px">Estúdio de clientes</h2><p class="note">Cada perfil guarda o padrão de edição aprovado e as referências.</p>
+  <div class="clients" style="margin:14px 0">${Object.entries(CLIENTES).map(([k,v])=>`<button class="cl ${k===S.cliente?'on':''}" data-cl="${k}"><div class="av">${v.ini}</div><b>${v.nome.replace('Dra. ','')}</b><small>${v.area}</small></button>`).join('')}</div>
+  <div class="card"><div class="proj"><div class="av" style="background:var(--orange);color:#fff;margin:0">${c.ini}</div><div><b>${c.nome}</b><small>${c.area} · ${c.aprov} vídeos aprovados</small></div></div>
+   <div class="sec" style="margin-top:14px"><h3>Paleta</h3></div><div>${c.cores.map(x=>`<span class="sw" style="background:${x};width:28px;height:28px;margin:0 6px 0 0"></span>`).join('')}</div>
+   <div class="sec"><h3>Referências aprovadas</h3></div>
+   <div class="list">${PROJ.filter(p=>p.c===S.cliente&&p.st==='ok').map(p=>`<div class="proj"><div class="thumb">4K</div><div><b>${p.t}</b><small>${p.d}</small></div></div>`).join('')||'<p class="note">Nenhuma ainda. A primeira aprovação vira referência.</p>'}</div></div>`;
+}
+function projetos(){
+  return header()+`<h2 style="font-size:20px;margin-bottom:12px">Projetos</h2><div class="list">${PROJ.map(p=>`<button class="card proj" data-proj="${p.id}" style="text-align:left"><div class="thumb">${p.st==='ok'?'4K':'480p'}</div><div><b>${p.t}</b><small>${CLIENTES[p.c].nome} · ${p.d}</small></div><span class="st ${p.st}">${p.lb}</span></button>`).join('')}</div>`;
+}
+function dna(){
+  const c=CLIENTES[S.cliente];
+  return header()+`<h2 style="font-size:20px;margin-bottom:4px">DNA de edição</h2><p class="note">O que o sistema usa em todo vídeo de ${c.nome}. Cresce a cada ajuste pedido.</p>
+  <div class="card dna" style="margin-top:12px">${c.dna.map(([a,b])=>`<div class="row"><span>${a}</span><b>${b}</b></div>`).join('')}</div>
+  <div class="sec"><h3>Aprendido nos ajustes</h3><span>${c.aprendido.length}</span></div>
+  <div class="list">${c.aprendido.map(x=>`<div class="learn"><em>✦</em>${x}</div>`).join('')||'<p class="note">Ainda sem ajustes registrados.</p>'}</div>`;
+}
+function processando(){
+  return `<button class="back" data-tab="inicio">‹ Voltar</button><h2 style="font-size:20px">${S.proj.t}</h2><p class="note">${CLIENTES[S.cliente].nome} · versão ${S.versao}${S.versao>1?' (com seus ajustes)':''}</p>
+  <div class="card" style="margin-top:12px"><div class="steps" id="steps">${ETAPAS.map((e,i)=>`<div class="step" data-i="${i}"><span class="dot"></span>${e}</div>`).join('')}</div><div class="bar"><i id="bar"></i></div></div>
+  <p class="note" style="margin-top:12px">A prévia sai em 480p pra economizar processamento. O 4K só roda depois do aprovado.</p>`;
+}
+function revisao(){
+  const c=CLIENTES[S.cliente];
+  return `<button class="back" data-tab="projetos">‹ Projetos</button><h2 style="font-size:20px">${S.proj.t}</h2><p class="note">Prévia v${S.versao} · 480p HDR · ${S.proj.dur||'91 s'}</p>
+  <div class="video" style="margin-top:12px"><div class="t1"><small>NOVEMBRO AZUL</small><b>Próstata</b><span>pode prejudicar seus rins?</span></div><div class="leg">o que esse canudinho tem a ver</div><div class="play">▶</div></div>
+  <div class="meta"><span class="tag">11 cortes</span><span class="tag">gancho em pergunta</span><span class="tag">4 destaques</span><span class="tag">1 B-roll animado</span><span class="tag">sem música</span></div>
+  <div class="actions"><button class="btn ok" data-act="aprovar">✓ Aprovado</button><button class="btn ghost" data-act="ajustes">Precisa de ajustes</button></div>
+  <div id="ajbox" hidden><div class="card" style="margin-top:12px"><label for="ajtxt" style="font-size:13px;font-weight:600">O que mudar? Escreve do seu jeito</label>
+   <div class="chips">${['Trocar subtítulo do título','Cortar um trecho','Legenda mais branca','Mudar o gancho','Trocar o B-roll'].map(x=>`<button class="chip" data-chip="${x}">${x}</button>`).join('')}</div>
+   <textarea id="ajtxt" placeholder="Ex.: muda o subtítulo do início pra 'pode prejudicar seus rins?' e deixa as três linhas alinhadas"></textarea>
+   <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin-top:8px"><input type="checkbox" id="ajdna" checked> Guardar como regra no DNA da ${c.nome.split(' ').slice(0,2).join(' ')}</label>
+   <button class="btn ok" style="width:100%;margin-top:10px" data-act="enviar">Gerar nova versão</button></div></div>`;
+}
+function aprovado(){
+  return `<button class="back" data-tab="projetos">‹ Projetos</button><div class="card" style="text-align:center;padding:22px"><div style="font-size:34px;color:var(--ok)">✓</div><h2 style="font-size:20px;margin:6px 0">Aprovado. Gerando o 4K</h2><p class="note">A versão vira referência no perfil da cliente.</p></div>
+  <div class="sec"><h3>Entrega</h3></div><div class="list">${[['Vídeo final 4K HDR','.zip pra baixar no celular'],['Versão sem legenda','pra Bora finalizar no CapCut'],['Legendas .srt','pra revisão ou outras redes'],['Capa','1080 x 1920']].map(([a,b])=>`<div class="card proj"><div class="thumb">⤓</div><div><b>${a}</b><small>${b}</small></div><span class="st run">Na fila</span></div>`).join('')}</div>
+  <p class="note" style="margin-top:12px">Música, efeitos sonoros e transições de luz entram depois, com a Bora.</p>`;
+}
+const VIEWS={inicio,clientes,projetos,dna,processando,revisao,aprovado};
+function render(){app.innerHTML=VIEWS[S.tab]();document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===S.tab||(['processando','revisao','aprovado'].includes(S.tab)&&b.dataset.tab==='projetos')));app.scrollTop=0;if(S.tab==='processando')rodar()}
+function rodar(){let i=0;const n=ETAPAS.length;const tick=()=>{document.querySelectorAll('.step').forEach((s,j)=>{s.className='step'+(j<i?' done':j===i?' now':'');s.querySelector('.dot').textContent=j<i?'✓':''});$('#bar').style.width=(i/n*100)+'%';if(i<n){i++;S._t=setTimeout(tick,650)}else S._t=setTimeout(()=>{S.tab='revisao';render();toast('Prévia v'+S.versao+' pronta pra validar')},450)};tick()}
+function novo(nome){S.proj={t:nome||'Novo vídeo',dur:'—'};S.versao=1;S.tab='processando';render()}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.tab){clearTimeout(S._t);S.tab=b.dataset.tab;render()}
+  else if(b.dataset.cl){S.cliente=b.dataset.cl;render()}
+  else if(b.dataset.go==='drive'){novo('Novembro Azul: próstata e rim')}
+  else if(b.dataset.go==='novo-cliente'){toast('Novo perfil: envie 2 ou 3 vídeos aprovados pra criar o DNA')}
+  else if(b.dataset.proj){const p=PROJ.find(x=>x.id===b.dataset.proj);S.proj=p;S.cliente=p.c;S.tab=p.st==='ok'?'aprovado':'revisao';render()}
+  else if(b.dataset.act==='ajustes'){$('#ajbox').hidden=!$('#ajbox').hidden}
+  else if(b.dataset.chip){const t=$('#ajtxt');t.value=(t.value?t.value+'. ':'')+b.dataset.chip;t.focus()}
+  else if(b.dataset.act==='enviar'){const t=$('#ajtxt').value.trim();if(!t){toast('Escreve o que precisa mudar');return}
+    if($('#ajdna').checked)CLIENTES[S.cliente].aprendido.unshift(t);S.versao++;S.tab='processando';render()}
+  else if(b.dataset.act==='aprovar'){const p=PROJ.find(x=>x.t===S.proj.t);if(p){p.st='ok';p.lb='Aprovado'}else PROJ.unshift({id:'n'+Date.now(),t:S.proj.t,c:S.cliente,d:'aprovado',st:'ok',lb:'Aprovado'});CLIENTES[S.cliente].aprov++;S.tab='aprovado';render()}
+});
+document.addEventListener('change',e=>{if(e.target.id==='arquivo'&&e.target.files[0])novo(e.target.files[0].name.replace(/\.[^.]+$/,''))});
+render();
+</script>
