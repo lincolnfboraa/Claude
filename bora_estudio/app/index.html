@@ -341,7 +341,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    await q(sb.from('versoes').insert({projeto_id:v.id,numero:a.n+1,status:'editando',resumo:'Ajuste da v'+a.n}));
    await q(sb.from('projetos').update({status:'editando'}).eq('id',v.id));close();await recarregar();toast('Feedback registrado na v'+a.n+'. v'+(a.n+1)+' na fila')})()}
  else if(d.aprovar){const v=vid(d.aprovar);(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));await recarregar();toast('Aprovado. Final sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})()}
- else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){$('#lerr').textContent='E-mail ou senha não conferem';return}iniciar()})()}
+ else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado no Supabase':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
  else if('sair' in d){sb.auth.signOut().then(()=>{S.stack=[{v:'login'}];render()})}
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
