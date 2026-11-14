@@ -18,6 +18,15 @@ def etapa(projeto_id, texto, pct, **extra):
     m.update({'andamento': texto, 'progresso': pct, **extra})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{projeto_id}', {'original_meta': m})
 
+def traduzir(b):
+    """Aviso do Supabase -> pedido do editor (o que antes o n8n fazia)."""
+    r, o = b.get('record') or {}, b.get('old_record') or {}
+    if b.get('table') == 'versoes' and b.get('type') == 'INSERT' and r.get('status') == 'editando':
+        return {'tipo': 'ajuste' if r.get('numero', 1) > 1 else 'nova_edicao', 'projeto_id': r['projeto_id'], 'versao_id': r['id'], 'versao': r.get('numero')}
+    if b.get('table') == 'projetos' and b.get('type') == 'UPDATE' and r.get('status') == 'aprovado' and o.get('status') != 'aprovado':
+        return {'tipo': 'final', 'projeto_id': r['id'], 'cliente': r.get('cliente_id')}
+    return None
+
 def processar(p):
     pid = p['projeto_id']
     try:
@@ -41,6 +50,9 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         if self.headers.get('X-Bora-Token') != TOKEN: return self._r(401, {'erro': 'token'})
         p = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+        if 'table' in p:                                   # aviso direto do Supabase (Database Webhook)
+            p = traduzir(p)
+            if not p: return self._r(200, {'ok': True, 'ignorado': True})
         if not p.get('projeto_id') or p.get('tipo') not in ('nova_edicao', 'ajuste', 'final'): return self._r(400, {'erro': 'pedido incompleto'})
         etapa(p['projeto_id'], 'Na fila do editor', 2, andamento_versao=p.get('versao_id'))
         FILA.put(p); self._r(202, {'ok': True, 'posicao': FILA.qsize()})
