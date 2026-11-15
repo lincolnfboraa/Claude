@@ -35,6 +35,9 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado):
     modo = 'tela_cheia' if video else ins.get('modo', 'tela_cheia')
     if video: fontes = _quadros_video(anexo['caminho'], pasta + '_v', W, H, n)
     else: img = Image.open(anexo['caminho']).convert('RGBA')
+    quadro = (not video) and img.getchannel('A').getextrema()[0] < 250 and 0.5 <= img.width / img.height <= 0.62
+    if quadro:                                   # PNG transparente 9:16 já composto: ocupa o quadro inteiro
+        modo = 'quadro'; img = img.resize((W, H), Image.LANCZOS)
     if modo == 'flutuando':
         larg = int(W * 0.40); img = img.resize((larg, max(1, int(img.height * larg / img.width))), Image.LANCZOS)
         if img.height > H * 0.38: img = img.resize((int(img.width * H * 0.38 / img.height), int(H * 0.38)), Image.LANCZOS)
@@ -45,7 +48,10 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado):
         cx = W * (0.80 if lado else 0.20); cy = H * 0.36
     for k in range(n):
         a = min(1.0, (k + 1) / max(f_in, 1), (n - k) / max(f_out, 1))
-        if modo == 'flutuando':
+        if modo == 'quadro':
+            q = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ent = 1 - min(1, (k + 1) / max(f_in, 1))
+            q.alpha_composite(img, (0, int(math.sin(k / FPS * 1.4) * H * 0.006 + ent * H * 0.02)))
+        elif modo == 'flutuando':
             q = Image.new('RGBA', (W, H), (0, 0, 0, 0))
             dy = math.sin(k / FPS * 1.6) * H * 0.008; dx = (1 - min(1, (k + 1) / max(f_in, 1))) * W * 0.06 * (1 if lado else -1)
             q.alpha_composite(base, (int(cx - base.width / 2 + dx), int(cy - base.height / 2 + dy)))
