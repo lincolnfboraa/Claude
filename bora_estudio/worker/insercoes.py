@@ -28,8 +28,17 @@ def _quadros_video(arq, pasta, W, H, n):
     return [os.path.join(pasta, f'v{k:04d}.png') for k in range(1, n + 1)]
 
 _sessao = None
+_cache_masc = {}
 def mascaras_pessoa(base, t0, n, W, H, hdr):
-    """Recorte da pessoa nos quadros [t0, t0+n): 1 = pessoa (fica na frente da arte). Modelo u2net_human_seg (rembg)."""
+    """Recorte da pessoa nos quadros [t0, t0+n): 1 = pessoa (fica na frente da arte). Modelo u2net_human_seg (rembg).
+    Cada quadro é recortado uma vez só e reaproveitado por todos os anexos do mesmo vídeo."""
+    q0 = round(t0 * FPS); faltam = [q for q in range(q0, q0 + n) if (base, W, q) not in _cache_masc]
+    if faltam:
+        a, b = faltam[0], faltam[-1] + 1
+        for i, m in enumerate(_recortar(base, a / FPS, b - a, W, H, hdr)): _cache_masc[(base, W, a + i)] = m
+    return [_cache_masc.get((base, W, q)) or Image.new('L', (W, H), 0) for q in range(q0, q0 + n)]
+
+def _recortar(base, t0, n, W, H, hdr):
     global _sessao
     from rembg import new_session, remove
     import numpy as np, tempfile
@@ -103,6 +112,7 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
         t = _tempo(tokens, int(ins['palavra_inicio']), int(ins['palavra_fim']), dur)
         if not t: continue
         cams.append((camada(ins, anexos[k], t[0], t[1], W, H, os.path.join(pasta, f'_ins{j}_{H}'), j % 2 == 0, base, hdr), t[0]))
+    _cache_masc.clear()
     if not cams: return base
     if hdr:
         env = {**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
