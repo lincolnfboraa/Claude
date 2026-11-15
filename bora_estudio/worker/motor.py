@@ -66,7 +66,11 @@ def executar(p, etapa, sb):
         if n > 1 and os.path.exists(ant_arq): anterior = json.load(open(ant_arq))
         feedbacks = [(x['numero'], x['feedback']) for x in versoes if x.get('feedback') and x['numero'] < n]
         etapa('A IA está montando o storytelling no DNA do cliente' if not anterior else 'A IA está aplicando o seu ajuste', 28)
-        pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks)
+        pronto = os.path.join(pasta, f'plano_v{n}.json')
+        if os.path.exists(pronto):                     # retomada: reaproveita o plano já pago desta versão
+            pl = json.load(open(pronto))
+        else:
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks)
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         etapa('Cortando pausas e montando', 40)
         saida_txt = os.path.join(pasta, f'textos_v{n}')

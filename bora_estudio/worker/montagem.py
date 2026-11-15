@@ -12,8 +12,11 @@ ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}  
 PAUSA = {'limiar_db': -45, 'min_s': 0.30, 'mantem_s': 0.10, 'borda_s': 0.18}
 _modelo = None
 
-def sh(cmd):
-    r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+def sh(cmd, tentativas=2):
+    for t in range(tentativas):
+        r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        if r.returncode == 0: return
+        print('tentativa', t + 1, 'falhou, repetindo', flush=True)
     if r.returncode:
         cauda = [l for l in (r.stdout or '').splitlines() if l.strip() and 'x265 [' not in l][-6:]
         print('FALHA', ' '.join(map(str, cmd))[:300], '\n' + '\n'.join(cauda), flush=True)
@@ -31,10 +34,10 @@ def transcrever(video, cache):
     global _modelo
     from faster_whisper import WhisperModel
     if _modelo is None:
-        _modelo = WhisperModel(os.environ.get('BORA_WHISPER', 'medium'), device='cpu', compute_type='int8', cpu_threads=3)
+        _modelo = WhisperModel(os.environ.get('BORA_WHISPER', 'medium'), device='cpu', compute_type='int8', cpu_threads=4)
     wav = wav16(video, cache.replace('.json', '.wav'))
     a = np.frombuffer(wave.open(wav).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768
-    seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=5, condition_on_previous_text=False)
+    seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, condition_on_previous_text=False)
     pal = [{'w': w.word.strip(), 's': round(w.start, 3), 'e': round(w.end, 3)} for s in seg for w in s.words if w.word.strip()]
     json.dump(pal, open(cache, 'w'), ensure_ascii=False)
     return pal
