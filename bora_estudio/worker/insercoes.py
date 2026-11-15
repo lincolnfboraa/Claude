@@ -12,7 +12,7 @@ def _tempo(tokens, i0, i1, fim):
     b = max((t['e'] for t in tokens if t['i'] <= i1), default=None)
     if a is None: return None
     b = max(b if b is not None else a + 1.5, a + 1.2)
-    return max(0.0, a - 0.15), min(fim, b + 0.25)
+    return max(0.0, a - 0.15), min(fim, b + 0.04)    # termina junto da última palavra (não invade o corte seguinte)
 
 def _cover(im, W, H, z=1.0):
     r = max(W / im.width, H / im.height) * z
@@ -44,7 +44,8 @@ def mascaras_pessoa(base, t0, n, W, H, hdr):
         if k % 2 == 1 or ult is None:                     # a cada 2 quadros (movimento de fala é lento)
             if os.path.exists(f):
                 m = remove(Image.open(f).convert('RGB'), session=_sessao, only_mask=True)
-                ult = m.filter(ImageFilter.GaussianBlur(1.5)).resize((W, H), Image.BILINEAR)
+                m = m.point(lambda v: 0 if v < 110 else (255 if v > 170 else int((v - 110) * 4.25)))   # borda mais justa
+                ult = m.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(1)).resize((W, H), Image.BILINEAR)
             else:
                 ult = ult or Image.new('L', (W, H), 0)
         out.append(ult)
