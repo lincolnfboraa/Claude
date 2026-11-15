@@ -105,7 +105,7 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
         cams.append((camada(ins, anexos[k], t[0], t[1], W, H, os.path.join(pasta, f'_ins{j}_{H}'), j % 2 == 0, base, hdr), t[0]))
     if not cams: return base
     if hdr:
-        env = {**os.environ, 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
+        env = {**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
         r = subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], env=env, capture_output=True, text=True)
         if r.returncode: raise RuntimeError('inserções: ' + (r.stderr.strip().splitlines() or ['falhou'])[-1][:150])
     else:

@@ -123,6 +123,8 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
     """Monta o vídeo base (sem textos). Cada peça vira um arquivo; depois junta sem recodificar."""
     OH = altura; OW = OH * 9 // 16
     tmp = tempfile.mkdtemp(prefix='base_', dir=os.path.dirname(os.path.abspath(saida)))
+    cache = os.path.join(os.path.dirname(os.path.abspath(saida)), f'_trechos_{altura}')   # trechos já montados (reaproveitados nos ajustes)
+    os.makedirs(cache, exist_ok=True)
     info = {i: sondar(a) for i, a in enumerate(arquivos)}
     transf = info[0][2]; params, tags = x265(transf)
     jobs, a_in, a_fc = [], [], []
@@ -133,21 +135,25 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         cw, ch = round(cw0 / z / 2) * 2, round(ch0 / z / 2) * 2
         x = int(min(max(0.5 * W - cw / 2, 0), W - cw)); y = int(min(max(0.40 * H - fy * ch, 0), H - ch))
         tin, dur = fa / FPS, (fb - fa) / FPS
-        jobs.append(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai], '-an',
+        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}.mp4')
+        jobs.append((chave, ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai], '-an',
                      '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(fb - fa),
                      '-c:v', 'libx265', '-preset', 'medium', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags,
-                     os.path.join(tmp, f'p{n:03d}.mp4')])
+                     chave + '.tmp.mp4']))
         a_in += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai]]
         a_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur - 0.012, 0):.4f}:d=0.012[a{n}]")
     feitos = [0]
-    def roda(cmd):
-        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    def roda(job):
+        chave, cmd = job; rc = 0
+        if not os.path.exists(chave):                  # só codifica o trecho que ainda não existe
+            rc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE).returncode
+            if rc == 0: os.replace(chave + '.tmp.mp4', chave)
         feitos[0] += 1
         if progresso: progresso(feitos[0] / len(jobs))
-        return r.returncode
+        return rc
     with ThreadPoolExecutor(4) as ex:
         if any(ex.map(roda, jobs)): raise RuntimeError('falha ao codificar um trecho')
-    open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file 'p{i:03d}.mp4'\n" for i in range(len(jobs))))
+    open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file '{c}'\n" for c, _ in jobs))
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')
     sh(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(tmp, 'lista.txt'), '-c', 'copy', vid])
     n = len(jobs)
@@ -170,7 +176,9 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
 def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__))):
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:
-        sh(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)])
+        H = int(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout.strip() or 0)
+        subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], check=True,
+                       env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium'})
     else:
         params, tags = x265('bt709')
         sh(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-vf', f"subtitles={ass}:fontsdir={os.path.join(here, 'fonts')}",
