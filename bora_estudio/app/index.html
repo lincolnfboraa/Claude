@@ -459,7 +459,7 @@ const V={
   <div class="lst" style="margin-top:18px"><button class="ln" data-info="${id}">${SV(I.clipe)}<span class="tx"><b>Arquivos do projeto</b><small>${esc(m.arq||'Original')}${m.res?' · '+esc(m.res.replace(' × ','×'))+' · '+esc(m.cor||''):''}</small></span><span class="seta">›</span></button>
    <button class="ln" data-versoes="${id}">${SV(I.historico)}<span class="tx"><b>Versões</b><small>${v.versoes.length} ${v.versoes.length>1?'versões':'versão'} · feedback registrado em cada uma</small></span><span class="seta">›</span></button>
    ${m.briefing?`<div class="ln">${SV(I.doc)}<span class="tx"><b>Briefing</b><small style="white-space:normal">${esc(m.briefing)}</small></span></div>`:''}</div>
-  ${v.st==='ok'&&(a.final||m.final_pronto)?`<div class="rodape">${a.final?`<a class="pill pri full" href="https://drive.google.com/uc?export=download&id=${a.final}" target="_blank" rel="noopener" style="text-decoration:none">${SV(I.baixar)}Baixar 4K</a>`:'<span class="pill full">Final entregue</span>'}</div>`:''}
+  ${v.st==='ok'&&(a.final||m.final_pronto)?`<div class="rodape">${m.final_zip?`<button class="pill pri full" data-baixar="${id}">${SV(I.baixar)}Baixar 4K${m.final_mb?' · '+m.final_mb+' MB':''}</button>`:a.final?`<a class="pill pri full" href="https://drive.google.com/uc?export=download&id=${a.final}" target="_blank" rel="noopener" style="text-decoration:none">${SV(I.baixar)}Baixar 4K</a>`:'<span class="pill full">Final entregue</span>'}</div>`:''}
   ${v.st==='wait'?`<div class="rodape"><button class="pill pri full" data-retorno="${id}" ${p?'':'disabled style="opacity:.45"'}>${p==='ok'?'Aprovar e gerar 4K':p==='ajuste'?'Enviar ajuste':'Enviar retorno'}${SV(I.seta)}</button></div>`:''}`}
 };
 function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.paleta.cores])];
@@ -564,6 +564,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.play){const v=vid(d.play),a=vatual(v);if(!a.previa)return toast('A prévia da v'+a.n+' ainda não chegou');
   (async()=>{const {data,error}=await sb.storage.from('previas').createSignedUrl(a.previa,3600);if(error)return toast('Não abriu a prévia: '+error.message);
    const pl=$('#vid');pl.classList.add('tocando');pl.innerHTML=`<video src="${data.signedUrl}" controls autoplay playsinline></video>`})()}
+ else if(d.baixar){(async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
+   const r=await fetch(`${EDITOR}/final/${d.baixar}/link`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'sem link');
+   toast('Baixando o final… o .zip vai pra pasta Downloads/Arquivos');location.href=j.url}catch(e){toast('Não consegui baixar: '+e.message)}})()}
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
 async function enviarOriginal(pid,f,n,prog){const PED=8<<20,tok=async()=>(await sb.auth.getSession()).data.session.access_token;

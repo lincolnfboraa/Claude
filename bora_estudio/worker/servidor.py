@@ -2,7 +2,7 @@
 """Editor do Bora Studio no VPS. Recebe pedidos do n8n (POST /pedido), processa um por vez e devolve tudo pro Supabase:
 porcentagem e etapa em projetos.original_meta, prévia/final no Storage, status em versoes/projetos.
 Variáveis: SUPABASE_URL, SUPABASE_SECRET, ANTHROPIC_API_KEY, BORA_TOKEN."""
-import json, os, queue, subprocess, threading, traceback, urllib.parse, urllib.request
+import hashlib, hmac, json, os, queue, time, subprocess, threading, traceback, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 URL, KEY, TOKEN = os.environ['SUPABASE_URL'].rstrip('/'), os.environ['SUPABASE_SECRET'], os.environ['BORA_TOKEN']
@@ -101,12 +101,30 @@ class H(BaseHTTPRequestHandler):
         self.send_response(204); self.end_headers()
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path.startswith('/final/'): return self._final(u)
         if u.path.startswith('/upload/'):                  # quanto do arquivo já chegou (pra retomar)
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
             arq = os.path.join(pasta(pid), f'original_{n:02d}.parcial')
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
         self._r(200, {'ok': True, 'na_fila': FILA.qsize()})
+    def _final(self, u):
+        """GET /final/<projeto>?exp=..&sig=.. : baixa o .zip do final (link assinado, vale 2 h)."""
+        q = urllib.parse.parse_qs(u.query); pid = os.path.basename(u.path.split('/')[2])
+        exp = q.get('exp', ['0'])[0]; sig = q.get('sig', [''])[0]
+        certo = hmac.new(TOKEN.encode(), f'{pid}:{exp}'.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, certo) or int(exp) < time.time(): return self._r(403, {'erro': 'link vencido'})
+        m = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta') or [{}])[0].get('original_meta') or {}
+        arq = m.get('final_zip')
+        if not arq or not os.path.exists(arq): return self._r(404, {'erro': 'final ainda não está pronto'})
+        self.send_response(200); self.send_header('Content-Type', 'application/zip')
+        self.send_header('Content-Length', str(os.path.getsize(arq)))
+        self.send_header('Content-Disposition', f'attachment; filename="{os.path.basename(arq)}"'); self.end_headers()
+        with open(arq, 'rb') as f:
+            while True:
+                b = f.read(1 << 20)
+                if not b: break
+                self.wfile.write(b)
     def do_PUT(self):
         """Envio do original em partes: PUT /upload/<projeto>?offset=N (corpo = pedaço do arquivo)."""
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
@@ -125,6 +143,11 @@ class H(BaseHTTPRequestHandler):
         self._r(200, {'recebido': os.path.getsize(arq)})
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path.startswith('/final/') and u.path.endswith('/link'):
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            pid = os.path.basename(u.path.split('/')[2]); exp = str(int(time.time()) + 7200)
+            sig = hmac.new(TOKEN.encode(), f'{pid}:{exp}'.encode(), hashlib.sha256).hexdigest()
+            return self._r(200, {'url': f'https://{self.headers.get("Host", "editor.borasolucoesdigitais.com")}/final/{pid}?exp={exp}&sig={sig}'})
         if u.path.startswith('/upload/') and u.path.endswith('/fim'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = u.path.split('/')[2]; d = pasta(pid); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
