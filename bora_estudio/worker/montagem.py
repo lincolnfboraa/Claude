@@ -12,7 +12,13 @@ ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}  
 PAUSA = {'limiar_db': -45, 'min_s': 0.30, 'mantem_s': 0.10, 'borda_s': 0.18}
 _modelo = None
 
-def sh(cmd): subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+def sh(cmd):
+    r = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    if r.returncode:
+        cauda = [l for l in (r.stdout or '').splitlines() if l.strip() and 'x265 [' not in l][-6:]
+        print('FALHA', ' '.join(map(str, cmd))[:300], '\n' + '\n'.join(cauda), flush=True)
+        raise RuntimeError(f"{os.path.basename(str(cmd[1] if cmd[0] == 'python3' else cmd[0]))}: " + (cauda[-1] if cauda else f'código {r.returncode}')[:160])
+
 
 def wav16(video, saida):
     if not os.path.exists(saida):
