@@ -2,7 +2,7 @@
 - transcrever(): faster-whisper com tempo por palavra (cache em JSON)
 - pecas(): trechos escolhidos pelo plano, menos as pausas longas (nunca dentro de uma palavra)
 - render_base(): recorte geométrico + escala, HDR continua HDR (HEVC 10 bits, mesmas primárias/transferência)
-  e áudio de voz tratado (limpeza leve + loudness -14 LUFS)."""
+  e áudio fiel ao gravado (só volume em -14 LUFS com ganho fixo)."""
 import json, os, subprocess, wave, tempfile
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
@@ -142,10 +142,18 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')
     sh(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(tmp, 'lista.txt'), '-c', 'copy', vid])
     n = len(jobs)
-    afc = ';'.join(a_fc) + ';' + ''.join(f'[a{i}]' for i in range(n)) + f'concat=n={n}:v=0:a=1[ca];' + \
-        "[ca]highpass=f=80,afftdn=nf=-32:nr=8,equalizer=f=250:t=q:w=1.2:g=-1.5,equalizer=f=3500:t=q:w=1.0:g=1.5," \
-        "acompressor=threshold=-21dB:ratio=2.5:attack=8:release=160:makeup=1.5,loudnorm=I=-14:TP=-1.5:LRA=7,aresample=48000[ao]"
-    sh(['ffmpeg', '-v', 'error', '-y'] + a_in + ['-filter_complex', afc, '-map', '[ao]', '-c:a', 'aac', '-b:a', '192k', aud])
+    # Áudio fiel ao gravado (o microfone já limpa o ruído): sem redução de ruído, EQ ou compressor.
+    # Só junta os trechos, tira o que está abaixo de 60 Hz e acerta o volume em -14 LUFS com ganho FIXO (medido antes).
+    bruto = os.path.join(tmp, 'audio.wav')
+    afc = ';'.join(a_fc) + ';' + ''.join(f'[a{i}]' for i in range(n)) + f'concat=n={n}:v=0:a=1,highpass=f=60[ao]'
+    sh(['ffmpeg', '-v', 'error', '-y'] + a_in + ['-filter_complex', afc, '-map', '[ao]', '-c:a', 'pcm_s24le', bruto])
+    med = subprocess.run(['ffmpeg', '-nostdin', '-i', bruto, '-af', 'loudnorm=I=-14:TP=-1.5:print_format=json', '-f', 'null', '-'],
+                         capture_output=True, text=True).stderr
+    m = json.loads(med[med.rindex('{'):med.rindex('}') + 1])
+    ganho = -14.0 - float(m['input_i'])                       # ganho fixo: a dinâmica da fala fica igual à gravada
+    # limitador só nos picos raros que passariam de -1,5 dBTP (não comprime a voz)
+    ln = f"volume={ganho:.2f}dB,alimiter=limit=0.84:attack=5:release=50:level=disabled,aresample=48000"
+    sh(['ffmpeg', '-v', 'error', '-y', '-i', bruto, '-af', ln, '-c:a', 'aac', '-b:a', '256k', aud])
     sh(['ffmpeg', '-v', 'error', '-y', '-i', vid, '-i', aud, '-map', '0:v', '-map', '1:a', '-c', 'copy', '-tag:v', 'hvc1', '-movflags', '+faststart', saida])
     subprocess.run(['rm', '-rf', tmp])
     return transf in ('arib-std-b67', 'smpte2084')

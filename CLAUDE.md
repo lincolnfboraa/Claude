@@ -22,4 +22,5 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - **Entrega de vídeo:** validações (480p) vão como .mp4 normal no chat (`display: render`), pra reproduzir direto.
   Só a **versão final 4K** vai dentro de um .zip (zip -0), com `display: attach`, pra baixar no celular.
   Final leve pro celular: HEVC (libx265, crf 24, tag hvc1).
+- **Áudio fiel ao gravado** (microfone Hollyland já cancela ruído): sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo (limitador só em picos).
 - Respostas em português, linguagem natural, sem travessões.
