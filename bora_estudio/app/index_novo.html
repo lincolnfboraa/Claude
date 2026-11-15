@@ -81,6 +81,9 @@ button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-vis
 .vcard{flex:0 0 calc((100% - var(--g) - 24px)/2.25);scroll-snap-align:start;display:block;min-width:0}
 .capa{position:relative;aspect-ratio:4/5;border-radius:20px;overflow:hidden;background:linear-gradient(165deg,#28415C 0%,#142538 55%,#0A121D 100%)}
 .capa.c2{background:linear-gradient(165deg,#6A4A39 0%,#33241D 55%,#140C09 100%)}
+.capa img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.capa.foto::after{content:"";position:absolute;inset:0;background:linear-gradient(rgba(3,6,11,.45),transparent 30%,transparent 70%,rgba(3,6,11,.35))}
+.capa.foto .cap-t{display:none}.capa .estado,.capa .anel{z-index:2}
 .capa .cap-t{position:absolute;left:10px;right:10px;top:42%;text-align:center;font:500 7.5px var(--display);letter-spacing:.32em;color:#9DB8DA;text-transform:uppercase}
 .capa .cap-t i{display:block;font:italic 900 22px/1.05 Georgia,serif;letter-spacing:.02em;margin:3px 0 4px;text-transform:none}
 .capa .cap-t span{display:block;color:#fff;font:600 9px var(--ui);letter-spacing:0;text-transform:none}
@@ -209,7 +212,7 @@ textarea::placeholder{color:var(--faint)}
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:inset 0 0 0 1px rgba(242,234,223,.25)}
 .player .leg{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:40px 18px 16px;background:linear-gradient(transparent,rgba(3,17,30,.85))}
 .player .leg b{font:500 16px var(--display)}.player .leg span{font-size:12.5px;padding:4px 9px;border-radius:9px;background:rgba(3,17,30,.6)}
-.player .estado{display:none}.player .cap-t{top:14%;font-size:9px}.player .cap-t i{font-size:30px}.player .cap-t span{font-size:12px}
+.player .estado{display:none}.player .capa.foto::after{background:linear-gradient(transparent 55%,rgba(3,6,11,.6))}.player .play,.player .leg{z-index:3}.player .cap-t{top:14%;font-size:9px}.player .cap-t i{font-size:30px}.player .cap-t span{font-size:12px}
 .player.tocando{aspect-ratio:9/16}
 .player video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
 .parecer{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -316,7 +319,11 @@ async function carregarTudo(){
    ini:(w.length>1?w[0][0]+w[w.length-1][0]:c.nome.slice(0,2)).toUpperCase(),cls:c.id==='fabiola'?'f':'',
    referencias:refs.filter(r=>r.cliente_id===c.id).map(r=>({...r,analise:r.analise==='analisado'?'analisado':'nao'})),
    projetos,sugestoes:sugs.filter(s=>s.cliente_id===c.id).map(s=>{const v=vers.find(x=>x.id===s.versao_id),p=v&&projs.find(x=>x.id===v.projeto_id);
-    return {id:s.id,texto:s.texto,versao:v?v.numero:'?',projeto:p?p.titulo:''}})}})}
+    return {id:s.id,texto:s.texto,versao:v?v.numero:'?',projeto:p?p.titulo:''}})}});await atualizarCapas()}
+/* miniaturas reais (quadro do vídeo) guardadas no Storage; links assinados renovados a cada ~50 min */
+const CAPAS={};async function atualizarCapas(){const ag=Date.now(),faltam=[...new Set(DB.clientes.flatMap(c=>c.projetos.map(p=>(p.media||{}).capa).filter(Boolean)))].filter(k=>!CAPAS[k]||ag-CAPAS[k].t>3e6);
+ if(!faltam.length)return;try{const {data}=await sb.storage.from('previas').createSignedUrls(faltam,3600);(data||[]).forEach(x=>{if(x.signedUrl)CAPAS[x.path]={u:x.signedUrl,t:ag}})}catch(e){}}
+const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
@@ -354,7 +361,7 @@ function anel(p,tam=64,txt=true){const C=2*Math.PI*30,off=p==null?C*.78:C*(1-p/1
   <circle class="pg" cx="50" cy="50" r="30" fill="none" stroke="#FF5E16" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" transform="rotate(-90 50 50)"/>
  </svg>${txt?`<b style="font-size:${Math.round(tam/4.4)}px">${p==null?'':p+'%'}</b>`:''}</span>`}
 
-function capa(v){return `<div class="capa ${v.c2?'c2':''}"><span class="estado ${ST[v.st][1]}">${v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto?'Gerando 4K':ST[v.st][0]}</span>
+function capa(v){const f=fotoDe(v);return `<div class="capa ${v.c2?'c2':''} ${f?'foto':''}">${f?`<img src="${f}" alt="" loading="lazy" decoding="async">`:''}<span class="estado ${ST[v.st][1]}">${v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto?'Gerando 4K':ST[v.st][0]}</span>
  <div class="cap-t">${esc(v.t)}<i>${esc(v.tema)}</i><span>${esc(v.sub)}</span></div>${v.st==='run'||(v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto&&(v.media||{}).andamento)?`<div class="anel">${anel(pct(v),58)}</div>`:''}</div>`}
 const legenda=v=>v.st==='run'?fase(v):(cli(v.cli).nome+' · v'+vatual(v).n);
 function vcard(v){return `<button class="vcard" data-push="video:${v.id}">${capa(v)}<h4>${esc(v.tema)}</h4><small>${esc(legenda(v))}</small></button>`}

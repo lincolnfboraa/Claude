@@ -45,6 +45,22 @@ def trabalhador():
         finally:
             FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
 
+def subir(bucket, caminho, arquivo, tipo):
+    r = urllib.request.Request(f'{URL}/storage/v1/object/{bucket}/{caminho}', data=open(arquivo, 'rb').read(), method='POST',
+                               headers={'apikey': KEY, 'Content-Type': tipo, 'x-upsert': 'true'})
+    return json.load(urllib.request.urlopen(r, timeout=300))
+
+def capa_do_projeto(pid, cliente, video):
+    """Gera a miniatura do card (quadro real do vídeo) e grava em projetos.original_meta.capa."""
+    try:
+        import capas
+        jpg = os.path.join(pasta(pid), 'capa.jpg'); capas.gerar_capa(video, jpg)
+        caminho = f'{cliente}/{pid}/capa.jpg'; subir('previas', caminho, jpg, 'image/jpeg')
+        m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        m['capa'] = caminho; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+    except Exception as e:
+        print('capa:', e, flush=True)
+
 def usuario_da_equipe(auth):
     """Confere o login do app (token do Supabase) e se a pessoa está na tabela equipe."""
     if not auth or not auth.startswith('Bearer '): return None
@@ -128,6 +144,8 @@ class H(BaseHTTPRequestHandler):
             m.update({**info, 'arq': arquivos[0]['nome'] if len(arquivos) == 1 else f'{len(arquivos)} vídeos', 'arquivos': arquivos,
                       'dur': f"{round(sum(float(x['dur'].split()[0]) for x in arquivos))} s", 'aguardando_upload': False, 'aviso': aviso})
             sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+            cliente = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=cliente_id') or [{}])[0].get('cliente_id', 'sem-cliente')
+            capa_do_projeto(pid, cliente, arquivos[0]['caminho'])      # antes da versão entrar na fila (evita corrida no original_meta)
             sb('POST', '/rest/v1/versoes', {'projeto_id': pid, 'numero': 1, 'status': 'editando', 'resumo': 'Primeira versão'})
             return self._r(200, {'ok': True, 'arquivos': len(arquivos), 'aviso': aviso})
         if self.headers.get('X-Bora-Token') != TOKEN: return self._r(401, {'erro': 'token'})
