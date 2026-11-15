@@ -72,6 +72,12 @@ def executar(p, etapa, sb):
         else:
             pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks)
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
+        import re
+        novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()
+                 if re.fullmatch(r'#[0-9A-Fa-f]{6}', (v or '').strip())}
+        if novas:                                       # cor pedida no feedback vale desta versão em diante
+            cores.update(novas)
+            sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'cores_texto': {**(proj.get('cores_texto') or {}), **novas}})
         etapa('Cortando pausas e montando', 40)
         saida_txt = os.path.join(pasta, f'textos_v{n}')
         base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72))
@@ -80,7 +86,7 @@ def executar(p, etapa, sb):
         montagem.aplicar_textos(base, saida_txt + '.ass', previa, hdr, 24)
         etapa('Enviando a prévia pro app', 93)
         caminho = f'{cli_id}/{pid}/v{n}.mp4'; _subir(sb, caminho, previa, 'video/mp4')
-        sb('PATCH', f"/rest/v1/versoes?id=eq.{v['id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': pl.get('resumo') or f'Versão {n}'})
+        sb('PATCH', f"/rest/v1/versoes?id=eq.{v['id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': (pl.get('resumo') or f'Versão {n}') + (f" Ainda não aplicado (o motor não faz ainda): {pl['nao_feito']}" if (pl.get('nao_feito') or '').strip() else '')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'status': 'revisao'})
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m.update({'andamento': None, 'progresso': None, 'dur': f'{round(dur)} s'})

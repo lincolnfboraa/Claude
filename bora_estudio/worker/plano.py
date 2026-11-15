@@ -9,7 +9,7 @@ MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
 
 ESQUEMA = {
     'type': 'object', 'additionalProperties': False,
-    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'correcoes', 'resumo'],
+    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'correcoes', 'cores', 'resumo', 'nao_feito'],
     'properties': {
         'segmentos': {'type': 'array', 'description': 'Trechos na ORDEM do vídeo final. Cada um é um intervalo contínuo de palavras de um mesmo arquivo.',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'palavra_fim', 'quadro', 'motivo'],
@@ -27,7 +27,11 @@ ESQUEMA = {
         'correcoes': {'type': 'array', 'description': 'Grafia correta de palavras que a transcrição errou (só ortografia, nunca trocar o que foi dito).',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra', 'texto'],
                       'properties': {'palavra': {'type': 'integer'}, 'texto': {'type': 'string'}}}},
-        'resumo': {'type': 'string', 'description': 'Uma ou duas frases, em português, sobre o que esta versão faz (aparece no app).'},
+        'cores': {'type': 'object', 'additionalProperties': False, 'required': ['legenda', 'destaque'],
+            'description': 'Cor em hexadecimal (#RRGGBB) só se o feedback pedir mudança de cor; senão string vazia.',
+            'properties': {'legenda': {'type': 'string'}, 'destaque': {'type': 'string'}}},
+        'resumo': {'type': 'string', 'description': 'Uma ou duas frases sobre o que esta versão REALMENTE aplica. Nunca cite algo que o motor não faz.'},
+        'nao_feito': {'type': 'string', 'description': 'O que o feedback pediu e o motor ainda não consegue fazer (ex.: imagens, B-roll). String vazia se tudo foi aplicado.'},
     },
 }
 
@@ -43,7 +47,11 @@ Como planejar
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
 - Destaques: no máximo 3 ou 4 frases de destaque, variando os estilos no mesmo vídeo (pop, serifa, lettering), mais 2 ou 3 palavras soltas (estilo palavra_solta: só a palavra-chave, uma linha 'grande'). Os textos das linhas saem exatamente das palavras faladas no intervalo palavra_inicio..palavra_fim; a palavra principal fica numa linha 'grande', as de apoio em 'pequena'. Nada de destaque em todo lugar.
 - Siga o DNA do cliente como diretriz, e as regras globais sempre. Se o DNA for provisório, seja conservador.
-- Em ajustes: aplique exatamente o que o feedback pede, mexendo o mínimo no resto do plano anterior."""
+- Em ajustes: aplique exatamente o que o feedback pede, mexendo o mínimo no resto do plano anterior.
+
+O que o motor sabe fazer (e só isso): escolher e ordenar falas, cortar, enquadramento aberto/medio/fechado, título, destaques (pop, serifa, lettering, palavra_solta), corrigir grafia e trocar as cores da legenda e dos destaques (campo cores, em #RRGGBB; nomes comuns: bege/creme da Fabiola = #C8B9A7, branco = #FFFFFF).
+O motor AINDA NÃO faz: B-roll, imagens, fotos, objetos flutuando, animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
+Se o feedback pedir algo que o motor não faz, aplique o resto e escreva claramente em nao_feito o que ficou de fora. O resumo descreve apenas o que esta versão aplica de verdade; nunca diga que fez algo que não está no plano."""
 
 def numerar(palavras, arquivos):
     """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase."""
