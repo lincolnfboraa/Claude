@@ -1,0 +1,83 @@
+"""Inserções (imagens e vídeos anexados) por cima do vídeo, sem tocar na imagem original:
+- tela_cheia: cobre a tela (imagem com zoom lento ou vídeo), fade de entrada e saída; a voz continua por baixo
+- flutuando: imagem menor ao lado da pessoa, com sombra, leve desfoque e flutuação suave
+As camadas são sequências PNG com transparência; no HDR entram pela mesma conversão SDR->HLG dos textos."""
+import math, os, shutil, subprocess
+from PIL import Image, ImageFilter
+
+FPS = 30000 / 1001
+
+def _tempo(tokens, i0, i1, fim):
+    a = next((t['s'] for t in tokens if t['i'] >= i0), None)
+    b = max((t['e'] for t in tokens if t['i'] <= i1), default=None)
+    if a is None: return None
+    b = max(b if b is not None else a + 1.5, a + 1.2)
+    return max(0.0, a - 0.15), min(fim, b + 0.25)
+
+def _cover(im, W, H, z=1.0):
+    r = max(W / im.width, H / im.height) * z
+    im = im.resize((max(1, int(im.width * r)), max(1, int(im.height * r))), Image.LANCZOS)
+    x, y = (im.width - W) // 2, (im.height - H) // 2
+    return im.crop((x, y, x + W, y + H))
+
+def _quadros_video(arq, pasta, W, H, n):
+    os.makedirs(pasta, exist_ok=True)
+    subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-stream_loop', '-1', '-i', arq, '-frames:v', str(n),
+                    '-vf', f'fps=30000/1001,scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},format=rgba',
+                    os.path.join(pasta, 'v%04d.png')], check=True)
+    return [os.path.join(pasta, f'v{k:04d}.png') for k in range(1, n + 1)]
+
+def camada(ins, anexo, t0, t1, W, H, pasta, lado):
+    n = max(2, round((t1 - t0) * FPS)); f_in = f_out = min(8, n // 3)
+    if os.path.exists(pasta): shutil.rmtree(pasta)
+    os.makedirs(pasta)
+    video = anexo['tipo'] == 'video'
+    modo = 'tela_cheia' if video else ins.get('modo', 'tela_cheia')
+    if video: fontes = _quadros_video(anexo['caminho'], pasta + '_v', W, H, n)
+    else: img = Image.open(anexo['caminho']).convert('RGBA')
+    if modo == 'flutuando':
+        larg = int(W * 0.40); img = img.resize((larg, max(1, int(img.height * larg / img.width))), Image.LANCZOS)
+        if img.height > H * 0.38: img = img.resize((int(img.width * H * 0.38 / img.height), int(H * 0.38)), Image.LANCZOS)
+        pad = int(W * 0.05); base = Image.new('RGBA', (img.width + 2 * pad, img.height + 2 * pad), (0, 0, 0, 0))
+        sombra = Image.new('RGBA', base.size, (0, 0, 0, 0)); sombra.paste((0, 0, 0, 150), (pad + 8, pad + 14), img.getchannel('A'))
+        base.alpha_composite(sombra.filter(ImageFilter.GaussianBlur(W * 0.02)))
+        base.alpha_composite(img.filter(ImageFilter.GaussianBlur(max(1, W * 0.0025))), (pad, pad))
+        cx = W * (0.80 if lado else 0.20); cy = H * 0.36
+    for k in range(n):
+        a = min(1.0, (k + 1) / max(f_in, 1), (n - k) / max(f_out, 1))
+        if modo == 'flutuando':
+            q = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            dy = math.sin(k / FPS * 1.6) * H * 0.008; dx = (1 - min(1, (k + 1) / max(f_in, 1))) * W * 0.06 * (1 if lado else -1)
+            q.alpha_composite(base, (int(cx - base.width / 2 + dx), int(cy - base.height / 2 + dy)))
+        else:
+            q = Image.open(fontes[k]).convert('RGBA') if video else _cover(img, W, H, 1.0 + 0.06 * k / n)
+        if a < 1: q.putalpha(q.getchannel('A').point(lambda v: int(v * a)))
+        q.save(os.path.join(pasta, f'l{k:04d}.png'))
+    if video: shutil.rmtree(pasta + '_v', ignore_errors=True)
+    return pasta
+
+def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__))):
+    """Devolve o vídeo com as inserções; se não houver nenhuma válida, devolve a base."""
+    W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
+                                    '-of', 'csv=p=0:s=x', base], capture_output=True, text=True).stdout.strip().split('x')[:2])
+    cams = []
+    for j, ins in enumerate(pl.get('insercoes') or []):
+        k = int(ins.get('anexo', 0)) - 1
+        if not (0 <= k < len(anexos)) or not os.path.exists(anexos[k]['caminho']): continue
+        t = _tempo(tokens, int(ins['palavra_inicio']), int(ins['palavra_fim']), dur)
+        if not t: continue
+        cams.append((camada(ins, anexos[k], t[0], t[1], W, H, os.path.join(pasta, f'_ins{j}_{H}'), j % 2 == 0), t[0]))
+    if not cams: return base
+    if hdr:
+        env = {**os.environ, 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
+        r = subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], env=env, capture_output=True, text=True)
+        if r.returncode: raise RuntimeError('inserções: ' + (r.stderr.strip().splitlines() or ['falhou'])[-1][:150])
+    else:
+        args = ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base]; fc, ult = [], '0:v'
+        for j, (p, t0) in enumerate(cams, 1):
+            args += ['-framerate', '30000/1001', '-i', os.path.join(p, 'l%04d.png')]
+            fc.append(f'[{j}:v]setpts=PTS+{t0}/TB[c{j}];[{ult}][c{j}]overlay=eof_action=pass[o{j}]'); ult = f'o{j}'
+        subprocess.run(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:v', 'libx265', '-crf', '14',
+                               '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1', '-c:a', 'copy', saida], check=True)
+    for p, _ in cams: shutil.rmtree(p, ignore_errors=True)
+    return saida

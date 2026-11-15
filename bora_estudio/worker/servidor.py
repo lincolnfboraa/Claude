@@ -105,7 +105,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/upload/'):                  # quanto do arquivo já chegou (pra retomar)
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
-            arq = os.path.join(pasta(pid), f'original_{n:02d}.parcial')
+            arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
         self._r(200, {'ok': True, 'na_fila': FILA.qsize()})
     def _final(self, u):
@@ -131,7 +131,7 @@ class H(BaseHTTPRequestHandler):
         if not u.path.startswith('/upload/'): return self._r(404, {'erro': 'rota'})
         if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
         partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
-        arq = os.path.join(pasta(pid), f'original_{n:02d}.parcial')
+        arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
         atual = os.path.getsize(arq) if os.path.exists(arq) else 0
         if int(q.get('offset', ['0'])[0]) != atual: return self._r(409, {'recebido': atual})
         n = int(self.headers.get('Content-Length', 0))
@@ -148,6 +148,24 @@ class H(BaseHTTPRequestHandler):
             pid = os.path.basename(u.path.split('/')[2]); exp = str(int(time.time()) + 7200)
             sig = hmac.new(TOKEN.encode(), f'{pid}:{exp}'.encode(), hashlib.sha256).hexdigest()
             return self._r(200, {'url': f'https://{self.headers.get("Host", "editor.borasolucoesdigitais.com")}/final/{pid}?exp={exp}&sig={sig}'})
+        if u.path.startswith('/anexo/') and u.path.endswith('/fim'):
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            pid = os.path.basename(u.path.split('/')[2]); d = pasta(pid)
+            corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+            m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+            lista = m.get('anexos') or []
+            for i, a in enumerate(corpo.get('arquivos') or [], 1):
+                parcial = os.path.join(d, f'anexo_{i:02d}.parcial')
+                if not os.path.exists(parcial) or os.path.getsize(parcial) != int(a.get('tamanho', -1)):
+                    return self._r(409, {'erro': f'anexo {i} incompleto'})
+                ext = os.path.splitext(a.get('nome', 'x.png'))[1].lower() or '.png'
+                final = os.path.join(d, f'anexo_{len(lista) + 1:02d}{ext}'); os.replace(parcial, final)
+                tipo = 'video' if ext in ('.mp4', '.mov', '.m4v', '.webm') else 'imagem'
+                if tipo == 'imagem' and ext in ('.heic', '.heif'):
+                    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', final, final + '.png']); final += '.png'
+                lista.append({'nome': a.get('nome'), 'caminho': final, 'tipo': tipo, 'versao': corpo.get('versao')})
+            m['anexos'] = lista; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+            return self._r(200, {'ok': True, 'anexos': len(lista)})
         if u.path.startswith('/upload/') and u.path.endswith('/fim'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = u.path.split('/')[2]; d = pasta(pid); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')

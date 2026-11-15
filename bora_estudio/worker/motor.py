@@ -3,7 +3,7 @@ nova_edicao / ajuste: transcreve os originais, a IA monta o plano no DNA do clie
   os textos entram no padrão aprovado e a prévia vai pro app.
 final: renderiza de novo a partir dos ORIGINAIS na resolução nativa (4K), com e sem legenda + .srt, num .zip (sem compressão)."""
 import glob, json, os, subprocess, urllib.request
-import montagem, plano as plano_ia, textos
+import insercoes, montagem, plano as plano_ia, textos
 
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
 
@@ -33,6 +33,10 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
     a, b = faixa
     prog = (lambda f: etapa('Montando o vídeo a partir dos originais', a + int((b - a) * f))) if etapa else None
     hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog)
+    anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', ''))]
+    if pl.get('insercoes') and anexos:
+        if etapa: etapa('Encaixando imagens e vídeos anexados', b)
+        base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr)
     ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
     if pl.get('usar_titulo') and pl.get('titulo', {}).get('tema'):
         seg1 = next((t['e'] for t in tokens if t['i'] >= pl['segmentos'][0]['palavra_fim']), 3.0)
@@ -70,7 +74,8 @@ def executar(p, etapa, sb):
         if os.path.exists(pronto):                     # retomada: reaproveita o plano já pago desta versão
             pl = json.load(open(pronto))
         else:
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks)
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [])
+        pl['_anexos'] = meta.get('anexos') or []
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()
@@ -98,6 +103,7 @@ def executar(p, etapa, sb):
         planos = sorted(glob.glob(os.path.join(pasta, 'plano_v*.json')), key=lambda x: int(x.rsplit('_v', 1)[1].split('.')[0]))
         if not planos: raise RuntimeError('não encontrei o plano aprovado deste projeto')
         pl = json.load(open(planos[-1]))
+        pl['_anexos'] = pl.get('_anexos') or meta.get('anexos') or []
         altura = max(montagem.sondar(a)[1] if montagem.sondar(a)[1] >= montagem.sondar(a)[0] else montagem.sondar(a)[0] for a in arqs[:1])
         altura = min(altura, 3840); altura -= altura % 2
         etapa('Renderizando o final a partir dos originais', 8)

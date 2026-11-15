@@ -220,6 +220,7 @@ textarea::placeholder{color:var(--faint)}
 .opc svg{width:20px;height:20px}
 .opc.sel{color:var(--txt);background:var(--orange-soft);box-shadow:inset 0 0 0 1.5px var(--orange)}
 .opc.ok.sel{background:rgba(60,203,134,.12);box-shadow:inset 0 0 0 1.5px var(--ok)}
+.anx{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.anxi{display:flex;align-items:center;gap:8px;height:40px;padding:0 6px 0 12px;border-radius:20px;background:var(--cell);max-width:100%;font-size:13px}.anxi b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}.anxi svg{width:16px;height:16px}.anxi button{width:28px;height:28px;border-radius:50%;background:var(--cell2)}
 .chips{display:flex;gap:8px;overflow-x:auto;margin:10px calc(var(--g)*-1) 0;padding:0 var(--g);scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;height:36px;padding:0 14px;border-radius:18px;background:var(--cell);font-size:13px;color:var(--beige)}
@@ -327,7 +328,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -452,7 +453,9 @@ const V={
   ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${pct(v)!=null?'O app atualiza sozinho':'Aguardando a vez na fila do editor'}</small></span></div>`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
-   ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor."></textarea>
+   ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
+    <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
+     <label class="pill sm" style="cursor:pointer">${SV(I.clipe)}Anexar imagens ou vídeos<input type="file" id="anx" data-proj="${id}" accept="image/*,video/*" multiple hidden></label></div>
     <div class="chips">${['Cortar um trecho','Trocar o gancho','Legenda mais branca','Trocar o B-roll','Mudar o título'].map(x=>`<button class="chip" data-chip="${x}">${x}</button>`).join('')}</div>
     <button class="ln" data-sw style="padding:16px 2px"><span class="tx"><b>Sugerir pro DNA</b><small>Depois da aprovação vira sugestão no DNA de ${esc(c.nome)}. Só vira regra se você confirmar.</small></span><span class="sw ${S.sugerir?'':'off'}"></span></button>`:''}`:''}
   ${semFinal?`<button class="pill full" style="margin-top:16px" data-reabrir="${id}">${SV(I.refaz)}Pedir ajuste antes do 4K</button>`:''}
@@ -507,7 +510,13 @@ function medirThumbs(){document.querySelectorAll('.th video').forEach(vd=>{vd.on
 function decidir(ref,ok){const[id,i]=ref.split(':'),c=cli(id),sg=c.sugestoes[+i];if(!sg)return;
  (async()=>{await q(sb.rpc('confirmar_sugestao',{p_sugestao:sg.id,p_confirmar:ok}));await recarregar();const n=cli(id);
   if($('#sheet').classList.contains('on')){if(n.sugestoes.length)$('#sheet').innerHTML=sheetSug(n);else close()}toast(ok?'Regra adicionada ao DNA':'Sugestão ignorada')})()}
-async function pedirAjuste(id,t){const v=vid(id),a=vatual(v);
+async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),fs=S.anexos[id]||[];
+ if(fs.length){toast('Enviando '+fs.length+(fs.length>1?' anexos…':' anexo…'));
+  for(let i=0;i<fs.length;i++)await enviarOriginal(v.id,fs[i],i+1,()=>{},'anexo');
+  const tok=(await sb.auth.getSession()).data.session.access_token;
+  const r=await fetch(`${EDITOR}/anexo/${v.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({versao:a.n,arquivos:fs.map(x=>({nome:x.name,tamanho:x.size}))})});
+  if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id]}
+ S.ajTxt='';
  await q(sb.from('versoes').update({feedback:t,status:'ajuste',sugerir_dna:S.sugerir}).eq('id',a.id));
  await q(sb.from('versoes').insert({projeto_id:v.id,numero:a.n+1,status:'editando',resumo:'Ajuste da v'+a.n}));
  await q(sb.from('projetos').update({status:'editando'}).eq('id',v.id));delete S.parecer[id];close();await recarregar();toast('Feedback registrado na v'+a.n+'. A v'+(a.n+1)+' entrou na fila')}
@@ -549,11 +558,12 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
     toast(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':(fs.length>1?fs.length+' vídeos recebidos':'Vídeo recebido')+'. Editando no DNA de '+c.nome)}
    catch(e){toast('Envio parou: '+e.message);$('#upinfo').textContent='Envio interrompido. Toque em Nova edição e envie de novo pra retomar.'}})()}
  else if(d.parecer){const[id,k]=d.parecer.split(':');S.parecer[id]=k;reRender()}
+ else if(d.rmanx){const[id,i]=d.rmanx.split(':');S.ajTxt=($('#aj')||{}).value||'';S.anexos[id].splice(+i,1);reRender()}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
  else if('sw' in d){S.sugerir=!S.sugerir;b.querySelector('.sw').classList.toggle('off',!S.sugerir)}
  else if(d.retorno){const id=d.retorno,p=S.parecer[id],v=vid(id);
   if(p==='ok')(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));delete S.parecer[id];await recarregar();toast('Aprovado. O 4K sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})();
-  else if(p==='ajuste'){const t=($('#aj')||{}).value.trim();if(!t)return toast('Escreva o que precisa mudar');pedirAjuste(id,t)}}
+  else if(p==='ajuste'){const t=($('#aj')||{}).value.trim();if(!t)return toast('Escreva o que precisa mudar');b.disabled=true;pedirAjuste(id,t).catch(e=>{b.disabled=false;toast('Não enviou: '+e.message)})}}
  else if(d.reabrir)sheet(sheetReabrir(d.reabrir))
  else if(d.enviar){const t=$('#aj').value.trim();if(!t)return toast('Escreva o que precisa mudar');pedirAjuste(d.enviar,t)}
  else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
@@ -569,12 +579,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    toast('Baixando o final… o .zip vai pra pasta Downloads/Arquivos');location.href=j.url}catch(e){toast('Não consegui baixar: '+e.message)}})()}
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
-async function enviarOriginal(pid,f,n,prog){const PED=8<<20,tok=async()=>(await sb.auth.getSession()).data.session.access_token;
- let off=(await (await fetch(`${EDITOR}/upload/${pid}/${n}`,{headers:{Authorization:'Bearer '+await tok()}})).json()).recebido||0;
- while(off<f.size){let ok=false;for(let t=0;t<5&&!ok;t++){try{const r=await fetch(`${EDITOR}/upload/${pid}/${n}?offset=${off}`,{method:'PUT',headers:{Authorization:'Bearer '+await tok()},body:f.slice(off,off+PED)});
+async function enviarOriginal(pid,f,n,prog,tipo){const qt=tipo?'&tipo='+tipo:'';const PED=8<<20,tok=async()=>(await sb.auth.getSession()).data.session.access_token;
+ let off=(await (await fetch(`${EDITOR}/upload/${pid}/${n}?x=1${qt}`,{headers:{Authorization:'Bearer '+await tok()}})).json()).recebido||0;
+ while(off<f.size){let ok=false;for(let t=0;t<5&&!ok;t++){try{const r=await fetch(`${EDITOR}/upload/${pid}/${n}?offset=${off}${qt}`,{method:'PUT',headers:{Authorization:'Bearer '+await tok()},body:f.slice(off,off+PED)});
    const j=await r.json();if(r.ok||r.status===409){off=j.recebido;ok=true}else throw new Error(j.erro)}catch(e){await new Promise(z=>setTimeout(z,1500*(t+1)))}}
   if(!ok)throw new Error('sem conexão com o editor');prog(off)}}
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='anx'&&t.files.length){const id=t.dataset.proj;S.ajTxt=($('#aj')||{}).value||'';(S.anexos[id]=S.anexos[id]||[]).push(...t.files);t.value='';reRender();return}
  if(t.id==='arq'&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);S.arquivos.push(f)});t.value='';reRender()}
  else if(t.id==='selcli'){S.novaCli=t.value;S.cores=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(t.dataset.cc){S.cores[t.dataset.cc]=t.value;reRender()}});

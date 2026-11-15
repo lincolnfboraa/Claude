@@ -9,7 +9,7 @@ MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
 
 ESQUEMA = {
     'type': 'object', 'additionalProperties': False,
-    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'correcoes', 'cores', 'resumo', 'nao_feito'],
+    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'insercoes', 'correcoes', 'cores', 'resumo', 'nao_feito'],
     'properties': {
         'segmentos': {'type': 'array', 'description': 'Trechos na ORDEM do vídeo final. Cada um é um intervalo contínuo de palavras de um mesmo arquivo.',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'palavra_fim', 'quadro', 'motivo'],
@@ -24,6 +24,11 @@ ESQUEMA = {
                            'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                            'linhas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['texto', 'papel'],
                                'properties': {'texto': {'type': 'string'}, 'papel': {'type': 'string', 'enum': ['pequena', 'grande']}}}}}}},
+        'insercoes': {'type': 'array', 'description': 'Uso dos ANEXOS (imagens/vídeos enviados). Vazio se não houver anexos.',
+            'items': {'type': 'object', 'additionalProperties': False, 'required': ['anexo', 'palavra_inicio', 'palavra_fim', 'modo'],
+                'properties': {'anexo': {'type': 'integer', 'description': 'número do anexo (1, 2, ...)'},
+                               'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
+                               'modo': {'type': 'string', 'enum': ['tela_cheia', 'flutuando']}}}},
         'correcoes': {'type': 'array', 'description': 'Grafia correta de palavras que a transcrição errou (só ortografia, nunca trocar o que foi dito).',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra', 'texto'],
                       'properties': {'palavra': {'type': 'integer'}, 'texto': {'type': 'string'}}}},
@@ -50,7 +55,8 @@ Como planejar
 - Em ajustes: aplique exatamente o que o feedback pede, mexendo o mínimo no resto do plano anterior.
 
 O que o motor sabe fazer (e só isso): escolher e ordenar falas, cortar, enquadramento aberto/medio/fechado, título, destaques (pop, serifa, lettering, palavra_solta), corrigir grafia e trocar as cores da legenda e dos destaques (campo cores, em #RRGGBB; nomes comuns: bege/creme da Fabiola = #C8B9A7, branco = #FFFFFF).
-O motor AINDA NÃO faz: B-roll, imagens, fotos, objetos flutuando, animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
+Também encaixa os ANEXOS enviados (lista abaixo, quando houver) no campo insercoes: 'tela_cheia' cobre a tela durante a fala indicada (B-roll, com a voz por baixo); 'flutuando' põe a imagem menor ao lado da pessoa, com leve desfoque e flutuação. Vídeos anexados entram sempre em tela cheia. Cada inserção fica durante as palavras palavra_inicio..palavra_fim; normalmente 1,5 a 6 s.
+O motor NÃO cria imagens nem vídeos novos: sem anexo, não existe B-roll. Também não faz animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
 Se o feedback pedir algo que o motor não faz, aplique o resto e escreva claramente em nao_feito o que ficou de fora. O resumo descreve apenas o que esta versão aplica de verdade; nunca diga que fez algo que não está no plano."""
 
 def numerar(palavras, arquivos):
@@ -67,11 +73,12 @@ def numerar(palavras, arquivos):
             g += 1
     return '\n'.join(linhas)
 
-def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=()):
+def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=()):
     client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
     pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos)}"]
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
+    if anexos: pedido.append('Anexos disponíveis para inserções:\n' + '\n'.join(f"{i}. {a['nome']} ({'vídeo' if a['tipo'] == 'video' else 'imagem'}, enviado na v{a.get('versao', 1)})" for i, a in enumerate(anexos, 1)))
     if anterior:
         pedido.append("Plano da versão anterior:\n" + json.dumps({k: v for k, v in anterior.items() if not k.startswith('_')}, ensure_ascii=False))
         pedido.append("Feedback do editor sobre as versões (o último é o que vale agora):\n" + '\n'.join(f"- v{n}: {t}" for n, t in feedbacks))
@@ -105,5 +112,6 @@ def validar(plano, total):
         if 0 <= a <= b < total: ok.append(s)
     if not ok: raise RuntimeError('o plano não trouxe nenhum trecho válido')
     plano['segmentos'] = ok
+    plano['insercoes'] = [x for x in plano.get('insercoes', []) if 0 <= int(x['palavra_inicio']) <= int(x['palavra_fim']) < total]
     plano['destaques'] = [d for d in plano.get('destaques', []) if 0 <= int(d['palavra_inicio']) <= int(d['palavra_fim']) < total][:7]
     return plano
