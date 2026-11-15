@@ -34,7 +34,7 @@ def transcrever(video, cache):
     global _modelo
     from faster_whisper import WhisperModel
     if _modelo is None:
-        _modelo = WhisperModel(os.environ.get('BORA_WHISPER', 'medium'), device='cpu', compute_type='int8', cpu_threads=4)
+        _modelo = WhisperModel(os.environ.get('BORA_WHISPER', 'medium'), device='cpu', compute_type='int8', cpu_threads=6)
     wav = wav16(video, cache.replace('.json', '.wav'))
     a = np.frombuffer(wave.open(wav).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768
     seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, condition_on_previous_text=False)
@@ -145,7 +145,7 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         feitos[0] += 1
         if progresso: progresso(feitos[0] / len(jobs))
         return r.returncode
-    with ThreadPoolExecutor(2) as ex:
+    with ThreadPoolExecutor(3) as ex:
         if any(ex.map(roda, jobs)): raise RuntimeError('falha ao codificar um trecho')
     open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file 'p{i:03d}.mp4'\n" for i in range(len(jobs))))
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')

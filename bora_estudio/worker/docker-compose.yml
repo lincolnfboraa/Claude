@@ -9,5 +9,5 @@ services:
     volumes:
       - /opt/bora/trabalho:/trabalho       # originais e arquivos de trabalho de cada vídeo
       - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez
-    mem_limit: 4g
-    cpus: 3.5
+    mem_limit: 16g
+    cpus: 7
