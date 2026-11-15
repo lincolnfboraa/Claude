@@ -208,6 +208,7 @@ def vigia():
         time.sleep(10)
 
 threading.Thread(target=vigia, daemon=True).start()
-threading.Thread(target=trabalhador, daemon=True).start()
+for _ in range(int(os.environ.get("BORA_PARALELO", "2"))):   # até 2 vídeos ao mesmo tempo
+    threading.Thread(target=trabalhador, daemon=True).start()
 print('Editor Bora Studio ouvindo na porta 8787')
 ThreadingHTTPServer(('0.0.0.0', 8787), H).serve_forever()
