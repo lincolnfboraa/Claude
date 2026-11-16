@@ -5,7 +5,7 @@ services:
     container_name: bora-editor
     restart: unless-stopped
     env_file: /opt/bora/bora.env          # SUPABASE_URL, SUPABASE_SECRET, SUPABASE_ANON, ANTHROPIC_API_KEY, BORA_TOKEN
-    ports: ["8787:8787"]
+    ports: ["127.0.0.1:8787:8787"]   # só o nginx (HTTPS) acessa
     volumes:
       - /opt/bora/trabalho:/trabalho       # originais e arquivos de trabalho de cada vídeo
       - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez

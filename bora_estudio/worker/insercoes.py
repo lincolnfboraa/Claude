@@ -98,7 +98,7 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado, base=None, hdr=True):
         else:
             q = Image.open(fontes[k]).convert('RGBA') if video else _cover(img, W, H, 1.0 + 0.06 * k / n)
         if a < 1: q.putalpha(q.getchannel('A').point(lambda v: int(v * a)))
-        q.save(os.path.join(pasta, f'l{k:04d}.png'))
+        q.save(os.path.join(pasta, f'l{k:04d}.png'), compress_level=1)
     if video: shutil.rmtree(pasta + '_v', ignore_errors=True)
     return pasta
 
@@ -118,7 +118,7 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
     APLICADAS = len(cams)
     if not cams: return base
     if hdr:
-        env = {**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
+        env = {**os.environ, 'BORA_PRESET': 'veryfast', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
         r = subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], env=env, capture_output=True, text=True)
         if r.returncode: raise RuntimeError('inserções: ' + (r.stderr.strip().splitlines() or ['falhou'])[-1][:150])
     else:

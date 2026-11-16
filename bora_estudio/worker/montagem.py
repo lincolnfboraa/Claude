@@ -135,10 +135,10 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         cw, ch = round(cw0 / z / 2) * 2, round(ch0 / z / 2) * 2
         x = int(min(max(0.5 * W - cw / 2, 0), W - cw)); y = int(min(max(0.40 * H - fy * ch, 0), H - ch))
         tin, dur = fa / FPS, (fb - fa) / FPS
-        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}.mp4')
+        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}r.mp4')   # intermediário: rápido e quase sem perda (a entrega é recodificada depois)
         jobs.append((chave, ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai], '-an',
                      '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(fb - fa),
-                     '-c:v', 'libx265', '-preset', 'medium', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags,
+                     '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags,
                      chave + '.tmp.mp4']))
         a_in += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai]]
         a_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur - 0.012, 0):.4f}:d=0.012[a{n}]")
@@ -148,14 +148,17 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         if not os.path.exists(chave):                  # só codifica o trecho que ainda não existe
             r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
             if r.returncode == 0: os.replace(chave + '.tmp.mp4', chave)
-            else: err = (r.stderr or '').strip().splitlines()[-1:] or [f'código {r.returncode}']; err = err[0]
+            else:
+                err = ((r.stderr or '').strip().splitlines() or [f'código {r.returncode}'])[-1]
+                print('trecho falhou (vai tentar de novo):', os.path.basename(chave), err[:200], flush=True)
         feitos[0] += 1
         if progresso: progresso(feitos[0] / len(jobs))
         return err
     # 4K pesa muito na memória: no máximo 2 trechos ao mesmo tempo (prévia 480p continua com 4)
     with ThreadPoolExecutor(4 if altura < 1500 else 2) as ex:
         falhas = [j for j, e in zip(jobs, ex.map(roda, jobs)) if e]
-    for chave, cmd in falhas:                          # tenta de novo, um por vez, antes de desistir
+    for k, (chave, cmd) in enumerate(falhas, 1):       # tenta de novo, um por vez, antes de desistir
+        if progresso: progresso(1.0, f'Refazendo um trecho que falhou ({k} de {len(falhas)})')
         r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
         if r.returncode:
             msg = ((r.stderr or '').strip().splitlines() or [f'código {r.returncode} (memória ou disco cheio?)'])[-1]
