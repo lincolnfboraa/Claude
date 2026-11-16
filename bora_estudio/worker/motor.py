@@ -58,7 +58,7 @@ def executar(p, etapa, sb):
     if not arqs: raise RuntimeError('os vídeos originais não estão no servidor; envie de novo pelo app')
     tx = (dna.get('texto') or {})
     cores = {'leg': (proj.get('cores_texto') or {}).get('leg') or tx.get('legenda') or '#FFFFFF',
-             'dest': (proj.get('cores_texto') or {}).get('dest') or tx.get('destaque') or '#C8B9A7'}
+             'dest': (proj.get('cores_texto') or {}).get('dest') or tx.get('destaque') or (((dna.get('paleta') or {}).get('cores') or [None])[0] if (dna.get('paleta') or {}).get('cores') else '#FFFFFF')}
     pasta = os.path.join(TRAB, pid); os.makedirs(pasta, exist_ok=True)
     etapa('Lendo o pedido', 5)
     pal = _transcricoes(pid, arqs, etapa)

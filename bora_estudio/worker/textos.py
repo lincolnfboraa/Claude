@@ -50,9 +50,9 @@ def ajusta_fs(txt, fonte, alvo, sp, fs_max):
     return fs
 
 class Roteiro:
-    def __init__(self, tokens, fim, cor_leg='#FFFFFF', cor_dest='#C8B9A7'):
+    def __init__(self, tokens, fim, cor_leg='#FFFFFF', cor_dest='#FFFFFF'):
         self.tokens, self.fim, self.ev = tokens, fim, []
-        self.BR, self.DEST = cor_ass(cor_leg), cor_ass(cor_dest, '#C8B9A7')
+        self.BR, self.DEST = cor_ass(cor_leg), cor_ass(cor_dest, '#FFFFFF')
         self.blocos = self._blocos()
 
     def dlg(self, layer, t0, t1, st, txt): self.ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{st},,0,0,0,,{txt}")

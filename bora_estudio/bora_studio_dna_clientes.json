@@ -2,17 +2,11 @@
   "versao": "2026-11-14",
   "uso": "Arquivo-base do Bora Studio (app mobile-first e backend de edição). Diretrizes de edição, não sequência fixa: a IA analisa as falas e constrói o storytelling.",
   "global_rules": {
-    "prioridade": "Sempre prevalece sobre presets antigos e sobre o DNA de qualquer cliente.",
-    "fidelidade_midia": [
-      "Preservar o vídeo como capturado: cor, contraste, exposição, iluminação, textura, pele, rosto, corpo, enquadramento e características reais",
-      "Proibido: filtro de beleza, suavização facial, retoque, tratamento de pele, LUT criativa, nitidez artificial, melhoria automática de cor, coloração gerativa",
-      "Proibido alterar produto, pessoa, marca ou frota",
-      "Inspecionar cada original com ffprobe (resolução, fps, HDR/SDR, primárias, transferência) e manter o gerenciamento de cor do original do início ao fim; HDR continua HDR"
-    ],
+    "audio": "Áudio fiel ao gravado: sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo. Sem música automática; trilha e efeitos entram depois, com a Bora",
     "render": {
+      "final": "Após aprovação, renderizar de novo a partir dos arquivos originais na resolução e fps nativos (4K/30 quando for o caso). Nunca ampliar a prévia",
       "fonte": "Arquivos originais, geralmente 4K/30 fps",
       "previa": "480p (altura 854) renderizada a partir do original, mesma colorimetria",
-      "final": "Após aprovação, renderizar de novo a partir dos arquivos originais na resolução e fps nativos (4K/30 quando for o caso). Nunca ampliar a prévia",
       "entrega_final": [
         "vídeo final",
         "versão sem legenda",
@@ -20,6 +14,22 @@
         "capa"
       ]
     },
+    "identidade": "O app usa azul #072740, laranja #FF5E16 e bege #F2EADF. Cada vídeo segue a identidade do próprio cliente, sem herdar estilo de outro cliente",
+    "prioridade": "Sempre prevalece sobre presets antigos e sobre o DNA de qualquer cliente.",
+    "referencias": "Carregar referências aprovadas reais acessíveis no Drive e marcar se já foram analisadas; nunca presumir análise",
+    "aprendizados": [
+      "Gancho direto na frase mais forte: nunca abrir com \"olá\", \"agora eu vou falar\" ou \"hoje eu vou\"",
+      "Legenda em branco forte e legível, nunca acinzentada",
+      "Nunca cortar final de palavra; o corte acontece só entre palavras completas",
+      "Cada frase fecha o pensamento; prefira a última tentativa completa de uma fala repetida",
+      "Destaques com moderação: no máximo 3 ou 4 por vídeo, variando estilos, mais 2 ou 3 palavras soltas",
+      "Título, destaques e legenda nunca podem ficar ilegíveis sobre a roupa ou o fundo; evite cores escuras sobre fundo escuro",
+      "B-roll animado é vídeo de verdade (movimento real), não imagem parada deslizando",
+      "Artes e cards de quadro inteiro ficam atrás da pessoa; nunca tapam rosto ou cabeça",
+      "Quando a fala cita uma lista (produtos, sintomas, etapas), os elementos entram na ordem em que são falados",
+      "Nunca dizer que aplicou algo que o motor não fez; o que não foi feito aparece em \"Ainda não aplicado\""
+    ],
+    "dna_alteracoes": "Feedback de uma versão fica registrado na versão. Após aprovação o sistema pode sugerir atualizações do DNA; regra permanente só muda com confirmação explícita do usuário",
     "edicao_permitida": [
       "Cortes de pausas, vícios e erros de fala",
       "Reordenação narrativa de falas sem distorcer contexto e sem inventar ou montar falas",
@@ -27,10 +37,12 @@
       "Transições com função",
       "Reframing geométrico discreto (crop/zoom), sem tocar na imagem"
     ],
-    "audio": "Áudio fiel ao gravado: sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo. Sem música automática; trilha e efeitos entram depois, com a Bora",
-    "identidade": "O app usa azul #072740, laranja #FF5E16 e bege #F2EADF. Cada vídeo segue a identidade do próprio cliente, sem herdar estilo de outro cliente",
-    "dna_alteracoes": "Feedback de uma versão fica registrado na versão. Após aprovação o sistema pode sugerir atualizações do DNA; regra permanente só muda com confirmação explícita do usuário",
-    "referencias": "Carregar referências aprovadas reais acessíveis no Drive e marcar se já foram analisadas; nunca presumir análise"
+    "fidelidade_midia": [
+      "Preservar o vídeo como capturado: cor, contraste, exposição, iluminação, textura, pele, rosto, corpo, enquadramento e características reais",
+      "Proibido: filtro de beleza, suavização facial, retoque, tratamento de pele, LUT criativa, nitidez artificial, melhoria automática de cor, coloração gerativa",
+      "Proibido alterar produto, pessoa, marca ou frota",
+      "Inspecionar cada original com ffprobe (resolução, fps, HDR/SDR, primárias, transferência) e manter o gerenciamento de cor do original do início ao fim; HDR continua HDR"
+    ]
   },
   "clients": [
     {

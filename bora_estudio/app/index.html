@@ -399,7 +399,8 @@ const V={
  ajustes(){const g=DB.global;return `<header class="top"><span class="tt">Ajustes</span><span></span></header><h1 class="titulo">Ajustes</h1><p class="apoio">Regras que valem pra todos os clientes. O DNA de cada um fica no perfil dele.</p>
   ${g?`<div class="secao"><h2>Fidelidade da mídia</h2></div><div class="lst">${linhas(g.fidelidade_midia)}</div>
   <div class="secao"><h2>Prévia e final</h2></div><div class="lst">${par('Prévia',g.render.previa)}${par('Final',g.render.final)}${par('Áudio',g.audio)}${par('Mudanças no DNA',g.dna_alteracoes)}</div>
-  <div class="secao"><h2>Edição permitida</h2></div><div class="lst">${linhas(g.edicao_permitida)}</div>`:'<div class="lst"><p class="vazio">Regras globais não encontradas.</p></div>'}
+  <div class="secao"><h2>Edição permitida</h2></div><div class="lst">${linhas(g.edicao_permitida)}</div>
+  <div class="secao"><h2>Aprendizados de todos os clientes</h2><span class="cnt">${(g.aprendizados||[]).length}</span></div><div class="lst">${linhas(g.aprendizados||[])||'<p class="vazio">Ajustes confirmados como "Todos" aparecem aqui e valem pra todos os clientes.</p>'}</div>`:'<div class="lst"><p class="vazio">Regras globais não encontradas.</p></div>'}
   <button class="pill full" style="margin-top:26px" data-sair>Sair da conta</button>`},
  cliente(id){const c=cli(id),vs=c.projetos,w=vs.filter(v=>v.st==='wait'),r=vs.filter(v=>v.st==='run'||(v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto)),ok=vs.filter(v=>v.st==='ok'&&!r.includes(v));
   return `<header class="top">${voltar()}<span class="tt">${esc(c.nome)}</span><button class="voltar" data-sheet="editar:${id}" style="padding:0 16px">Editar</button></header>
@@ -414,7 +415,7 @@ const V={
   <h1 class="titulo">DNA de edição</h1><p class="apoio">${esc(c.nome)} · diretrizes, não roteiro fixo. A IA monta o storytelling a partir das falas de cada vídeo.</p>
   <span class="selo ${prov(c)?'pv':'ok'}" style="margin-top:0">${prov(c)?'Provisório':'Base confirmada'}</span>
   ${prov(c)?`<div class="aviso"><b>Ainda em formação</b>${esc(c.status_nota)}.${c.pendencias&&c.pendencias.length?' Falta: '+c.pendencias.map(esc).join(', ')+'.':''}</div>`:''}
-  ${sug.length?`<div class="secao"><h2>Sugestões pra confirmar</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map((x,i)=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>da v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${c.id}:${i}">Confirmar</button><button class="mini" data-sugno="${c.id}:${i}" aria-label="Ignorar">✕</button></div>`).join('')}</div>`:''}
+  ${sug.length?`<div class="secao"><h2>Sugestões pra confirmar</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map((x,i)=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>da v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${c.id}:${i}">Este cliente</button><button class="mini ok" data-suggl="${c.id}:${i}" style="background:var(--cell2);color:var(--txt)">Todos</button><button class="mini" data-sugno="${c.id}:${i}" aria-label="Ignorar">✕</button></div>`).join('')}</div>`:''}
   <div class="secao"><h2>Diretrizes</h2></div><div class="lst">${PARES.map(([k,n])=>par(n,c[k])).join('')}</div>
   ${LISTAS.map(([k,n])=>`<div class="secao"><h2>${n}</h2></div><div class="lst">${linhas(c[k]||[],k==='evitar'?'#FFB59A':'')}</div>`).join('')}
   ${c.padroes_extraidos?`<div class="secao"><h2>Padrões dos aprovados</h2></div><div class="lst">${c.padroes_extraidos.itens.map(([a,b])=>par(a,b)).join('')}</div><p class="nota">Fonte: ${esc(c.padroes_extraidos.fonte)}</p>`:''}
@@ -487,7 +488,7 @@ function lerDraft(){const d=S.draft,q=s=>[...document.querySelectorAll(s)];d.nom
  [...LISTAS,['regras_confirmadas']].forEach(([k])=>d[k]=q(`.e_l[data-l="${k}"]`).map(e=>e.value).filter(Boolean))}
 function sheetSug(c){return `<div class="grab"></div><div class="sh"><button data-close>Depois</button><b>Atualizar o DNA?</b><span style="width:52px"></span></div>
  <p class="apoio">Estes ajustes foram aceitos na aprovação. Confirme só o que deve valer pros próximos vídeos de ${esc(c.nome)}.</p>
- <div class="lst">${c.sugestoes.map((x,i)=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>da v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${c.id}:${i}">Confirmar</button><button class="mini" data-sugno="${c.id}:${i}" aria-label="Ignorar">✕</button></div>`).join('')}</div>`}
+ <div class="lst">${c.sugestoes.map((x,i)=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>da v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${c.id}:${i}">Este cliente</button><button class="mini ok" data-suggl="${c.id}:${i}" style="background:var(--cell2);color:var(--txt)">Todos</button><button class="mini" data-sugno="${c.id}:${i}" aria-label="Ignorar">✕</button></div>`).join('')}</div>`}
 
 const TABS=['inicio','clientes','revisoes','ajustes'];
 function render(anim){const st=$('#stack'),top=S.stack[S.stack.length-1],[name,...args]=top.v.split(':');
@@ -507,6 +508,11 @@ function reSheet(){const sc=$('#sheet').scrollTop;$('#sheet').innerHTML=sheetEdi
 function reRender(){const el=$('#stack').lastElementChild,sc=el?el.scrollTop:0;render();const n=$('#stack').lastElementChild;if(n)n.scrollTop=sc}
 function medirThumbs(){document.querySelectorAll('.th video').forEach(vd=>{vd.onloadedmetadata=()=>{const f=S.arquivos[+vd.dataset.i];if(!f)return;const d=Math.round(vd.duration||0);
  f._dur=Math.floor(d/60)+':'+String(d%60).padStart(2,'0');const e=$('#du'+vd.dataset.i);if(e)e.textContent=f._dur}})}
+function decidirGlobal(ref){const[id,i]=ref.split(':'),c=cli(id),sg=c.sugestoes[+i];if(!sg)return;
+ (async()=>{const g=(await q(sb.from('regras_globais').select('regras').eq('id',1).maybeSingle())).regras;g.aprendizados=[...(g.aprendizados||[]),sg.texto];
+  await q(sb.from('regras_globais').update({regras:g,atualizado_em:new Date().toISOString()}).eq('id',1));
+  await q(sb.from('sugestoes_dna').update({status:'confirmada',decidido_por:(await sb.auth.getUser()).data.user.id,decidido_em:new Date().toISOString()}).eq('id',sg.id));
+  await recarregar();const n=cli(id);if($('#sheet').classList.contains('on')){if(n.sugestoes.length)$('#sheet').innerHTML=sheetSug(n);else close()}toast('Regra adicionada pra todos os clientes')})()}
 function decidir(ref,ok){const[id,i]=ref.split(':'),c=cli(id),sg=c.sugestoes[+i];if(!sg)return;
  (async()=>{await q(sb.rpc('confirmar_sugestao',{p_sugestao:sg.id,p_confirmar:ok}));await recarregar();const n=cli(id);
   if($('#sheet').classList.contains('on')){if(n.sugestoes.length)$('#sheet').innerHTML=sheetSug(n);else close()}toast(ok?'Regra adicionada ao DNA':'Sugestão ignorada')})()}
@@ -577,6 +583,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.baixar){(async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/final/${d.baixar}/link`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'sem link');
    toast('Baixando o final… o .zip vai pra pasta Downloads/Arquivos');location.href=j.url}catch(e){toast('Não consegui baixar: '+e.message)}})()}
+ else if(d.suggl)decidirGlobal(d.suggl);
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
 async function enviarOriginal(pid,f,n,prog,tipo){const qt=tipo?'&tipo='+tipo:'';const PED=8<<20,tok=async()=>(await sb.auth.getSession()).data.session.access_token;
