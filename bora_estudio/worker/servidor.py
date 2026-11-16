@@ -55,12 +55,13 @@ def processar(p):
         avisar(p, False, str(e)[:80])
 
 OCUPADO = [0]
+FINAIS = [0]                                           # 4K em andamento (etapas longas, sem avanço por até ~1 h)
 def trabalhador():
     while True:
-        p = FILA.get(); OCUPADO[0] += 1
+        p = FILA.get(); OCUPADO[0] += 1; FINAIS[0] += p['tipo'] == 'final'
         try: processar(p)
         finally:
-            OCUPADO[0] -= 1; FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
+            OCUPADO[0] -= 1; FINAIS[0] -= p['tipo'] == 'final'; FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
 
 def subir(bucket, caminho, arquivo, tipo):
     r = urllib.request.Request(f'{URL}/storage/v1/object/{bucket}/{caminho}', data=open(arquivo, 'rb').read(), method='POST',
@@ -127,7 +128,7 @@ class H(BaseHTTPRequestHandler):
             arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
         import time
-        self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0], 'parado_min': int((time.time() - ULTIMA[0]) / 60) if OCUPADO[0] else 0})
+        self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0], 'parado_min': max(0, int((time.time() - ULTIMA[0]) / 60) - (90 if FINAIS[0] else 0)) if OCUPADO[0] else 0})
     def _final(self, u):
         """GET /final/<projeto>?exp=..&sig=.. : baixa o .zip do final (link assinado, vale 2 h)."""
         q = urllib.parse.parse_qs(u.query); pid = os.path.basename(u.path.split('/')[2])
