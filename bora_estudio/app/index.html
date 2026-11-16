@@ -6,6 +6,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Bora Studio">
 <link rel="apple-touch-icon" href="icone.png">
+<link rel="manifest" href="manifest.json">
 <title>Bora Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -400,6 +401,8 @@ const V={
   const bloco=(t,arr,cor)=>arr&&arr.length?`<div class="secao"><h2>${t}</h2><span class="cnt">${arr.length}</span></div><div class="lst">${linhas(arr,cor)}</div>`:'';
   return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
   <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
+  <button class="pill ${S.pushOk?'':'pri'} full" data-push-ativar style="margin-bottom:6px">${SV(I.sino)}${S.pushOk?'Notificações ativadas neste aparelho':'Ativar notificações'}</button>
+  <p class="nota" style="margin-top:4px">Avisa quando a prévia fica pronta, quando o 4K termina e se der erro. No iPhone, abra o app pelo ícone da Tela de Início.</p>
   ${sug.length?`<div class="secao"><h2>Sugestões de aprendizado</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map(x=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>${esc(x.c.nome)} · v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${x.c.id}:${x.i}">Cliente</button><button class="mini ok" data-suggl="${x.c.id}:${x.i}" style="background:var(--cell2);color:var(--txt)">Todos</button></div>`).join('')}</div>`:''}
   ${bloco('Obrigatórias · não podem ser desligadas',g.obrigatorias)}
   ${bloco('As 10 regras fundamentais',g.regras_fundamentais)}
@@ -590,6 +593,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.baixar){(async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/final/${d.baixar}/link`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'sem link');
    toast('Baixando o final… o .zip vai pra pasta Downloads/Arquivos');location.href=j.url}catch(e){toast('Não consegui baixar: '+e.message)}})()}
+ else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
  else if(d.toast)toast(d.toast)});
@@ -607,7 +611,18 @@ setInterval(()=>{if(document.hidden||!DB.clientes.length)return;
  if($('#sheet.on [data-stgo]')){carregarTudo().then(()=>{$('#sheet').innerHTML=sheetStatus()}).catch(()=>{});return}
  const nm=S.stack[S.stack.length-1].v.split(':')[0];if($('#sheet').classList.contains('on')||['login','nova'].includes(nm)||$('#vid video')||$('#aj'))return;
  carregarTudo().then(reRender).catch(()=>{})},20000);
-async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:S.tab||'inicio'}];render()}catch(e){S.stack=[{v:'erro'}];render()}}
+function b64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');const b=atob(s+'='.repeat((4-s.length%4)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+async function ativarPush(){try{
+ if(!('serviceWorker' in navigator)||!('PushManager' in window))return toast('No iPhone, abra o Bora Studio pelo ícone da Tela de Início');
+ const perm=await Notification.requestPermission();if(perm!=='granted')return toast('Notificações não permitidas. Libere em Ajustes do iPhone > Notificações');
+ const reg=await navigator.serviceWorker.register('sw.js');await navigator.serviceWorker.ready;
+ const {chave}=await (await fetch(`${EDITOR}/push/chave`)).json();
+ const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(chave)});
+ const tok=(await sb.auth.getSession()).data.session.access_token;
+ const r=await fetch(`${EDITOR}/push/inscrever`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(sub)});
+ if(!r.ok)throw new Error('servidor recusou');S.pushOk=true;reRender();toast('Notificações ativadas')}catch(e){toast('Não ativou: '+e.message)}}
+async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:S.tab||'inicio'}];const hv=(location.hash.match(/v=([\w-]+)/)||[])[1];if(hv&&vid(hv))S.stack.push({v:'video:'+hv});render()
+  try{const reg=await navigator.serviceWorker?.getRegistration();if(reg&&await reg.pushManager.getSubscription()&&Notification.permission==='granted')S.pushOk=true}catch(_){}}catch(e){S.stack=[{v:'erro'}];render()}}
 sb.auth.getSession().then(({data})=>{if(data.session)iniciar();else{S.stack=[{v:'login'}];render()}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest('#flogin')){e.preventDefault();document.querySelector('[data-entrar]').click()}});
 </script>

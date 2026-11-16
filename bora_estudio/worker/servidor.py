@@ -29,14 +29,28 @@ def traduzir(b):
         return {'tipo': 'final', 'projeto_id': r['id'], 'cliente': r.get('cliente_id')}
     return None
 
+def avisar(p, ok, erro=''):
+    try:
+        import avisos
+        pr = (sb('GET', f"/rest/v1/projetos?id=eq.{p['projeto_id']}&select=titulo,cliente_id") or [{}])[0]
+        nome = (sb('GET', f"/rest/v1/clientes?id=eq.{pr.get('cliente_id')}&select=nome") or [{}])[0].get('nome', '')
+        if not ok: t = ('Erro na edição', f"{pr.get('titulo')} · {nome}: {erro}")
+        elif p['tipo'] == 'final': t = ('4K pronto pra baixar', f"{pr.get('titulo')} · {nome}")
+        else: t = (f"Prévia pronta: {pr.get('titulo')}", f"{nome} · v{p.get('versao') or ''} pra revisar")
+        avisos.enviar(t[0], t[1], '/#v=' + p['projeto_id'])
+    except Exception as e:
+        print('aviso:', e, flush=True)
+
 def processar(p):
     pid = p['projeto_id']
     try:
         import motor                                   # motor de edição (bora_estudio/worker/motor.py)
         motor.executar(p, etapa=lambda t, n, **k: etapa(pid, t, n, **k), sb=sb)
+        avisar(p, True)
     except Exception as e:
         traceback.print_exc()
         etapa(pid, 'Erro na edição: ' + str(e)[:120], None)
+        avisar(p, False, str(e)[:80])
 
 OCUPADO = [0]
 def trabalhador():
@@ -102,6 +116,8 @@ class H(BaseHTTPRequestHandler):
         self.send_response(204); self.end_headers()
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path == '/push/chave':
+            import avisos; return self._r(200, {'chave': avisos.chave_publica()})
         if u.path.startswith('/final/'): return self._final(u)
         if u.path.startswith('/upload/'):                  # quanto do arquivo já chegou (pra retomar)
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
@@ -149,6 +165,11 @@ class H(BaseHTTPRequestHandler):
             pid = os.path.basename(u.path.split('/')[2]); exp = str(int(time.time()) + 7200)
             sig = hmac.new(TOKEN.encode(), f'{pid}:{exp}'.encode(), hashlib.sha256).hexdigest()
             return self._r(200, {'url': f'https://{self.headers.get("Host", "editor.borasolucoesdigitais.com")}/final/{pid}?exp={exp}&sig={sig}'})
+        if u.path == '/push/inscrever':
+            uid = usuario_da_equipe(self.headers.get('Authorization'))
+            if not uid: return self._r(401, {'erro': 'login'})
+            import avisos; corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+            return self._r(200, {'ok': True, 'aparelhos': avisos.inscrever(corpo, uid)})
         if u.path.startswith('/anexo/') and u.path.endswith('/fim'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = os.path.basename(u.path.split('/')[2]); d = pasta(pid)
