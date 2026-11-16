@@ -104,7 +104,7 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado, base=None, hdr=True):
 def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__))):
     """Devolve o vídeo com as inserções; se não houver nenhuma válida, devolve a base."""
     W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
-                                    '-of', 'csv=p=0:s=x', base], capture_output=True, text=True).stdout.strip().split('x')[:2])
+                                    '-of', 'csv=p=0:s=x', base], capture_output=True, text=True).stdout.strip().split('\n')[0].strip(',').split('x')[:2])
     cams = []
     for j, ins in enumerate(pl.get('insercoes') or []):
         k = int(ins.get('anexo', 0)) - 1

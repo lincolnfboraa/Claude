@@ -3,7 +3,7 @@
 - pecas(): trechos escolhidos pelo plano, menos as pausas longas (nunca dentro de uma palavra)
 - render_base(): recorte geométrico + escala, HDR continua HDR (HEVC 10 bits, mesmas primárias/transferência)
   e áudio fiel ao gravado (só volume em -14 LUFS com ganho fixo)."""
-import json, os, subprocess, wave, tempfile
+import json, os, re, subprocess, wave, tempfile
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
@@ -176,7 +176,7 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
 def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__))):
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:
-        H = int(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout.strip() or 0)
+        H = int((re.findall(r'\d+', subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout) or [0])[0])
         subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], check=True,
                        env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium'})
     else:
