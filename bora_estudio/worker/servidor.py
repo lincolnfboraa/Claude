@@ -38,12 +38,13 @@ def processar(p):
         traceback.print_exc()
         etapa(pid, 'Erro na edição: ' + str(e)[:120], None)
 
+OCUPADO = [0]
 def trabalhador():
     while True:
-        p = FILA.get()
+        p = FILA.get(); OCUPADO[0] += 1
         try: processar(p)
         finally:
-            FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
+            OCUPADO[0] -= 1; FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
 
 def subir(bucket, caminho, arquivo, tipo):
     r = urllib.request.Request(f'{URL}/storage/v1/object/{bucket}/{caminho}', data=open(arquivo, 'rb').read(), method='POST',
@@ -107,7 +108,7 @@ class H(BaseHTTPRequestHandler):
             partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
             arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
-        self._r(200, {'ok': True, 'na_fila': FILA.qsize()})
+        self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0]})
     def _final(self, u):
         """GET /final/<projeto>?exp=..&sig=.. : baixa o .zip do final (link assinado, vale 2 h)."""
         q = urllib.parse.parse_qs(u.query); pid = os.path.basename(u.path.split('/')[2])
