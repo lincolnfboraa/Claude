@@ -15,7 +15,9 @@ def sb(metodo, path, corpo=None):
                                headers={'apikey': KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'})
     return json.load(urllib.request.urlopen(r, timeout=60))
 
+ULTIMA = [0.0]                                         # hora do último avanço de etapa (detecta vídeo travado)
 def etapa(projeto_id, texto, pct, **extra):
+    import time; ULTIMA[0] = time.time()
     m = sb('GET', f'/rest/v1/projetos?id=eq.{projeto_id}&select=original_meta')[0]['original_meta'] or {}
     m.update({'andamento': texto, 'progresso': pct, **extra})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{projeto_id}', {'original_meta': m})
@@ -124,7 +126,8 @@ class H(BaseHTTPRequestHandler):
             partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
             arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
-        self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0]})
+        import time
+        self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0], 'parado_min': int((time.time() - ULTIMA[0]) / 60) if OCUPADO[0] else 0})
     def _final(self, u):
         """GET /final/<projeto>?exp=..&sig=.. : baixa o .zip do final (link assinado, vale 2 h)."""
         q = urllib.parse.parse_qs(u.query); pid = os.path.basename(u.path.split('/')[2])

@@ -7,7 +7,10 @@ git fetch -q origin claude/upbeat-tesla-qu1g6k || exit 0
 MUDOU_EDITOR=$(git diff --name-only HEAD FETCH_HEAD | grep -c '^bora_estudio/worker/')
 if [ "$MUDOU_EDITOR" -gt 0 ]; then
   ST=$(curl -s -m 5 http://localhost:8787 || echo '{}')
-  echo "$ST" | grep -q '"ocupado": 0' && echo "$ST" | grep -q '"na_fila": 0' || exit 0   # espera terminar o vídeo
+  PARADO=$(echo "$ST" | grep -o '"parado_min": [0-9]*' | grep -o '[0-9]*$')
+  if [ "${PARADO:-0}" -lt 30 ]; then                     # vídeo parado há 30 min = travado: atualiza e o editor retoma sozinho
+    echo "$ST" | grep -q '"ocupado": 0' && echo "$ST" | grep -q '"na_fila": 0' || exit 0   # espera terminar o vídeo
+  fi
 fi
 git merge -q --ff-only FETCH_HEAD || git reset -q --hard FETCH_HEAD
 if [ "$MUDOU_EDITOR" -gt 0 ]; then
