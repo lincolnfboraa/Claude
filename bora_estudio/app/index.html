@@ -285,7 +285,7 @@ a.ln{color:inherit;text-decoration:none}
     <button data-tab="clientes"><svg class="ico" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.3"/><path d="M3 19.5c.8-3.3 3.2-5 6-5s5.2 1.7 6 5"/><path d="M15.5 5.3a3.3 3.3 0 0 1 0 6.4M17.6 14.8c1.8.7 3 2.2 3.4 4.7"/></svg>Clientes</button>
     <button class="mais" data-go="nova" aria-label="Nova edição"><svg class="ico" viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M12 5v14M5 12h14"/></svg></button>
     <button data-tab="revisoes"><svg class="ico" viewBox="0 0 24 24"><rect x="6.5" y="3" width="11" height="18" rx="3"/><path d="M10.8 9.6l3.6 2.4-3.6 2.4z"/></svg>Revisões<span class="bd" id="bdrev" hidden></span></button>
-    <button data-tab="ajustes"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>Ajustes</button>
+    <button data-tab="ajustes"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>Padrão Bora</button>
   </nav>
   <div class="dim" id="dim"></div>
   <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
@@ -396,16 +396,22 @@ const V={
  revisoes(){const w=paraRevisar(),p=emProducao();return `<header class="top"><span class="tt">Revisões</span><span></span></header><h1 class="titulo">Revisões</h1><p class="apoio">Sua fila de decisões: aprovar ou pedir ajuste.</p>
   ${w.length?`<div class="lst">${w.map(ln).join('')}</div>`:'<div class="lst"><p class="vazio">Nenhuma prévia esperando revisão.</p></div>'}
   ${p.length?`<div class="secao"><h2>Em produção</h2><span class="cnt">${p.length}</span></div><div class="lst">${p.map(ln).join('')}</div>`:''}`},
- ajustes(){const g=DB.global;return `<header class="top"><span class="tt">Ajustes</span><span></span></header><h1 class="titulo">Ajustes</h1><p class="apoio">Regras que valem pra todos os clientes. O DNA de cada um fica no perfil dele.</p>
-  ${g?`<div class="secao"><h2>Fidelidade da mídia</h2></div><div class="lst">${linhas(g.fidelidade_midia)}</div>
-  <div class="secao"><h2>Prévia e final</h2></div><div class="lst">${par('Prévia',g.render.previa)}${par('Final',g.render.final)}${par('Áudio',g.audio)}${par('Mudanças no DNA',g.dna_alteracoes)}</div>
-  <div class="secao"><h2>Edição permitida</h2></div><div class="lst">${linhas(g.edicao_permitida)}</div>
-  <div class="secao"><h2>Aprendizados de todos os clientes</h2><span class="cnt">${(g.aprendizados||[]).length}</span></div><div class="lst">${linhas(g.aprendizados||[])||'<p class="vazio">Ajustes confirmados como "Todos" aparecem aqui e valem pra todos os clientes.</p>'}</div>`:'<div class="lst"><p class="vazio">Regras globais não encontradas.</p></div>'}
+ ajustes(){const g=DB.global||{},d=g.diretrizes||{},sug=DB.clientes.flatMap(c=>c.sugestoes.map((x,i)=>({...x,c,i})));
+  const bloco=(t,arr,cor)=>arr&&arr.length?`<div class="secao"><h2>${t}</h2><span class="cnt">${arr.length}</span></div><div class="lst">${linhas(arr,cor)}</div>`:'';
+  return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
+  <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
+  ${sug.length?`<div class="secao"><h2>Sugestões de aprendizado</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map(x=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>${esc(x.c.nome)} · v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${x.c.id}:${x.i}">Cliente</button><button class="mini ok" data-suggl="${x.c.id}:${x.i}" style="background:var(--cell2);color:var(--txt)">Todos</button></div>`).join('')}</div>`:''}
+  ${bloco('Obrigatórias · não podem ser desligadas',g.obrigatorias)}
+  ${bloco('As 10 regras fundamentais',g.regras_fundamentais)}
+  ${bloco('Storytelling',d.storytelling)}${bloco('Legendas',d.legendas)}${bloco('Cortes e takes',d.cortes)}${bloco('Elementos visuais',d.motion)}
+  ${bloco('Aprendizados confirmados para todos',g.aprendizados)}
+  ${bloco('Hierarquia das regras',g.hierarquia)}
+  ${(g.historico||[]).length?`<div class="secao"><h2>Histórico</h2></div><div class="lst">${g.historico.slice().reverse().map(h=>`<div class="ln"><span class="tx"><small style="margin:0">${esc(h.data)}</small><b style="font-weight:400;font-size:14.5px">${esc(h.mudanca)}</b></span></div>`).join('')}</div>`:''}
   <button class="pill full" style="margin-top:26px" data-sair>Sair da conta</button>`},
  cliente(id){const c=cli(id),vs=c.projetos,w=vs.filter(v=>v.st==='wait'),r=vs.filter(v=>v.st==='run'||(v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto)),ok=vs.filter(v=>v.st==='ok'&&!r.includes(v));
   return `<header class="top">${voltar()}<span class="tt">${esc(c.nome)}</span><button class="voltar" data-sheet="editar:${id}" style="padding:0 16px">Editar</button></header>
   <div class="cab-cli"><span class="ini ${c.cls}">${c.ini}</span><div><h1>${esc(c.nome)}</h1><p>${esc(c.segmento)}</p></div></div>
-  <span class="selo ${prov(c)?'pv':'ok'}">${prov(c)?'DNA provisório':'DNA confirmado'}${c.sugestoes.length?' · '+c.sugestoes.length+' sugestões':''}</span>
+  <span class="selo ${prov(c)?'pv':'ok'}">${prov(c)?'DNA provisório':'DNA confirmado'}${c.sugestoes.length?' · '+c.sugestoes.length+' sugestões':''}</span> <button class="selo ok" data-tab="ajustes" style="background:rgba(255,94,22,.12);color:var(--beige)">DNA Global Bora ativo</button>
   <div class="acoes2"><button class="pill pri" data-go="nova:${id}">${SV(I.mais)}Nova edição</button><button class="pill" data-push="dna:${id}">${SV(I.dna)}DNA</button></div>
   ${w.length?`<div class="secao"><h2>Para revisar</h2><span class="cnt">${w.length}</span></div><div class="trilho">${w.map(vcard).join('')}</div>`:''}
   ${r.length?`<div class="secao"><h2>Em produção</h2><span class="cnt">${r.length}</span></div><div class="lst">${r.map(ln).join('')}</div>`:''}
@@ -460,6 +466,7 @@ const V={
     <div class="chips">${['Cortar um trecho','Trocar o gancho','Legenda mais branca','Trocar o B-roll','Mudar o título'].map(x=>`<button class="chip" data-chip="${x}">${x}</button>`).join('')}</div>
     <button class="ln" data-sw style="padding:16px 2px"><span class="tx"><b>Sugerir pro DNA</b><small>Depois da aprovação vira sugestão no DNA de ${esc(c.nome)}. Só vira regra se você confirmar.</small></span><span class="sw ${S.sugerir?'':'off'}"></span></button>`:''}`:''}
   ${semFinal?`<button class="pill full" style="margin-top:16px" data-reabrir="${id}">${SV(I.refaz)}Pedir ajuste antes do 4K</button>`:''}
+  ${m['validacao_v'+a.n]?`<h3 class="rot">Verificação da v${a.n}</h3><div class="lst">${m['validacao_v'+a.n].map(x=>`<div class="ln"><span style="width:22px;text-align:center;font-weight:700;color:${x.ok===true?'var(--ok)':x.ok===false?'var(--warn)':'var(--faint)'}">${x.ok===true?'✓':x.ok===false?'!':'·'}</span><span class="tx"><b style="font-size:14px">${esc(x.item)}</b><small>${esc(x.detalhe)}</small></span></div>`).join('')}</div>`:''}
   <div class="lst" style="margin-top:18px"><button class="ln" data-info="${id}">${SV(I.clipe)}<span class="tx"><b>Arquivos do projeto</b><small>${esc(m.arq||'Original')}${m.res?' · '+esc(m.res.replace(' × ','×'))+' · '+esc(m.cor||''):''}</small></span><span class="seta">›</span></button>
    <button class="ln" data-versoes="${id}">${SV(I.historico)}<span class="tx"><b>Versões</b><small>${v.versoes.length} ${v.versoes.length>1?'versões':'versão'} · feedback registrado em cada uma</small></span><span class="seta">›</span></button>
    ${m.briefing?`<div class="ln">${SV(I.doc)}<span class="tx"><b>Briefing</b><small style="white-space:normal">${esc(m.briefing)}</small></span></div>`:''}</div>

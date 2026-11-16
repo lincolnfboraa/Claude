@@ -2,6 +2,7 @@
   "versao": "2026-11-14",
   "uso": "Arquivo-base do Bora Studio (app mobile-first e backend de edição). Diretrizes de edição, não sequência fixa: a IA analisa as falas e constrói o storytelling.",
   "global_rules": {
+    "nome": "DNA Global Bora | Padrão audiovisual da agência",
     "audio": "Áudio fiel ao gravado: sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo. Sem música automática; trilha e efeitos entram depois, com a Bora",
     "render": {
       "final": "Após aprovação, renderizar de novo a partir dos arquivos originais na resolução e fps nativos (4K/30 quando for o caso). Nunca ampliar a prévia",
@@ -14,20 +15,52 @@
         "capa"
       ]
     },
+    "historico": [
+      {
+        "data": "2026-11-16",
+        "mudanca": "DNA Global Bora estruturado: 10 regras fundamentais, diretrizes, obrigatórias e hierarquia"
+      }
+    ],
+    "principio": "O padrão Bora não é a mesma edição para todos: é edição profissional, com storytelling, naturalidade, fidelidade à gravação e decisões intencionais. A IA executa, o DNA Bora orienta, a equipe aprova.",
+    "diretrizes": {
+      "cortes": [
+        "Cortes limpos; remover erros, repetições e pausas desnecessárias; manter pausas que dão emoção ou compreensão",
+        "Não acelerar a fala; evitar jump cuts e zoom em toda frase; aproximação só em momento estratégico",
+        "Sem transição por obrigação; não repetir takes para encher duração; evitar mudança brusca de escala; áudio contínuo entre cortes; ritmo vem do DNA do cliente"
+      ],
+      "motion": [
+        "Gráficos servem à compreensão, não decoração; minimalismo; listas sincronizadas",
+        "Nunca cobrir o rosto; sem 3D genérico, ilustração irrelevante, imagem fictícia de resultado real ou logo automático",
+        "Cores da Bora (laranja e azul) não se aplicam aos clientes; cada cliente mantém sua identidade"
+      ],
+      "legendas": [
+        "Branco puro, tipografia limpa semibold/bold, tamanho proporcional, sincronia precisa",
+        "Destaques pontuais, sem animações exageradas, sem caixa opaca permanente",
+        "Áreas seguras de Instagram, TikTok e Stories; fontes e cores do cliente complementam sem perder legibilidade"
+      ],
+      "storytelling": [
+        "Toda produção tem uma ideia central; analisar o conteúdo antes de definir a estrutura",
+        "Referência (não fórmula): gancho → contexto → desenvolvimento → descoberta → fechamento",
+        "O gancho cria uma curiosidade que será respondida",
+        "Evitar redundância; priorizar falas autênticas; reorganizar takes quando melhora a narrativa, preservando o sentido",
+        "Identificar emoção, humor, autoridade e surpresa; não empilhar falas sem história; parecer dirigido por editor humano experiente"
+      ]
+    },
+    "hierarquia": [
+      "1 DNA Global Bora: regras universais; as obrigatórias não podem ser desligadas por nenhum cliente ou projeto",
+      "2 DNA do cliente: estilo, ritmo, tipografia, cores, ganchos, elementos, referências",
+      "3 Instruções do projeto (briefing e ajustes): valem só para aquele vídeo, não mudam o DNA",
+      "4 Aprendizados: sugeridos após aprovação, só entram no DNA do cliente ou no global com confirmação da equipe"
+    ],
     "identidade": "O app usa azul #072740, laranja #FF5E16 e bege #F2EADF. Cada vídeo segue a identidade do próprio cliente, sem herdar estilo de outro cliente",
     "prioridade": "Sempre prevalece sobre presets antigos e sobre o DNA de qualquer cliente.",
     "referencias": "Carregar referências aprovadas reais acessíveis no Drive e marcar se já foram analisadas; nunca presumir análise",
-    "aprendizados": [
-      "Gancho direto na frase mais forte: nunca abrir com \"olá\", \"agora eu vou falar\" ou \"hoje eu vou\"",
-      "Legenda em branco forte e legível, nunca acinzentada",
-      "Nunca cortar final de palavra; o corte acontece só entre palavras completas",
-      "Cada frase fecha o pensamento; prefira a última tentativa completa de uma fala repetida",
-      "Destaques com moderação: no máximo 3 ou 4 por vídeo, variando estilos, mais 2 ou 3 palavras soltas",
-      "Título, destaques e legenda nunca podem ficar ilegíveis sobre a roupa ou o fundo; evite cores escuras sobre fundo escuro",
-      "B-roll animado é vídeo de verdade (movimento real), não imagem parada deslizando",
-      "Artes e cards de quadro inteiro ficam atrás da pessoa; nunca tapam rosto ou cabeça",
-      "Quando a fala cita uma lista (produtos, sintomas, etapas), os elementos entram na ordem em que são falados",
-      "Nunca dizer que aplicou algo que o motor não fez; o que não foi feito aparece em \"Ainda não aplicado\""
+    "aprendizados": [],
+    "obrigatorias": [
+      "Preservação absoluta da imagem: sem filtro, suavização, retoque, LUT, grading, saturação, contraste, nitidez, efeito de pele ou mudança de tom de pele",
+      "Arquivo original é a fonte; prévia 480p; final renderizado de novo dos originais (4K/30 quando for o caso); HDR nunca convertido errado para SDR; sem cortar rosto, mãos ou demonstração no 9:16",
+      "Áudio fiel ao gravado (microfone já cancela ruído): sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume -14 LUFS com ganho fixo; sem música automática; sem narração ou palavra reconstruída por IA; sem cortar respirações de forma antinatural",
+      "Nunca inventar ou montar falas"
     ],
     "dna_alteracoes": "Feedback de uma versão fica registrado na versão. Após aprovação o sistema pode sugerir atualizações do DNA; regra permanente só muda com confirmação explícita do usuário",
     "edicao_permitida": [
@@ -42,6 +75,18 @@
       "Proibido: filtro de beleza, suavização facial, retoque, tratamento de pele, LUT criativa, nitidez artificial, melhoria automática de cor, coloração gerativa",
       "Proibido alterar produto, pessoa, marca ou frota",
       "Inspecionar cada original com ffprobe (resolução, fps, HDR/SDR, primárias, transferência) e manter o gerenciamento de cor do original do início ao fim; HDR continua HDR"
+    ],
+    "regras_fundamentais": [
+      "01 Gancho direto: começar pela fala ou imagem mais interessante de todo o material; sem \"olá\", \"hoje eu vou falar\", \"no vídeo de hoje\"; sem sensacionalismo nem tirar fala de contexto",
+      "02 Legendas brancas e fortes (#FFFFFF), sans-serif moderna, sem transparência excessiva, sombra discreta quando necessário",
+      "03 Nunca cortar o final das palavras: o corte respeita a última sílaba, conferido no áudio real",
+      "04 Frases precisam fechar o pensamento; cada informação se conecta à próxima",
+      "05 Destaques com moderação: só termos realmente relevantes; padrão minimalista",
+      "06 Contraste e legibilidade: nenhum texto ilegível (roupa escura, fundo complexo, margens de segurança, tamanho de celular)",
+      "07 B-roll animado é vídeo de verdade; foto com zoom é recurso gráfico e deve ser identificada como tal; priorizar material do cliente",
+      "08 Artes não cobrem rosto, olhos, boca ou demonstrações; elementos atrás da pessoa usam recorte; sem espaço, simplificar ou remover",
+      "09 Listas entram na ordem da fala, cada item quando é mencionado",
+      "10 Nunca afirmar que executou algo sem verificar no resultado renderizado; o que não foi feito aparece como não aplicado"
     ]
   },
   "clients": [

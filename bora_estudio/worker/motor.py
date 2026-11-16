@@ -85,16 +85,20 @@ def executar(p, etapa, sb):
             sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'cores_texto': {**(proj.get('cores_texto') or {}), **novas}})
         etapa('Cortando pausas e montando', 40)
         saida_txt = os.path.join(pasta, f'textos_v{n}')
-        base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72))
+        base, hdr, dur, tokens_v = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72))
         etapa('Textos, título e destaques', 76)
         previa = os.path.join(pasta, f'previa_v{n}.mp4')
         montagem.aplicar_textos(base, saida_txt + '.ass', previa, hdr, 24)
+        etapa('Conferindo a prévia (áudio, palavras, resolução, anexos)', 88)
+        import validacao
+        n_dest = len(pl.get('destaques') or []) if any(',K,' in l for l in open(saida_txt + '.ass')) else 0
+        verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest)
         etapa('Enviando a prévia pro app', 93)
         caminho = f'{cli_id}/{pid}/v{n}.mp4'; _subir(sb, caminho, previa, 'video/mp4')
         sb('PATCH', f"/rest/v1/versoes?id=eq.{v['id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': (pl.get('resumo') or f'Versão {n}') + (f" Ainda não aplicado (o motor não faz ainda): {pl['nao_feito']}" if (pl.get('nao_feito') or '').strip() else '')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'status': 'revisao'})
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
-        m.update({'andamento': None, 'progresso': None, 'dur': f'{round(dur)} s'})
+        m.update({'andamento': None, 'progresso': None, 'dur': f'{round(dur)} s', f'validacao_v{n}': verif})
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
         return

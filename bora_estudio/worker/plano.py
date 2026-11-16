@@ -51,7 +51,7 @@ Como planejar
 - Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência.
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
 - Destaques: no máximo 3 ou 4 frases de destaque, variando os estilos no mesmo vídeo (pop, serifa, lettering), mais 2 ou 3 palavras soltas (estilo palavra_solta: só a palavra-chave, uma linha 'grande'). Os textos das linhas saem exatamente das palavras faladas no intervalo palavra_inicio..palavra_fim; a palavra principal fica numa linha 'grande', as de apoio em 'pequena'. Nada de destaque em todo lugar.
-- Siga o DNA do cliente como diretriz, e as regras globais sempre. Se o DNA for provisório, seja conservador.
+- Hierarquia: 1) DNA Global Bora (as 'obrigatorias' e as 10 'regras_fundamentais' nunca são quebradas), 2) DNA do cliente (estilo, ritmo, cores, ganchos), 3) briefing e ajustes do projeto (valem só para este vídeo), 4) aprendizados confirmados. Em conflito, vale o nível mais alto; as cores da Bora nunca vão para o cliente. Se o DNA do cliente for provisório, seja conservador.
 - Em ajustes: aplique exatamente o que o feedback pede, mexendo o mínimo no resto do plano anterior.
 
 O que o motor sabe fazer (e só isso): escolher e ordenar falas, cortar, enquadramento aberto/medio/fechado, título, destaques (pop, serifa, lettering, palavra_solta), corrigir grafia e trocar as cores da legenda e dos destaques (campo cores, em #RRGGBB; nomes comuns: bege/creme da Fabiola = #C8B9A7, branco = #FFFFFF).
@@ -90,7 +90,7 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
         betas=['server-side-fallback-2026-07-01'], fallbacks='default',     # se o modelo recusar, o servidor tenta outro
         output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': ESQUEMA}},
         system=[{'type': 'text', 'text': SISTEMA},
-                {'type': 'text', 'text': 'Regras globais (sempre prevalecem):\n' + json.dumps(regras, ensure_ascii=False)},
+                {'type': 'text', 'text': 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False), 'cache_control': {'type': 'ephemeral'}},
                 {'type': 'text', 'text': 'DNA do cliente:\n' + dna_txt, 'cache_control': {'type': 'ephemeral'}}],
         messages=[{'role': 'user', 'content': '\n\n'.join(pedido)}],
     ) as st:

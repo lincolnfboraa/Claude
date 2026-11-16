@@ -6,6 +6,7 @@ import math, os, shutil, subprocess
 from PIL import Image, ImageFilter
 
 FPS = 30000 / 1001
+APLICADAS = 0
 
 def _tempo(tokens, i0, i1, fim):
     a = next((t['s'] for t in tokens if t['i'] >= i0), None)
@@ -113,6 +114,8 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
         if not t: continue
         cams.append((camada(ins, anexos[k], t[0], t[1], W, H, os.path.join(pasta, f'_ins{j}_{H}'), j % 2 == 0, base, hdr), t[0]))
     _cache_masc.clear()
+    global APLICADAS
+    APLICADAS = len(cams)
     if not cams: return base
     if hdr:
         env = {**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}

@@ -12,3 +12,6 @@ pl['_anexos']=[{'caminho':f,'tipo':'imagem','nome':os.path.basename(f)} for f in
 base,hdr,dur,tok=motor._renderizar(pid,pl,arqs,pal,854,{'leg':'#FFFFFF','dest':'#C8B9A7'},P+'/textos_t',lambda t,n:print(n,t,flush=True))
 montagem.aplicar_textos(base,P+'/textos_t.ass',P+'/previa_t.mp4',hdr,24)
 print('FIM',dur)
+import validacao, insercoes
+v=validacao.verificar(P+'/previa_t.mp4',pl,tok,dur,854,hdr,insercoes.APLICADAS,4)
+for x in v: print('VERIF',x)
