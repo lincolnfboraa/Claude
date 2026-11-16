@@ -14,4 +14,4 @@ services:
     mem_limit: ${BORA_MEM:-5500m}
     environment:
       - BORA_4K_SIMULTANEOS=${BORA_4K_SIMULTANEOS:-1}
-    cpus: 7.8
+    cpus: ${BORA_CPUS:-6}                 # ~75% dos 8 vCPUs: termos da Peramix não permitem 100% contínuo
