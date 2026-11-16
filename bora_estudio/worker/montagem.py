@@ -144,15 +144,24 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         a_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur - 0.012, 0):.4f}:d=0.012[a{n}]")
     feitos = [0]
     def roda(job):
-        chave, cmd = job; rc = 0
+        chave, cmd = job; err = ''
         if not os.path.exists(chave):                  # só codifica o trecho que ainda não existe
-            rc = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE).returncode
-            if rc == 0: os.replace(chave + '.tmp.mp4', chave)
+            r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            if r.returncode == 0: os.replace(chave + '.tmp.mp4', chave)
+            else: err = (r.stderr or '').strip().splitlines()[-1:] or [f'código {r.returncode}']; err = err[0]
         feitos[0] += 1
         if progresso: progresso(feitos[0] / len(jobs))
-        return rc
-    with ThreadPoolExecutor(4) as ex:
-        if any(ex.map(roda, jobs)): raise RuntimeError('falha ao codificar um trecho')
+        return err
+    # 4K pesa muito na memória: no máximo 2 trechos ao mesmo tempo (prévia 480p continua com 4)
+    with ThreadPoolExecutor(4 if altura < 1500 else 2) as ex:
+        falhas = [j for j, e in zip(jobs, ex.map(roda, jobs)) if e]
+    for chave, cmd in falhas:                          # tenta de novo, um por vez, antes de desistir
+        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+        if r.returncode:
+            msg = ((r.stderr or '').strip().splitlines() or [f'código {r.returncode} (memória ou disco cheio?)'])[-1]
+            print('FALHA trecho', chave, '\n', (r.stderr or '')[-800:], flush=True)
+            raise RuntimeError('falha ao codificar um trecho: ' + msg[:120])
+        os.replace(chave + '.tmp.mp4', chave)
     open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file '{c}'\n" for c, _ in jobs))
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')
     sh(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(tmp, 'lista.txt'), '-c', 'copy', vid])
