@@ -51,7 +51,9 @@ def processar(p):
         avisar(p, True)
     except Exception as e:
         traceback.print_exc()
-        etapa(pid, 'Erro na edição: ' + str(e)[:120], None)
+        sem_mem = type(e).__name__ == 'SemMemoria'          # não repete sozinho (nem ao reiniciar); só pelo botão Tentar de novo
+        etapa(pid, ('Erro: ' if sem_mem else 'Erro na edição: ') + str(e)[:120], None,
+              **({'falha_memoria': ('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id'))} if sem_mem else {}))
         avisar(p, False, str(e)[:80])
 
 OCUPADO = [0]
@@ -240,11 +242,11 @@ def vigia():
         try:
             for v in sb('GET', '/rest/v1/versoes?status=eq.editando&select=id,numero,projeto_id,projetos(original_meta)'):
                 m = (v.get('projetos') or {}).get('original_meta') or {}
-                if retomar or m.get('andamento_versao') != v['id']:
+                if (retomar and m.get('falha_memoria') != v['id']) or m.get('andamento_versao') != v['id']:
                     enfileirar({'tipo': 'ajuste' if v['numero'] > 1 else 'nova_edicao', 'projeto_id': v['projeto_id'], 'versao_id': v['id'], 'versao': v['numero']})
             for pr in sb('GET', '/rest/v1/projetos?status=eq.aprovado&select=id,cliente_id,original_meta,versoes(id,numero,final_drive_id)'):
                 m = pr.get('original_meta') or {}; vs = sorted(pr['versoes'], key=lambda x: x['numero'])
-                if vs and not vs[-1]['final_drive_id'] and not m.get('final_pronto') and (retomar or m.get('andamento_versao') != 'final:' + vs[-1]['id']):
+                if vs and not vs[-1]['final_drive_id'] and not m.get('final_pronto') and ((retomar and m.get('falha_memoria') != 'final:' + vs[-1]['id']) or m.get('andamento_versao') != 'final:' + vs[-1]['id']):
                     enfileirar({'tipo': 'final', 'projeto_id': pr['id'], 'cliente': pr['cliente_id'], 'versao_id': vs[-1]['id'], 'versao': vs[-1]['numero']})
             retomar = False
         except Exception as e:

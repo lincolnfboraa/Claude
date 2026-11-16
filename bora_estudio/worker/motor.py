@@ -62,6 +62,7 @@ def executar(p, etapa, sb):
     pasta = os.path.join(TRAB, pid); os.makedirs(pasta, exist_ok=True)
     etapa('Lendo o pedido', 5)
     pal = _transcricoes(pid, arqs, etapa)
+    montagem.liberar_modelo()                         # memória livre pro render
 
     if tipo in ('nova_edicao', 'ajuste'):
         n = v['numero']
@@ -115,16 +116,17 @@ def executar(p, etapa, sb):
         nome = ''.join(c for c in f"{cliente['nome']}_{proj['titulo']}".replace(' ', '_') if c.isalnum() or c in '_-')[:60]
         saida_txt = os.path.join(fim, nome + '_legendas')
         base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 70))
-        etapa('Aplicando os textos e gerando a versão sem legenda', 74)
+        etapa('Aplicando os textos no 4K', 74)
         leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')
         params, tags = montagem.x265(montagem.sondar(arqs[0])[2])
         sem = os.path.join(fim, nome + f'_{altura}p_sem_legenda.mp4')
-        from concurrent.futures import ThreadPoolExecutor   # legendado e sem legenda ao mesmo tempo
-        with ThreadPoolExecutor(2) as ex:
-            fs = [ex.submit(montagem.aplicar_textos, base, saida_txt + '.ass', leg, hdr, 24),
-                  ex.submit(montagem.sh, ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-c:v', 'libx265', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p10le',
-                                          '-x265-params', params, *tags, '-tag:v', 'hvc1', '-c:a', 'copy', '-movflags', '+faststart', sem])]
-            for f in fs: f.result()
+        montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24)        # um 4K de cada vez (memória)
+        etapa('Versão sem legenda', 90)
+        with montagem.pesado(altura):
+            rc, msg, mb = montagem.rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-c:v', 'libx265', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p10le',
+                                          '-x265-params', params, *tags, '-tag:v', 'hvc1', '-c:a', 'copy', '-movflags', '+faststart', sem], 'sem legenda')
+        if montagem.oom(rc): raise montagem.SemMemoria(f'memória insuficiente na versão sem legenda ({mb} MB)')
+        if rc: raise RuntimeError('versão sem legenda: ' + (msg or f'código {rc}')[:150])
         os.replace(saida_txt + '.srt', os.path.join(fim, nome + '_legendas.srt'))
         zipf = os.path.join(fim, nome + '_final.zip')
         if os.path.exists(zipf): os.remove(zipf)

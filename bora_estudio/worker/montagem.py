@@ -3,7 +3,8 @@
 - pecas(): trechos escolhidos pelo plano, menos as pausas longas (nunca dentro de uma palavra)
 - render_base(): recorte geométrico + escala, HDR continua HDR (HEVC 10 bits, mesmas primárias/transferência)
   e áudio fiel ao gravado (só volume em -14 LUFS com ganho fixo)."""
-import json, os, re, subprocess, wave, tempfile
+import json, os, re, subprocess, threading, wave, tempfile
+from contextlib import nullcontext
 from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
@@ -11,6 +12,29 @@ FPS = 30000 / 1001
 ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}   # zoom, posição do rosto (aprovados na Fabiola)
 PAUSA = {'limiar_db': -45, 'min_s': 0.30, 'mantem_s': 0.10, 'borda_s': 0.18}
 _modelo = None
+
+# Memória: um processo de codificação 4K usa ~3,2 GB. Por padrão só 1 roda por vez no servidor inteiro (todos os projetos).
+# Reversível: BORA_4K_SIMULTANEOS=2 no docker-compose quando a VPS tiver a memória contratada.
+TRAVA_4K = threading.Semaphore(max(1, int(os.environ.get('BORA_4K_SIMULTANEOS', '1'))))
+def pesado(altura):
+    return TRAVA_4K if altura >= 1500 else nullcontext()
+
+class SemMemoria(RuntimeError):
+    """O sistema matou o processo por falta de memória (OOM). Não é repetido sozinho."""
+
+def rodar(cmd, rotulo, env=None):
+    """Roda um processo medindo o pico de memória. Devolve (código, fim do erro, MB). Código -9/137 = morto por falta de memória."""
+    with tempfile.TemporaryFile() as err:
+        p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err, env=env)
+        _, st, uso = os.wait4(p.pid, 0); p.returncode = rc = os.waitstatus_to_exitcode(st)
+        err.seek(0); cauda = [l for l in err.read().decode('utf-8', 'replace').splitlines() if l.strip() and 'x265 [' not in l][-4:]
+    mb = round(uso.ru_maxrss / 1024)
+    if rc:
+        oom = rc in (-9, 137)
+        print(f"{'OOM' if oom else 'FALHA'} {rotulo}: código {rc}, pico {mb} MB" + ('' if oom else ' | ' + ' | '.join(cauda)), flush=True)
+    return rc, (cauda[-1] if cauda else ''), mb
+
+def oom(rc, msg=''): return rc in (-9, 137) or 'código -9' in msg or 'código 137' in msg or 'SIGKILL' in msg
 
 def sh(cmd, tentativas=2):
     for t in range(tentativas):
@@ -27,6 +51,12 @@ def wav16(video, saida):
     if not os.path.exists(saida):
         sh(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', video, '-vn', '-ac', '1', '-ar', '16000', saida])
     return saida
+
+def liberar_modelo():
+    """Solta o modelo de transcrição da memória (~1 GB) antes do render pesado; ele é recarregado quando precisar."""
+    global _modelo
+    if _modelo is not None:
+        _modelo = None; import gc; gc.collect()
 
 def transcrever(video, cache):
     """Palavras com tempo (segundos do arquivo original)."""
@@ -144,26 +174,23 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         a_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur - 0.012, 0):.4f}:d=0.012[a{n}]")
     feitos = [0]
     def roda(job):
-        chave, cmd = job; err = ''
-        if not os.path.exists(chave):                  # só codifica o trecho que ainda não existe
-            r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
-            if r.returncode == 0: os.replace(chave + '.tmp.mp4', chave)
-            else:
-                err = ((r.stderr or '').strip().splitlines() or [f'código {r.returncode}'])[-1]
-                print('trecho falhou (vai tentar de novo):', os.path.basename(chave), err[:200], flush=True)
+        chave, cmd = job; rc = 0
+        if not os.path.exists(chave):                  # só codifica o trecho que ainda não existe (retomada aproveita os prontos)
+            with pesado(altura):
+                rc, _, _ = rodar(cmd, 'trecho ' + os.path.basename(chave))
+            if rc == 0: os.replace(chave + '.tmp.mp4', chave)
         feitos[0] += 1
         if progresso: progresso(feitos[0] / len(jobs))
-        return err
-    # 4K pesa muito na memória: no máximo 2 trechos ao mesmo tempo (prévia 480p continua com 4)
-    with ThreadPoolExecutor(4 if altura < 1500 else 2) as ex:
-        falhas = [j for j, e in zip(jobs, ex.map(roda, jobs)) if e]
-    for k, (chave, cmd) in enumerate(falhas, 1):       # tenta de novo, um por vez, antes de desistir
+        return rc
+    with ThreadPoolExecutor(4 if altura < 1500 else 1) as ex:
+        falhas = [j for j, rc in zip(jobs, ex.map(roda, jobs)) if rc]
+    for k, (chave, cmd) in enumerate(falhas, 1):       # uma nova tentativa, sozinha; se faltar memória de novo, para
         if progresso: progresso(1.0, f'Refazendo um trecho que falhou ({k} de {len(falhas)})')
-        r = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
-        if r.returncode:
-            msg = ((r.stderr or '').strip().splitlines() or [f'código {r.returncode} (memória ou disco cheio?)'])[-1]
-            print('FALHA trecho', chave, '\n', (r.stderr or '')[-800:], flush=True)
-            raise RuntimeError('falha ao codificar um trecho: ' + msg[:120])
+        with pesado(altura):
+            rc, msg, mb = rodar(cmd, 'trecho ' + os.path.basename(chave) + ' (2ª tentativa)')
+        if rc:
+            if oom(rc): raise SemMemoria(f'memória insuficiente no trecho {k} ({mb} MB, código {rc})')
+            raise RuntimeError('falha ao codificar um trecho: ' + (msg or f'código {rc}')[:120])
         os.replace(chave + '.tmp.mp4', chave)
     open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file '{c}'\n" for c, _ in jobs))
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')
@@ -189,8 +216,11 @@ def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.a
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:
         H = int((re.findall(r'\d+', subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout) or [0])[0])
-        subprocess.run(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], check=True,
-                       env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium'})
+        with pesado(H):
+            rc, msg, mb = rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], 'textos ' + os.path.basename(saida),
+                                env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium'})
+        if oom(rc, msg): raise SemMemoria(f'memória insuficiente ao aplicar os textos ({mb} MB)')
+        if rc: raise RuntimeError('textos: ' + (msg or f'código {rc}')[:150])
     else:
         params, tags = x265('bt709')
         sh(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-vf', f"subtitles={ass}:fontsdir={os.path.join(here, 'fonts')}",

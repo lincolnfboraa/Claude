@@ -460,7 +460,7 @@ const V={
   <div class="player" id="vid">${capa(v)}${a.previa?`<button class="play" data-play="${v.id}" aria-label="Reproduzir">${SV(I.play)}</button>`:''}
    <div class="leg"><b>${esc(v.tema)} · v${a.n||1}</b><span>${esc(v.dur)}</span></div></div>
   ${m.aviso?`<div class="aviso"><b>Atenção</b>${esc(m.aviso)}</div>`:''}
-  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${pct(v)!=null?'O app atualiza sozinho':'Aguardando a vez na fila do editor'}</small></span></div>`:''}
+  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?'O app atualiza sozinho':'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="btn" data-tentar="${v.id}">Tentar de novo</button>`:''}`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
@@ -593,6 +593,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.baixar){(async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/final/${d.baixar}/link`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'sem link');
    toast('Baixando o final… o .zip vai pra pasta Downloads/Arquivos');location.href=j.url}catch(e){toast('Não consegui baixar: '+e.message)}})()}
+ else if(d.tentar){(async()=>{try{const {data}=await sb.from('projetos').select('original_meta').eq('id',d.tentar).single();
+   const m={...(data.original_meta||{}),andamento:'Na fila do editor',progresso:null,andamento_versao:null,falha_memoria:null};
+   await q(sb.from('projetos').update({original_meta:m}).eq('id',d.tentar));await recarregar();toast('Pedido de novo pro editor')}catch(e){toast('Não consegui: '+e.message)}})()}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);

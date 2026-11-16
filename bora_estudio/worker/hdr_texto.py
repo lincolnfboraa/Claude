@@ -52,20 +52,33 @@ def hlg(E):
 LUT = None
 n = W * H * 3
 vazio = np.zeros((H, W, 4), np.uint16).tobytes()
-while True:
-    b = pb.stdout.read(n); w = pw.stdout.read(n)
-    if len(b) < n or len(w) < n: break
-    B = np.frombuffer(b, np.uint8).reshape(H, W, 3); Wt = np.frombuffer(w, np.uint8).reshape(H, W, 3)
-    if not B.any():                      # quadro sem texto: overlay totalmente transparente
-        enc.stdin.write(vazio); continue
+quadro = np.zeros((H, W, 4), np.uint16)     # reaproveitado: só a área com texto/arte é calculada (fora dela é transparente)
+def converte(B, Wt):
     Bf = B.astype(np.float32) / 255; Wf = Wt.astype(np.float32) / 255
     a = np.clip(1 - (Wf - Bf).mean(2), 0, 1)
     cor = np.clip(Bf / np.maximum(a, 1e-4)[..., None], 0, 1)
     lin = cor ** 2.4                                   # BT.1886
     l2020 = lin @ M.T
     sig = hlg(l2020 * BRILHO)
-    o = np.empty((H, W, 4), np.uint16)
+    o = np.empty(B.shape[:2] + (4,), np.uint16)
     o[..., :3] = (sig * 65535).astype(np.uint16); o[..., 3] = (a * 65535).astype(np.uint16)
-    enc.stdin.write(o.tobytes())
+    return o
+while True:
+    b = pb.stdout.read(n); w = pw.stdout.read(n)
+    if len(b) < n or len(w) < n: break
+    B = np.frombuffer(b, np.uint8).reshape(H, W, 3); Wt = np.frombuffer(w, np.uint8).reshape(H, W, 3)
+    # área com texto ou arte (mesmo escura): linhas e colunas onde o fundo preto não é preto ou o branco não é branco
+    lin_ok = (B.reshape(H, -1).max(1) > 0) | (Wt.reshape(H, -1).min(1) < 255)
+    if not lin_ok.any():                               # quadro sem texto: overlay totalmente transparente
+        enc.stdin.write(vazio); continue
+    y0, y1 = np.argmax(lin_ok), H - np.argmax(lin_ok[::-1])
+    col_ok = (B[y0:y1].max((0, 2)) > 0) | (Wt[y0:y1].min((0, 2)) < 255)
+    x0, x1 = np.argmax(col_ok), W - np.argmax(col_ok[::-1])
+    quadro[y0:y1, x0:x1] = converte(B[y0:y1, x0:x1], Wt[y0:y1, x0:x1])
+    enc.stdin.write(memoryview(quadro))
+    quadro[y0:y1, x0:x1] = 0
 enc.stdin.close(); enc.wait(); pb.wait(); pw.wait()
+ruins = [(nome, p.returncode) for nome, p in (('codificador', enc), ('camada preta', pb), ('camada branca', pw)) if p.returncode]
+if ruins:                                   # nunca entrega vídeo cortado: um processo morto (ex.: falta de memória, código -9) é erro
+    sys.exit('processo morto: ' + ', '.join(f'{n} (código {c})' for n, c in ruins))
 print('ok', out)

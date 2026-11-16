@@ -9,5 +9,9 @@ services:
     volumes:
       - /opt/bora/trabalho:/trabalho       # originais e arquivos de trabalho de cada vídeo
       - /opt/bora/modelos:/root/.cache     # modelo de transcrição baixado uma vez
-    mem_limit: 21g
+    # Memória real da VPS hoje: 6,3 GB (o balloon do Proxmox segura o resto). Reversível: com os 24 GB liberados,
+    # BORA_MEM=18g e BORA_4K_SIMULTANEOS=2 em /opt/bora/repo/bora_estudio/worker/.env (ou volte estes padrões).
+    mem_limit: ${BORA_MEM:-5500m}
+    environment:
+      - BORA_4K_SIMULTANEOS=${BORA_4K_SIMULTANEOS:-1}
     cpus: 7.8
