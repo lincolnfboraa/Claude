@@ -445,7 +445,9 @@ const V={
   <h3 class="rot">Materiais do projeto</h3>
   <div class="solta">${SV(I.nuvem,'ico nuvem')}<b>${fs.length?fs.length+(fs.length>1?' vídeos selecionados':' vídeo selecionado'):'Envie os vídeos brutos'}</b>
    <small>${fs.length?(fs.reduce((a,f)=>a+f.size,0)/1048576).toFixed(0)+' MB · takes, partes e B-rolls do mesmo Reels':'Takes, partes e B-rolls do mesmo Reels'}</small>
-   <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden></div>
+   <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden>
+   <button class="pill sm" data-drive="" style="margin-top:8px">${SV(I.nuvem)}${S.drive?'Trocar vídeos do Drive':'Do Google Drive'}</button></div>
+  ${S.drive?`<div class="lst"><div class="ln"><span class="tx"><b>${S.drive.arquivos.length} ${S.drive.arquivos.length>1?'vídeos':'vídeo'} do Drive · ${esc(S.drive.nome)}</b><small>${(S.drive.arquivos.reduce((x,f)=>x+f.tamanho,0)/1048576).toFixed(0)} MB · o servidor baixa direto do Drive, não precisa deixar o app aberto</small></span><button class="voltar" data-semdrive aria-label="Remover">✕</button></div></div>`:''}
   ${fs.length?`<div class="thumbs">${fs.map((f,i)=>`<div class="th"><video src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="nm">${esc(f.name)}</span><span class="du" id="du${i}">${f._dur||''}</span><button class="rm" data-rmarq="${i}" aria-label="Remover ${esc(f.name)}">✕</button></div>`).join('')}</div>`:''}
   <p class="nota">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p>
   <h3 class="rot">Briefing do projeto</h3>
@@ -485,6 +487,18 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.pal
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
  ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}${falta(v)?' · '+esc(falta(v)):''}</small></span><span class="seta">›</span></button>`).join('')}</div>
  <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 20 segundos.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
+function sheetDrive(){const D=S.dnav||{};if(D.erro)return `<div class="grab"></div><div class="sh"><button data-close>Fechar</button><b>Google Drive</b><span style="width:52px"></span></div><div class="lst"><p class="vazio">${esc(D.erro)}</p></div>`;
+ if(!D.r)return `<div class="grab"></div><div class="sh"><button data-close>Fechar</button><b>Google Drive</b><span style="width:52px"></span></div><div class="lst"><p class="vazio">Abrindo o Drive…</p></div>`;
+ const sel=D.sel||{},n=Object.keys(sel).length;
+ return `<div class="grab"></div><div class="sh"><button ${D.trilha.length>1?'data-dvolta':'data-close'}>${D.trilha.length>1?'Voltar':'Fechar'}</button><b>${esc(D.trilha[D.trilha.length-1].nome)}</b><button data-dusar ${n?'':'disabled'}>Usar${n?' ('+n+')':''}</button></div>
+ <div class="lst">${D.r.pastas.map(p=>`<button class="ln" data-dpasta="${p.id}|${esc(p.nome)}"><span class="tx"><b>${esc(p.nome)}</b><small>Pasta</small></span><span class="seta">›</span></button>`).join('')}
+ ${D.r.videos.map(v=>`<button class="ln" data-dvid="${v.id}"><span class="tx"><b>${esc(v.nome)}</b><small>${v.dur?Math.floor(v.dur/60)+':'+String(v.dur%60).padStart(2,'0')+' · ':''}${(v.tamanho/1048576).toFixed(0)} MB</small></span><span class="sw ${sel[v.id]?'':'off'}"></span></button>`).join('')}
+ ${!D.r.pastas.length&&!D.r.videos.length?'<p class="vazio">Pasta vazia.</p>':''}</div>
+ ${D.r.videos.length?`<p class="nota">Marque só os takes com fala. Vídeos de ambiente (B-roll) ficam pro CapCut.</p>`:''}`}
+async function abrirDrive(id,nome){S.dnav=S.dnav||{trilha:[]};if(id===null){S.dnav={trilha:[{id:'',nome:'Google Drive'}]};}else S.dnav.trilha.push({id,nome});S.dnav.r=null;S.dnav.sel={};sheet(sheetDrive());
+ try{const tok=(await sb.auth.getSession()).data.session.access_token,at=S.dnav.trilha[S.dnav.trilha.length-1].id;
+  const r=await fetch(`${EDITOR}/drive/listar${at?'?pasta='+encodeURIComponent(at):''}`,{headers:{Authorization:'Bearer '+tok}});const j=await r.json();
+  if(!r.ok)throw new Error(j.erro||'Drive indisponível');S.dnav.r=j}catch(e){S.dnav.erro=e.message}sheet(sheetDrive())}
 function sheetVersoes(id){const v=vid(id);return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Versões</b><button data-close>OK</button></div>
  <div class="lst tl">${v.versoes.slice().reverse().map(x=>`<div class="ln"><span class="dot ${x.st}"></span><span class="tx"><b>v${x.n} · ${{ajuste:'Ajuste pedido',revisao:'Aguardando revisão',aprovada:'Aprovada',editando:'Editando'}[x.st]}</b><small style="white-space:normal">${esc(x.resumo)}</small>${x.feedback?`<span class="fb">Seu feedback: ${esc(x.feedback)}</span>`:''}</span></div>`).join('')}</div>`}
 function sheetReabrir(id){return `<div class="grab"></div><div class="sh"><button data-close>Cancelar</button><b>Ajuste antes do 4K</b><button data-enviar="${id}">Enviar</button></div>
@@ -562,6 +576,14 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{await q(sb.from('clientes').update({nome:dd.nome,segmento:dd.segmento}).eq('id',c.id));
    await q(sb.from('dna_versoes').insert({cliente_id:c.id,numero:c.dna_numero+1,dna,motivo:'Edição manual do perfil',confirmado_por:(await sb.auth.getUser()).data.user.id}));
    if(S.novaCli===c.id)S.cores=null;close();await recarregar();toast('Perfil salvo como DNA v'+(c.dna_numero+1))})()}
+ else if('iniciar' in d&&S.drive){const c=cli(S.novaCli),dv=S.drive,brief=($('#briefing')||{}).value||'';if(!EDITOR)return toast('Endereço do editor não configurado');
+  (async()=>{try{const n=dv.arquivos[0].nome.replace(/\.[^.]+$/,'');
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:dv.arquivos.length>1?dv.arquivos.length+' vídeos':dv.arquivos[0].nome,briefing:brief||undefined,aguardando_upload:true,andamento:'Baixando do Drive',progresso:0}}).select());
+   const tok=(await sb.auth.getSession()).data.session.access_token;
+   const r=await fetch(`${EDITOR}/drive/importar/${p.id}`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:dv.arquivos})});
+   const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
+   S.drive=null;S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();toast('O servidor está baixando '+dv.arquivos.length+(dv.arquivos.length>1?' vídeos':' vídeo')+' do Drive. Pode fechar o app.')}
+   catch(e){toast('Não consegui começar: '+e.message)}})()}
  else if('iniciar' in d){const c=cli(S.novaCli),fs=S.arquivos,f=fs[0];if(!f)return toast('Selecione os vídeos primeiro');if(!EDITOR)return toast('Endereço do editor não configurado');
   const brief=($('#briefing')||{}).value||'';
   (async()=>{const n=f.name.replace(/\.[^.]+$/,'');
@@ -599,6 +621,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.tentar){(async()=>{try{const {data}=await sb.from('projetos').select('original_meta').eq('id',d.tentar).single();
    const m={...(data.original_meta||{}),andamento:'Na fila do editor',progresso:null,andamento_versao:null,falha_memoria:null};
    await q(sb.from('projetos').update({original_meta:m}).eq('id',d.tentar));await recarregar();toast('Pedido de novo pro editor')}catch(e){toast('Não consegui: '+e.message)}})()}
+ else if('drive' in d)abrirDrive(null)
+ else if(d.dpasta){const[id,nome]=d.dpasta.split('|');abrirDrive(id,nome)}
+ else if('dvolta' in d){S.dnav.trilha.pop();const t=S.dnav.trilha.pop();abrirDrive(t.id||null,t.nome);if(!t.id)S.dnav.trilha=[{id:'',nome:'Google Drive'}]}
+ else if(d.dvid){const D=S.dnav;D.sel[d.dvid]?delete D.sel[d.dvid]:(D.sel[d.dvid]=1);sheet(sheetDrive())}
+ else if('dusar' in d){const D=S.dnav,t=D.trilha[D.trilha.length-1];S.drive={nome:t.nome,arquivos:D.r.videos.filter(v=>D.sel[v.id]).map(v=>({id:v.id,nome:v.nome,tamanho:v.tamanho}))};
+  S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.briefing=($('#briefing')||{}).value||S.briefing;close();reRender()}
+ else if('semdrive' in d){S.drive=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);

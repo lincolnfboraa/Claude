@@ -259,6 +259,44 @@ def _rota_worker(h, metodo, u):
         return h._r(200, {'ok': True})
     return h._r(404, {'erro': 'rota'})
 
+def receber_originais(pid, lista):
+    """Os originais chegaram (pelo app ou pelo Drive) como original_NN.parcial: confere, grava no projeto, gera a capa e cria a v1."""
+    d = pasta(pid); arquivos = []
+    for i, a in enumerate(lista, 1):
+        parcial = os.path.join(d, f'original_{i:02d}.parcial')
+        ext = os.path.splitext(a.get('nome', 'video.mov'))[1].lower() or '.mov'
+        final = os.path.join(d, f'original_{i:02d}{ext}'); os.replace(parcial, final)
+        arquivos.append({'nome': a.get('nome'), 'caminho': final, **inspecionar(final)})
+    info = {k: arquivos[0][k] for k in ('res', 'fps', 'cor')}
+    sem_hdr = [x['nome'] for x in arquivos if not x['hdr']]
+    aviso = None if not sem_hdr else ('Chegou sem HDR: ' + ', '.join(sem_hdr) + '. No iPhone, escolha Opções > Atual na Fototeca pra mandar o original')
+    m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+    m.update({**info, 'arq': arquivos[0]['nome'] if len(arquivos) == 1 else f'{len(arquivos)} vídeos', 'arquivos': arquivos,
+              'dur': f"{round(sum(float(x['dur'].split()[0]) for x in arquivos))} s", 'aguardando_upload': False, 'aviso': aviso})
+    sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+    cliente = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=cliente_id') or [{}])[0].get('cliente_id', 'sem-cliente')
+    capa_do_projeto(pid, cliente, arquivos[0]['caminho'])      # antes da versão entrar na fila (evita corrida no original_meta)
+    sb('POST', '/rest/v1/versoes', {'projeto_id': pid, 'numero': 1, 'status': 'editando', 'resumo': 'Primeira versão'})
+    return arquivos, aviso
+
+def importar_do_drive(pid, lista):
+    """Baixa os vídeos escolhidos do Drive direto pra VPS (servidor com servidor) e segue o fluxo normal."""
+    import drive
+    try:
+        total = sum(int(a.get('tamanho') or 0) for a in lista) or 1; feito = [0]; ult = [0.0]
+        for i, a in enumerate(lista, 1):
+            base = feito[0]
+            def prog(n, _t, i=i, base=base):
+                if time.time() - ult[0] > 5:
+                    ult[0] = time.time()
+                    etapa(pid, f'Baixando do Drive ({i} de {len(lista)})', min(99, round((base + n) / total * 100)), aguardando_upload=True)
+            drive.baixar(a['id'], os.path.join(pasta(pid), f'original_{i:02d}.parcial'), prog)
+            feito[0] += int(a.get('tamanho') or 0)
+        etapa(pid, 'Vídeos recebidos do Drive', None, aguardando_upload=True)
+        receber_originais(pid, lista)
+    except Exception as e:
+        traceback.print_exc(); etapa(pid, 'Erro ao baixar do Drive: ' + str(e)[:120], None)
+
 class H(BaseHTTPRequestHandler):
     def _r(self, cod, obj):
         self.send_response(cod); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(json.dumps(obj).encode())
@@ -272,6 +310,13 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/worker/'): return _rota_worker(self, 'GET', u)
+        if u.path == '/drive/listar':                      # pastas e vídeos do Drive (só dentro da pasta raiz)
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            import drive
+            if not drive.configurado(): return self._r(503, {'erro': 'o acesso ao Drive ainda não foi configurado no servidor'})
+            try: return self._r(200, drive.listar(urllib.parse.parse_qs(u.query).get('pasta', [None])[0]))
+            except PermissionError as e: return self._r(403, {'erro': str(e)})
+            except Exception as e: return self._r(502, {'erro': 'Drive: ' + str(e)[:150]})
         if u.path == '/push/chave':
             import avisos; return self._r(200, {'chave': avisos.chave_publica()})
         if u.path.startswith('/final/'): return self._final(u)
@@ -319,6 +364,20 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/worker/'): return _rota_worker(self, 'POST', u)
+        if u.path.startswith('/drive/importar/'):          # POST /drive/importar/<projeto> {arquivos:[{id,nome,tamanho}]}
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            import drive
+            if not drive.configurado(): return self._r(503, {'erro': 'o acesso ao Drive ainda não foi configurado no servidor'})
+            pid = os.path.basename(u.path.split('/')[3]); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+            lista = [{'id': str(a['id']), 'nome': os.path.basename(str(a.get('nome') or 'video.mov')), 'tamanho': int(a.get('tamanho') or 0)} for a in corpo.get('arquivos') or []]
+            if not lista: return self._r(400, {'erro': 'nenhum vídeo escolhido'})
+            try:
+                for a in lista:                            # cada arquivo precisa estar dentro da pasta raiz
+                    pais = drive._get(f"files/{a['id']}", fields='parents').get('parents') or []
+                    if not pais or not drive.dentro_da_raiz(pais[0]): return self._r(403, {'erro': f"{a['nome']} está fora da pasta do Bora Studio"})
+            except Exception as e: return self._r(502, {'erro': 'Drive: ' + str(e)[:150]})
+            threading.Thread(target=importar_do_drive, args=(pid, lista), daemon=True).start()
+            return self._r(202, {'ok': True, 'arquivos': len(lista)})
         if u.path.startswith('/final/') and u.path.endswith('/link'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = os.path.basename(u.path.split('/')[2]); exp = str(int(time.time()) + 7200)
@@ -351,24 +410,11 @@ class H(BaseHTTPRequestHandler):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = u.path.split('/')[2]; d = pasta(pid); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
             lista = corpo.get('arquivos') or [{'nome': corpo.get('nome', 'video.mov'), 'tamanho': corpo.get('tamanho', -1)}]
-            arquivos = []
             for i, a in enumerate(lista, 1):
                 parcial = os.path.join(d, f'original_{i:02d}.parcial')
                 if not os.path.exists(parcial) or os.path.getsize(parcial) != int(a.get('tamanho', -1)):
                     return self._r(409, {'erro': f'arquivo {i} incompleto'})
-                ext = os.path.splitext(a.get('nome', 'video.mov'))[1].lower() or '.mov'
-                final = os.path.join(d, f'original_{i:02d}{ext}'); os.replace(parcial, final)
-                arquivos.append({'nome': a.get('nome'), 'caminho': final, **inspecionar(final)})
-            info = {k: arquivos[0][k] for k in ('res', 'fps', 'cor')}
-            sem_hdr = [x['nome'] for x in arquivos if not x['hdr']]
-            aviso = None if not sem_hdr else ('Chegou sem HDR: ' + ', '.join(sem_hdr) + '. No iPhone, escolha Opções > Atual na Fototeca pra mandar o original')
-            m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
-            m.update({**info, 'arq': arquivos[0]['nome'] if len(arquivos) == 1 else f'{len(arquivos)} vídeos', 'arquivos': arquivos,
-                      'dur': f"{round(sum(float(x['dur'].split()[0]) for x in arquivos))} s", 'aguardando_upload': False, 'aviso': aviso})
-            sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
-            cliente = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=cliente_id') or [{}])[0].get('cliente_id', 'sem-cliente')
-            capa_do_projeto(pid, cliente, arquivos[0]['caminho'])      # antes da versão entrar na fila (evita corrida no original_meta)
-            sb('POST', '/rest/v1/versoes', {'projeto_id': pid, 'numero': 1, 'status': 'editando', 'resumo': 'Primeira versão'})
+            arquivos, aviso = receber_originais(pid, lista)
             return self._r(200, {'ok': True, 'arquivos': len(arquivos), 'aviso': aviso})
         if self.headers.get('X-Bora-Token') != TOKEN: return self._r(401, {'erro': 'token'})
         p = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
