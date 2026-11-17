@@ -7,10 +7,13 @@ services:
     container_name: bora-render
     restart: unless-stopped
     command: ["python3", "bora_estudio/worker/render_worker.py"]
-    env_file: worker.env                  # BORA_EDITOR, BORA_WORKER_TOKEN, BORA_WORKER_NOME (veja worker.env.exemplo)
+    env_file:                             # BORA_EDITOR, BORA_WORKER_TOKEN, BORA_WORKER_NOME (veja worker.env.exemplo)
+      - path: worker.env
+        required: false                   # o piloto e o render avulso não precisam do token
     environment:
       - BORA_TRABALHO=/trabalho
       - BORA_ACELERACAO=${BORA_ACELERACAO:-auto}   # auto: usa NVENC só nos intermediários e só se passar no teste
     volumes:
       - ./render_cache:/trabalho          # originais e trechos ficam em cache (não baixa de novo)
       - ./modelos:/root/.cache            # modelo de transcrição usado na conferência
+      - ./piloto:/piloto                  # opcional: um .MOV curto do iPhone para o piloto (piloto_acer.py)

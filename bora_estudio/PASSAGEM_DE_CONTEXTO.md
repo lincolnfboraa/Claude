@@ -54,3 +54,6 @@ Ideia aprovada em princípio: app, Supabase e IA continuam na Peramix; o render 
 - Botão para remover anexos antigos (IMG_2575 acumula 9).
 - Confirmar os DNAs provisórios dos 5 clientes analisados.
 - Deixar o repositório GitHub privado.
+
+## Edits (registro)
+- Existe MCP do Edits para Mac. A compatibilidade com o Acer (Windows) não foi comprovada. Não foi testado nesta sessão.

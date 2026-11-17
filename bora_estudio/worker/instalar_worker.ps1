@@ -3,7 +3,7 @@
 #   powershell -ExecutionPolicy Bypass -File instalar_worker.ps1            -> instala/atualiza e liga o worker
 #   powershell -ExecutionPolicy Bypass -File instalar_worker.ps1 -SoTeste   -> só confere Docker, placa e codificadores
 # Não altera nada no VPS nem no Supabase. O worker só pega trabalho quando o VPS estiver com BORA_RENDER_EXTERNO=1.
-param([switch]$SoTeste, [string]$Pasta = "$HOME\bora-render")
+param([switch]$SoTeste, [switch]$Piloto, [string]$Pasta = "$HOME\bora-render")
 $ErrorActionPreference = 'Stop'
 $Ramo = 'claude/upbeat-tesla-qu1g6k'
 $Repo = 'https://github.com/lincolnfboraa/Claude.git'
@@ -11,7 +11,6 @@ function Passo($t) { Write-Host "`n== $t" -ForegroundColor Cyan }
 function Falha($t) { Write-Host "ERRO: $t" -ForegroundColor Red; exit 1 }
 
 Passo 'Conferindo Git e Docker Desktop'
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Falha 'instale o Git: https://git-scm.com/download/win' }
 if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { Falha 'instale o Docker Desktop: https://www.docker.com/products/docker-desktop/' }
 docker info *> $null
 if ($LASTEXITCODE -ne 0) { Falha 'abra o Docker Desktop e espere ficar "Engine running"' }
@@ -29,15 +28,20 @@ if (Get-Command nvidia-smi -ErrorAction SilentlyContinue) {
 }
 if (-not $nvidia) { Write-Host 'Sem placa NVIDIA (ou driver): o worker usa só a CPU (x265).' }
 
-Passo 'Baixando ou atualizando o Bora Studio'
-if (Test-Path "$Pasta\.git") { git -C $Pasta fetch -q origin $Ramo; git -C $Pasta checkout -q $Ramo; git -C $Pasta reset -q --hard "origin/$Ramo" }
-else { git clone -q -b $Ramo $Repo $Pasta }
+$Local = Resolve-Path "$PSScriptRoot\..\.." -ErrorAction SilentlyContinue
+if ($Local -and (Test-Path "$Local\bora_estudio\worker\Dockerfile")) {
+    Passo "Usando o Bora Studio desta pasta ($Local)"; $Pasta = $Local     # veio pelo .zip: não precisa do GitHub
+} else {
+    Passo 'Baixando ou atualizando o Bora Studio'
+    if (Test-Path "$Pasta\.git") { git -C $Pasta fetch -q origin $Ramo; git -C $Pasta checkout -q $Ramo; git -C $Pasta reset -q --hard "origin/$Ramo" }
+    else { git clone -q -b $Ramo $Repo $Pasta }
+}
 Set-Location $Pasta
 $W = 'bora_estudio\worker'
 $arqs = @('-f', "$W\docker-compose.worker.yml")
 if ($nvidia) { $arqs += @('-f', "$W\docker-compose.worker.gpu.yml") }
 
-if (-not (Test-Path "$W\worker.env")) {
+if (-not (Test-Path "$W\worker.env") -and -not $SoTeste -and -not $Piloto) {
     Passo 'Configurando o worker'
     $tok = Read-Host 'Cole o BORA_WORKER_TOKEN (está no /opt/bora/bora.env do VPS)'
     if ($tok.Length -lt 32) { Falha 'token curto demais; confira o valor no VPS' }
@@ -54,6 +58,11 @@ if ($LASTEXITCODE -ne 0) { Falha 'a montagem do container falhou' }
 Passo 'Teste dos codificadores (HEVC 10 bits, HLG, BT.2020)'
 docker compose @arqs run --rm bora-render python3 bora_estudio/worker/render_worker.py --teste
 if ($LASTEXITCODE -ne 0) { Falha 'o teste não rodou' }
+if ($Piloto) {
+    Passo 'Piloto: trecho curto em 4K, só neste computador (não fala com o VPS)'
+    docker compose @arqs run --rm bora-render python3 bora_estudio/worker/piloto_acer.py
+    exit $LASTEXITCODE
+}
 if ($SoTeste) { Write-Host "`nSó teste: nada foi ligado." -ForegroundColor Green; exit 0 }
 
 Passo 'Ligando o worker (reinicia sozinho com o Docker Desktop)'
