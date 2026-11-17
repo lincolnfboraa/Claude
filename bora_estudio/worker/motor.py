@@ -156,30 +156,19 @@ def renderizar(pac, etapa, pasta=None):
     fim = os.path.join(pasta, 'final'); os.makedirs(fim, exist_ok=True)
     saida_txt = os.path.join(fim, nome + '_legendas')
     com_ins = bool(pl.get('insercoes') and pl.get('_anexos'))
-    # pesos medidos (4K): cards ~1,0, textos 1,0, sem legenda ~0,35 do tempo por quadro
-    passes = ([('Encaixando os cards no 4K', 1.0, 40, 68)] if com_ins else []) + \
-             [('Aplicando os textos no 4K', 1.0, 68 if com_ins else 40, 90), ('Gerando a versão sem legenda', 0.35, 90, 99)]
+    # pesos medidos (4K): cards e textos levam tempo parecido por quadro
+    passes = ([('Encaixando os cards no 4K', 1.0, 40, 70)] if com_ins else []) + [('Aplicando os textos no 4K', 1.0, 70 if com_ins else 40, 99)]
     anda = Andamento(etapa, passes)
     base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None)
     k = 1 if com_ins else 0
-    leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')
-    params, tags = montagem.x265(montagem.sondar(arqs[0])[2])
-    sem = os.path.join(fim, nome + f'_{altura}p_sem_legenda.mp4')
-    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24, prog=anda.inicio(k, montagem.quadros(base)))   # um 4K de cada vez (memória)
-    prog_sem = sem + '.progresso'; cb = anda.inicio(k + 1, montagem.quadros(base))
-    with montagem.pesado(altura):
-        rc, msg, mb = montagem.rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-progress', prog_sem, '-i', base, '-c:v', 'libx265', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p10le',
-                                      '-x265-params', params, *tags, '-tag:v', 'hvc1', '-c:a', 'copy', '-movflags', '+faststart', sem], 'sem legenda',
-                                     prog=(prog_sem, montagem.quadros(base), cb))
-    if os.path.exists(prog_sem): os.remove(prog_sem)
-    if montagem.oom(rc): raise montagem.SemMemoria(f'memória insuficiente na versão sem legenda ({mb} MB)')
-    if rc: raise RuntimeError('versão sem legenda: ' + (msg or f'código {rc}')[:150])
-    srt = os.path.join(fim, nome + '_legendas.srt'); os.replace(saida_txt + '.srt', srt)
+    leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')    # entrega só a versão legendada (economiza um render 4K)
+    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24, prog=anda.inicio(k, montagem.quadros(base)))
+    if os.path.exists(saida_txt + '.srt'): os.remove(saida_txt + '.srt')
     zipf = os.path.join(fim, nome + '_final.zip')
     if os.path.exists(zipf): os.remove(zipf)
     import zipfile                                     # sem compressão (zip -0), funciona igual no Windows
     with zipfile.ZipFile(zipf, 'w', zipfile.ZIP_STORED, allowZip64=True) as z:
-        for f in (leg, sem, srt): z.write(f, os.path.basename(f))
+        z.write(leg, os.path.basename(leg))
     for x in (base, saida_txt + '.ass'):
         if os.path.exists(x): os.remove(x)
     return {'arquivos': [os.path.relpath(zipf, pasta)], 'dur': dur}
