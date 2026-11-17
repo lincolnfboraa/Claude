@@ -19,7 +19,7 @@ ULTIMA = [0.0]                                         # hora do último avanço
 def etapa(projeto_id, texto, pct, **extra):
     import time; ULTIMA[0] = time.time()
     m = sb('GET', f'/rest/v1/projetos?id=eq.{projeto_id}&select=original_meta')[0]['original_meta'] or {}
-    m.update({'andamento': texto, 'progresso': pct, **extra})
+    m.update({'andamento': texto, 'progresso': pct, 'detalhe': None, 'previsao_s': None, **extra})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{projeto_id}', {'original_meta': m})
 
 def traduzir(b):
@@ -224,7 +224,8 @@ def _rota_worker(h, metodo, u):
             et.append({'t': round(time.time() - _iso_seg(job.get('pego_em'))), 'texto': corpo.get('texto'), 'pct': corpo.get('pct')})
         fila_patch(jid, {'batida': agora(), 'etapas': et})
         ULTIMA[0] = time.time()                        # worker vivo: o VPS não considera travado
-        if corpo.get('texto') and corpo.get('pct') is not None: etapa(job['projeto_id'], corpo['texto'], corpo['pct'])
+        if corpo.get('texto') and corpo.get('pct') is not None:
+            etapa(job['projeto_id'], corpo['texto'], corpo['pct'], **{k: corpo.get(k) for k in ('detalhe', 'previsao_s') if corpo.get(k) is not None})
         return h._r(200, {'ok': True})
     if acao == 'resultado':                            # envio do resultado em partes (retomável)
         nome = os.path.basename(partes[2] if len(partes) > 2 else '')

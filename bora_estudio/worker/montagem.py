@@ -22,8 +22,26 @@ def pesado(altura):
 class SemMemoria(RuntimeError):
     """O sistema matou o processo por falta de memória (OOM). Não é repetido sozinho."""
 
-def rodar(cmd, rotulo, env=None):
-    """Roda um processo medindo o pico de memória. Devolve (código, fim do erro, MB). Código -9/137 = morto por falta de memória."""
+def _vigiar(arq, total, cb, parar):
+    """Lê o arquivo de progresso (ffmpeg -progress 'frame=N' ou o hdr_texto 'N') e avisa a fração feita."""
+    while not parar.wait(4):
+        try: txt = open(arq).read()
+        except OSError: continue
+        q = re.findall(r'frame=(\d+)', txt) or re.findall(r'^(\d+)\s*$', txt, re.M)
+        if q:
+            try: cb(min(1.0, int(q[-1]) / max(total, 1)), int(q[-1]))
+            except Exception as e: print('progresso:', e, flush=True)
+
+def quadros(video):
+    """Total de quadros (duração x 29,97) pra calcular o avanço das etapas longas."""
+    d = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', video], capture_output=True, text=True).stdout
+    return max(1, round(float((re.findall(r'[\d.]+', d) or ['1'])[0]) * FPS))
+
+def rodar(cmd, rotulo, env=None, prog=None):
+    """Roda um processo medindo o pico de memória. Devolve (código, fim do erro, MB). Código -9/137 = morto por falta de memória.
+    prog=(arquivo, total_de_quadros, callback): acompanha o avanço lendo o arquivo de progresso."""
+    parar = threading.Event()
+    if prog: threading.Thread(target=_vigiar, args=(*prog, parar), daemon=True).start()
     with tempfile.TemporaryFile() as err:
         p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err, env=env)
         if hasattr(os, 'wait4'):                       # Linux/Docker: mede o pico de memória
@@ -31,6 +49,7 @@ def rodar(cmd, rotulo, env=None):
         else:                                          # Windows nativo: sem medição de memória
             rc = p.wait(); uso = None
         err.seek(0); cauda = [l for l in err.read().decode('utf-8', 'replace').splitlines() if l.strip() and 'x265 [' not in l][-4:]
+    parar.set()
     mb = round(uso.ru_maxrss / 1024) if uso else 0
     if rc:
         oom = rc in (-9, 137)
@@ -220,13 +239,16 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
     subprocess.run(['rm', '-rf', tmp])
     return transf in ('arib-std-b67', 'smpte2084')
 
-def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__))):
+def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:
         H = int((re.findall(r'\d+', subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout) or [0])[0])
         with pesado(H):
+            arq = saida + '.progresso'
             rc, msg, mb = rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], 'textos ' + os.path.basename(saida),
-                                env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium'})
+                                env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'BORA_PROGRESSO': arq},
+                                prog=(arq, quadros(base), prog) if prog else None)
+            if os.path.exists(arq): os.remove(arq)
         if oom(rc, msg): raise SemMemoria(f'memória insuficiente ao aplicar os textos ({mb} MB)')
         if rc: raise RuntimeError('textos: ' + (msg or f'código {rc}')[:150])
     else:

@@ -102,7 +102,7 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado, base=None, hdr=True):
     if video: shutil.rmtree(pasta + '_v', ignore_errors=True)
     return pasta
 
-def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__))):
+def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
     """Devolve o vídeo com as inserções; se não houver nenhuma válida, devolve a base."""
     W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
                                     '-of', 'csv=p=0:s=x', base], capture_output=True, text=True).stdout.strip().split('\n')[0].strip(',').split('x')[:2])
@@ -121,7 +121,10 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
         env = {**os.environ, 'BORA_PRESET': 'veryfast', 'BORA_HDR_CODEC': os.environ.get('BORA_INTERMEDIARIO', 'x265'), 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
         import montagem
         with montagem.pesado(H):
-            rc, msg, mb = montagem.rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], 'inserções', env=env)
+            arq = saida + '.progresso'; env['BORA_PROGRESSO'] = arq
+            rc, msg, mb = montagem.rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], 'inserções', env=env,
+                                         prog=(arq, montagem.quadros(base), prog) if prog else None)
+            if os.path.exists(arq): os.remove(arq)
         if montagem.oom(rc, msg): raise montagem.SemMemoria(f'memória insuficiente ao encaixar os anexos ({mb} MB)')
         if rc: raise RuntimeError('inserções: ' + (msg or f'código {rc}')[:150])
     else:

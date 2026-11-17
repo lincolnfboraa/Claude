@@ -350,6 +350,8 @@ const ORIGEM={observada_em_aprovados:'observada nos aprovados',observada_validar
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('on'),2600)}
 const emProducao=()=>todos().filter(v=>v.st==='run'||(v.st==='ok'&&!vatual(v).final&&!(v.media||{}).final_pronto));
 const paraRevisar=()=>todos().filter(v=>v.st==='wait');
+const falta=v=>{const s=(v.media||{}).previsao_s;if(typeof s!=='number'||s<0)return '';const m=Math.round(s/60);return m<1?'falta menos de 1 min':'faltam cerca de '+m+' min'};
+const detalhe=v=>[(v.media||{}).detalhe,falta(v)].filter(Boolean).join(' · ');
 const pct=v=>{const p=(v.media||{}).progresso;return typeof p==='number'?Math.max(0,Math.min(100,Math.round(p))):null};
 const fase=v=>{const m=v.media||{};if(v.st==='ok')return m.andamento||'Gerando o 4K';return m.andamento||('v'+vatual(v).n+' na fila')};
 
@@ -460,7 +462,7 @@ const V={
   <div class="player" id="vid">${capa(v)}${a.previa?`<button class="play" data-play="${v.id}" aria-label="Reproduzir">${SV(I.play)}</button>`:''}
    <div class="leg"><b>${esc(v.tema)} · v${a.n||1}</b><span>${esc(v.dur)}</span></div></div>
   ${m.aviso?`<div class="aviso"><b>Atenção</b>${esc(m.aviso)}</div>`:''}
-  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?'O app atualiza sozinho':'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="btn" data-tentar="${v.id}">Tentar de novo</button>`:''}`:''}
+  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?(esc(detalhe(v))||'O app atualiza sozinho'):'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="btn" data-tentar="${v.id}">Tentar de novo</button>`:''}`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
@@ -480,7 +482,7 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.pal
  return `<div class="opts">${ops.map(x=>`<button class="op ${x.toLowerCase()===atual.toLowerCase()?'on':''}" style="background:${x}" data-cor="${k}:${x}" aria-label="Cor ${x}"></button>`).join('')}
  <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
- ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}</small></span><span class="seta">›</span></button>`).join('')}</div>
+ ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}${falta(v)?' · '+esc(falta(v)):''}</small></span><span class="seta">›</span></button>`).join('')}</div>
  <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 20 segundos.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
 function sheetVersoes(id){const v=vid(id);return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Versões</b><button data-close>OK</button></div>
  <div class="lst tl">${v.versoes.slice().reverse().map(x=>`<div class="ln"><span class="dot ${x.st}"></span><span class="tx"><b>v${x.n} · ${{ajuste:'Ajuste pedido',revisao:'Aguardando revisão',aprovada:'Aprovada',editando:'Editando'}[x.st]}</b><small style="white-space:normal">${esc(x.resumo)}</small>${x.feedback?`<span class="fb">Seu feedback: ${esc(x.feedback)}</span>`:''}</span></div>`).join('')}</div>`}

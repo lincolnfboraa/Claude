@@ -64,9 +64,13 @@ def converte(B, Wt):
     o = np.empty(B.shape[:2] + (4,), np.uint16)
     o[..., :3] = (sig * 65535).astype(np.uint16); o[..., 3] = (a * 65535).astype(np.uint16)
     return o
+PROG = os.environ.get('BORA_PROGRESSO'); feitos = 0     # quadro atual pro app mostrar o avanço
 while True:
     b = pb.stdout.read(n); w = pw.stdout.read(n)
     if len(b) < n or len(w) < n: break
+    feitos += 1
+    if PROG and feitos % 15 == 0:
+        with open(PROG, 'w') as fp: fp.write(f'{feitos}\n')
     B = np.frombuffer(b, np.uint8).reshape(H, W, 3); Wt = np.frombuffer(w, np.uint8).reshape(H, W, 3)
     # área com texto ou arte (mesmo escura): linhas e colunas onde o fundo preto não é preto ou o branco não é branco
     lin_ok = (B.reshape(H, -1).max(1) > 0) | (Wt.reshape(H, -1).min(1) < 255)

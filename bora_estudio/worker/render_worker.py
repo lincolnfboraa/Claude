@@ -78,10 +78,10 @@ def um_trabalho():
     job, pac = r['job'], r['pacote']; pasta = os.path.join(TRAB, pac['projeto_id']); os.makedirs(pasta, exist_ok=True)
     t0 = time.time(); log(f"trabalho {job[:8]}: {pac['tipo']} v{pac['n']} {pac['altura']}p, intermediários em {cod}")
     ultimo = [0.0, '']
-    def etapa(texto, pct=None, **_):
-        if texto == ultimo[1] and time.time() - ultimo[0] < 20: return     # sinal de vida a cada 20 s no máximo
+    def etapa(texto, pct=None, **extra):
+        if texto == ultimo[1] and time.time() - ultimo[0] < 10: return     # no máximo a cada 10 s por etapa
         ultimo[:] = [time.time(), texto]
-        st, rr = chamar('POST', f'/worker/progresso/{job}', {'texto': texto, 'pct': pct})
+        st, rr = chamar('POST', f'/worker/progresso/{job}', {'texto': texto, 'pct': pct, **extra})
         if st == 409: raise RuntimeError('o editor cancelou ou pegou de volta este trabalho')
         log(f'{pct if pct is not None else "":>3}% {texto}')
     import threading

@@ -2,10 +2,30 @@
 nova_edicao / ajuste: transcreve os originais, a IA monta o plano no DNA do cliente, ffmpeg monta a prévia 480p (HDR do original),
   os textos entram no padrão aprovado e a prévia vai pro app.
 final: renderiza de novo a partir dos ORIGINAIS na resolução nativa (4K), com e sem legenda + .srt, num .zip (sem compressão)."""
-import glob, json, os, urllib.request
+import glob, json, os, time, urllib.request
 import insercoes, montagem, textos
 
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
+
+class Andamento:
+    """Porcentagem que anda dentro das etapas longas + previsão do que falta, pela velocidade medida no próprio render.
+    passes: [(rótulo, peso, pct_ini, pct_fim)]; peso = tempo relativo por quadro (textos 4K = 1)."""
+    def __init__(s, etapa, passes):
+        s.etapa, s.passes, s.taxa, s.total = etapa, passes, None, None
+    def restante(s, i, feito):
+        if not s.taxa or not s.total: return None
+        return round(((s.total - feito) * s.passes[i][1] + sum(p[1] for p in s.passes[i + 1:]) * s.total) / s.taxa)
+    def inicio(s, i, total):
+        s.total = total; nome, _, a, _ = s.passes[i]
+        prev = s.restante(i, 0)
+        s.etapa(nome, a, **({'previsao_s': prev} if prev else {}))
+        t0 = time.time()
+        def cb(frac, feito):
+            el = time.time() - t0
+            if feito >= 30 and el >= 8: s.taxa = feito / el * s.passes[i][1]     # quadros/s de uma etapa de peso 1
+            n, _, a2, b2 = s.passes[i]; prev = s.restante(i, feito)
+            s.etapa(n, a2 + int((b2 - a2) * frac), detalhe=f'quadro {feito} de {total}', **({'previsao_s': prev} if prev else {}))
+        return cb
 
 def _arquivos(pid, meta):
     arqs = [a['caminho'] for a in (meta.get('arquivos') or []) if os.path.exists(a.get('caminho', ''))]
@@ -25,7 +45,7 @@ def _transcricoes(pid, arqs, etapa):
     if not any(pal): raise RuntimeError('não encontrei fala nos vídeos enviados')
     return pal
 
-def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None):
+def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None):
     pasta = pasta or os.path.join(TRAB, pid)
     pcs, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)
     if not pcs: raise RuntimeError('o plano não gerou nenhum trecho')
@@ -35,8 +55,8 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
     hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog)
     anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', ''))]
     if pl.get('insercoes') and anexos:
-        if etapa: etapa('Encaixando imagens e vídeos anexados', b)
-        base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr)
+        cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
+        base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb)
     ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
     if pl.get('usar_titulo') and pl.get('titulo', {}).get('tema'):
         seg1 = next((t['e'] for t in tokens if t['i'] >= pl['segmentos'][0]['palavra_fim']), 3.0)
@@ -135,16 +155,23 @@ def renderizar(pac, etapa, pasta=None):
     etapa('Renderizando o final a partir dos originais', 8)
     fim = os.path.join(pasta, 'final'); os.makedirs(fim, exist_ok=True)
     saida_txt = os.path.join(fim, nome + '_legendas')
-    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 70), pasta=pasta)
-    etapa('Aplicando os textos no 4K', 74)
+    com_ins = bool(pl.get('insercoes') and pl.get('_anexos'))
+    # pesos medidos (4K): cards ~1,0, textos 1,0, sem legenda ~0,35 do tempo por quadro
+    passes = ([('Encaixando os cards no 4K', 1.0, 40, 68)] if com_ins else []) + \
+             [('Aplicando os textos no 4K', 1.0, 68 if com_ins else 40, 90), ('Gerando a versão sem legenda', 0.35, 90, 99)]
+    anda = Andamento(etapa, passes)
+    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None)
+    k = 1 if com_ins else 0
     leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')
     params, tags = montagem.x265(montagem.sondar(arqs[0])[2])
     sem = os.path.join(fim, nome + f'_{altura}p_sem_legenda.mp4')
-    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24)        # um 4K de cada vez (memória)
-    etapa('Versão sem legenda', 90)
+    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24, prog=anda.inicio(k, montagem.quadros(base)))   # um 4K de cada vez (memória)
+    prog_sem = sem + '.progresso'; cb = anda.inicio(k + 1, montagem.quadros(base))
     with montagem.pesado(altura):
-        rc, msg, mb = montagem.rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-c:v', 'libx265', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p10le',
-                                      '-x265-params', params, *tags, '-tag:v', 'hvc1', '-c:a', 'copy', '-movflags', '+faststart', sem], 'sem legenda')
+        rc, msg, mb = montagem.rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-progress', prog_sem, '-i', base, '-c:v', 'libx265', '-preset', 'medium', '-crf', '24', '-pix_fmt', 'yuv420p10le',
+                                      '-x265-params', params, *tags, '-tag:v', 'hvc1', '-c:a', 'copy', '-movflags', '+faststart', sem], 'sem legenda',
+                                     prog=(prog_sem, montagem.quadros(base), cb))
+    if os.path.exists(prog_sem): os.remove(prog_sem)
     if montagem.oom(rc): raise montagem.SemMemoria(f'memória insuficiente na versão sem legenda ({mb} MB)')
     if rc: raise RuntimeError('versão sem legenda: ' + (msg or f'código {rc}')[:150])
     srt = os.path.join(fim, nome + '_legendas.srt'); os.replace(saida_txt + '.srt', srt)
