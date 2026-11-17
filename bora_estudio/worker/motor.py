@@ -19,10 +19,11 @@ class Andamento:
         s.total = total; nome, _, a, _ = s.passes[i]
         prev = s.restante(i, 0)
         s.etapa(nome, a, **({'previsao_s': prev} if prev else {}))
-        t0 = time.time()
+        ref = []                                       # relógio começa no 1º quadro (não conta a preparação dos cards)
         def cb(frac, feito):
-            el = time.time() - t0
-            if feito >= 30 and el >= 8: s.taxa = feito / el * s.passes[i][1]     # quadros/s de uma etapa de peso 1
+            if not ref: ref[:] = [time.time(), feito]
+            el, q = time.time() - ref[0], feito - ref[1]
+            if q >= 30 and el >= 8: s.taxa = q / el * s.passes[i][1]           # quadros/s de uma etapa de peso 1
             n, _, a2, b2 = s.passes[i]; prev = s.restante(i, feito)
             s.etapa(n, a2 + int((b2 - a2) * frac), detalhe=f'quadro {feito} de {total}', **({'previsao_s': prev} if prev else {}))
         return cb

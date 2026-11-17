@@ -18,6 +18,9 @@ pr = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:
 st = pr['streams'][0]; W, H = st['width'], st['height']; FR = st['r_frame_rate']
 dur = float(pr['format']['duration'])
 fontes = os.path.join(here, 'fonts')
+# Pedaço (render em paralelo): quadros INI .. INI+NQ-1. Sem as variáveis, processa o vídeo inteiro (como sempre).
+INI = int(os.environ.get('BORA_INICIO_Q', '0')); NQ = int(os.environ.get('BORA_N_Q', '0')) or int(round(dur * eval(FR))) - INI
+T0 = INI / eval(FR)
 
 CAMADAS = [c.rsplit(':', 1) for c in os.environ.get('CAMADAS', '').split(',') if c]
 def leitor(cor):
@@ -29,16 +32,19 @@ def leitor(cor):
     if ass not in ('-', ''):
         fc.append(f'[{ult}]subtitles={ass}:fontsdir={fontes}[o99]'); ult = 'o99'
     if not fc: fc.append(f'[{ult}]null[o99]'); ult = 'o99'
-    args += ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-frames:v', str(int(round(dur * eval(FR)))),
+    if INI:      # pedaço: monta a linha do tempo inteira e corta no quadro exato (as legendas não aceitam relógio deslocado)
+        fc.append(f'[{ult}]trim=start_frame={INI},setpts=PTS-STARTPTS[o100]'); ult = 'o100'
+    args += ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-frames:v', str(NQ),
              '-f', 'rawvideo', '-pix_fmt', 'rgb24', '-']
     return subprocess.Popen(args, stdout=subprocess.PIPE)
 pb, pw = leitor('black'), leitor('white')
 X265 = 'colorprim=bt2020:transfer=arib-std-b67:colormatrix=bt2020nc:range=limited:no-sao=1:no-strong-intra-smoothing=1'
-enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-i', base,
+PEDACO = bool(os.environ.get('BORA_N_Q'))
+enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', *(['-ss', f'{(INI - 0.5) / eval(FR):.6f}'] if INI else []), '-i', base,
                         '-f', 'rawvideo', '-pix_fmt', 'rgba64le', '-s', f'{W}x{H}', '-r', FR, '-i', '-',
                         '-filter_complex', '[1:v]scale=out_color_matrix=bt2020:out_range=tv,format=yuva444p10le[o];'
-                                           '[0:v][o]overlay=format=yuv420p10:eof_action=pass[v]',
-                        '-map', '[v]', '-map', '0:a', '-c:a', 'copy',
+                                           f"[0:v][o]overlay=format=yuv420p10:eof_action={'repeat' if PEDACO else 'pass'}[v]",   # pedaço: o vídeo base continua depois do fim do pedaço
+                        '-map', '[v]', *(['-an', '-frames:v', str(NQ)] if PEDACO else ['-map', '0:a', '-c:a', 'copy']),
                         *(__import__('codificadores').args_nvenc() if os.environ.get('BORA_HDR_CODEC') == 'nvenc' else    # só intermediários validados
                           ['-c:v', 'libx265', '-preset', os.environ.get('BORA_PRESET', 'medium'), '-crf', crf, '-pix_fmt', 'yuv420p10le', '-x265-params', X265]),
                         '-tag:v', 'hvc1', '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc',

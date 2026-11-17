@@ -23,13 +23,16 @@ class SemMemoria(RuntimeError):
     """O sistema matou o processo por falta de memória (OOM). Não é repetido sozinho."""
 
 def _vigiar(arq, total, cb, parar):
-    """Lê o arquivo de progresso (ffmpeg -progress 'frame=N' ou o hdr_texto 'N') e avisa a fração feita."""
+    """Lê o(s) arquivo(s) de progresso (ffmpeg -progress 'frame=N' ou o hdr_texto 'N') e avisa a fração feita (soma dos pedaços)."""
     while not parar.wait(4):
-        try: txt = open(arq).read()
-        except OSError: continue
-        q = re.findall(r'frame=(\d+)', txt) or re.findall(r'^(\d+)\s*$', txt, re.M)
-        if q:
-            try: cb(min(1.0, int(q[-1]) / max(total, 1)), int(q[-1]))
+        feito, achou = 0, False
+        for a in (arq if isinstance(arq, list) else [arq]):
+            try: txt = open(a).read()
+            except OSError: continue
+            q = re.findall(r'frame=(\d+)', txt) or re.findall(r'^(\d+)\s*$', txt, re.M)
+            if q: feito += int(q[-1]); achou = True
+        if achou:
+            try: cb(min(1.0, feito / max(total, 1)), feito)
             except Exception as e: print('progresso:', e, flush=True)
 
 def quadros(video):
@@ -239,16 +242,49 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
     subprocess.run(['rm', '-rf', tmp])
     return transf in ('arib-std-b67', 'smpte2084')
 
+def _textos_em_pedacos(base, ass, saida, crf, partes, here, prog):
+    """4K: divide o vídeo em pedaços de quadros, aplica os textos em paralelo (a conversão HDR dos textos usa 1 núcleo por
+    processo) e junta sem recodificar; o áudio sai inteiro do vídeo base. Mesma imagem, mesmas cores, mesmos quadros."""
+    total = quadros(base); tam = -(-total // partes); ped = []
+    for k in range(partes):
+        ini, n = k * tam, min(tam, total - k * tam)
+        if n > 0: ped.append((k, ini, n, f'{saida}.p{k}.mp4', f'{saida}.p{k}.progresso'))
+    def um(p):
+        k, ini, n, out, arq = p
+        return rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, out, str(crf)], f'textos pedaço {k + 1}/{len(ped)}',
+                     env={**os.environ, 'BORA_PRESET': 'medium', 'BORA_PROGRESSO': arq, 'BORA_INICIO_Q': str(ini), 'BORA_N_Q': str(n)})
+    parar = threading.Event()
+    if prog: threading.Thread(target=_vigiar, args=([p[4] for p in ped], total, prog, parar), daemon=True).start()
+    with ThreadPoolExecutor(len(ped)) as ex:
+        res = list(ex.map(um, ped))
+    parar.set()
+    ruim = next((r for r in res if r[0]), None)
+    if not ruim:
+        lista = saida + '.lista.txt'; open(lista, 'w').write(''.join(f"file '{p[3]}'\n" for p in ped))
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', lista, '-i', base, '-map', '0:v', '-map', '1:a',
+                            '-c', 'copy', '-tag:v', 'hvc1', '-movflags', '+faststart', saida], capture_output=True, text=True)
+        ruim = (r.returncode, (r.stderr.strip().splitlines() or [''])[-1], 0) if r.returncode else None
+        if not ruim and quadros(saida) != total: ruim = (1, f'juntar os pedaços deu {quadros(saida)} quadros, esperado {total}', 0)
+        os.remove(lista)
+    for p in ped:
+        for f in (p[3], p[4]):
+            if os.path.exists(f): os.remove(f)
+    return ruim or (0, '', max(r[2] for r in res))
+
 def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:
         H = int((re.findall(r'\d+', subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', base], capture_output=True, text=True).stdout) or [0])[0])
+        partes = max(1, int(os.environ.get('BORA_PARTES_4K', '1'))) if H >= 1500 else 1
         with pesado(H):
-            arq = saida + '.progresso'
-            rc, msg, mb = rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], 'textos ' + os.path.basename(saida),
-                                env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'BORA_PROGRESSO': arq},
-                                prog=(arq, quadros(base), prog) if prog else None)
-            if os.path.exists(arq): os.remove(arq)
+            if partes == 1:
+                arq = saida + '.progresso'
+                rc, msg, mb = rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, ass, saida, str(crf)], 'textos ' + os.path.basename(saida),
+                                    env={**os.environ, 'BORA_PRESET': 'veryfast' if H < 1500 else 'medium', 'BORA_PROGRESSO': arq},
+                                    prog=(arq, quadros(base), prog) if prog else None)
+                if os.path.exists(arq): os.remove(arq)
+            else:
+                rc, msg, mb = _textos_em_pedacos(base, ass, saida, crf, partes, here, prog)
         if oom(rc, msg): raise SemMemoria(f'memória insuficiente ao aplicar os textos ({mb} MB)')
         if rc: raise RuntimeError('textos: ' + (msg or f'código {rc}')[:150])
     else:
