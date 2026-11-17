@@ -26,9 +26,12 @@ def rodar(cmd, rotulo, env=None):
     """Roda um processo medindo o pico de memória. Devolve (código, fim do erro, MB). Código -9/137 = morto por falta de memória."""
     with tempfile.TemporaryFile() as err:
         p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=err, env=env)
-        _, st, uso = os.wait4(p.pid, 0); p.returncode = rc = os.waitstatus_to_exitcode(st)
+        if hasattr(os, 'wait4'):                       # Linux/Docker: mede o pico de memória
+            _, st, uso = os.wait4(p.pid, 0); p.returncode = rc = os.waitstatus_to_exitcode(st)
+        else:                                          # Windows nativo: sem medição de memória
+            rc = p.wait(); uso = None
         err.seek(0); cauda = [l for l in err.read().decode('utf-8', 'replace').splitlines() if l.strip() and 'x265 [' not in l][-4:]
-    mb = round(uso.ru_maxrss / 1024)
+    mb = round(uso.ru_maxrss / 1024) if uso else 0
     if rc:
         oom = rc in (-9, 137)
         print(f"{'OOM' if oom else 'FALHA'} {rotulo}: código {rc}, pico {mb} MB" + ('' if oom else ' | ' + ' | '.join(cauda)), flush=True)
@@ -165,11 +168,16 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
         cw, ch = round(cw0 / z / 2) * 2, round(ch0 / z / 2) * 2
         x = int(min(max(0.5 * W - cw / 2, 0), W - cw)); y = int(min(max(0.40 * H - fy * ch, 0), H - ch))
         tin, dur = fa / FPS, (fb - fa) / FPS
-        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}r.mp4')   # intermediário: rápido e quase sem perda (a entrega é recodificada depois)
+        # intermediário: rápido e quase sem perda (a entrega é recodificada depois). NVENC só se a máquina validou (codificadores.py)
+        nv = os.environ.get('BORA_INTERMEDIARIO') == 'nvenc'
+        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}{"n" if nv else "r"}.mp4')
+        if nv:
+            import codificadores; cod = codificadores.args_nvenc()
+        else:
+            cod = ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params]
         jobs.append((chave, ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai], '-an',
                      '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(fb - fa),
-                     '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags,
-                     chave + '.tmp.mp4']))
+                     *cod, *tags, chave + '.tmp.mp4']))
         a_in += ['-ss', f'{tin:.4f}', '-t', f'{dur:.4f}', '-i', arquivos[ai]]
         a_fc.append(f"[{n}:a]atrim=duration={dur:.4f},asetpts=PTS-STARTPTS,afade=t=in:d=0.010,afade=t=out:st={max(dur - 0.012, 0):.4f}:d=0.012[a{n}]")
     feitos = [0]

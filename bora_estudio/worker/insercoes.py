@@ -118,7 +118,7 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
     APLICADAS = len(cams)
     if not cams: return base
     if hdr:
-        env = {**os.environ, 'BORA_PRESET': 'veryfast', 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
+        env = {**os.environ, 'BORA_PRESET': 'veryfast', 'BORA_HDR_CODEC': os.environ.get('BORA_INTERMEDIARIO', 'x265'), 'CAMADAS': ','.join(f'{p}:{t0:.3f}' for p, t0 in cams), 'BRILHO_TEXTO': '0.40'}
         import montagem
         with montagem.pesado(H):
             rc, msg, mb = montagem.rodar(['python3', os.path.join(here, 'hdr_texto.py'), base, '-', saida, '14'], 'inserções', env=env)

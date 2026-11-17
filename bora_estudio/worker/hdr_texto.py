@@ -39,8 +39,9 @@ enc = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-i', base,
                         '-filter_complex', '[1:v]scale=out_color_matrix=bt2020:out_range=tv,format=yuva444p10le[o];'
                                            '[0:v][o]overlay=format=yuv420p10:eof_action=pass[v]',
                         '-map', '[v]', '-map', '0:a', '-c:a', 'copy',
-                        '-c:v', 'libx265', '-preset', os.environ.get('BORA_PRESET', 'medium'), '-crf', crf, '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1',
-                        '-x265-params', X265, '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc',
+                        *(__import__('codificadores').args_nvenc() if os.environ.get('BORA_HDR_CODEC') == 'nvenc' else    # só intermediários validados
+                          ['-c:v', 'libx265', '-preset', os.environ.get('BORA_PRESET', 'medium'), '-crf', crf, '-pix_fmt', 'yuv420p10le', '-x265-params', X265]),
+                        '-tag:v', 'hvc1', '-color_primaries', 'bt2020', '-color_trc', 'arib-std-b67', '-colorspace', 'bt2020nc',
                         '-movflags', '+faststart', out], stdin=subprocess.PIPE)
 
 # SDR (BT.709) -> HLG (BT.2020); o branco SDR vai para BRILHO (luz de cena)

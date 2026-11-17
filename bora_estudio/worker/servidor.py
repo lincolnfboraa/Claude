@@ -2,7 +2,7 @@
 """Editor do Bora Studio no VPS. Recebe pedidos do n8n (POST /pedido), processa um por vez e devolve tudo pro Supabase:
 porcentagem e etapa em projetos.original_meta, prévia/final no Storage, status em versoes/projetos.
 Variáveis: SUPABASE_URL, SUPABASE_SECRET, ANTHROPIC_API_KEY, BORA_TOKEN."""
-import hashlib, hmac, json, os, queue, time, subprocess, threading, traceback, urllib.parse, urllib.request
+import hashlib, hmac, json, os, queue, time, subprocess, threading, traceback, urllib.error, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 URL, KEY, TOKEN = os.environ['SUPABASE_URL'].rstrip('/'), os.environ['SUPABASE_SECRET'], os.environ['BORA_TOKEN']
@@ -47,7 +47,11 @@ def processar(p):
     pid = p['projeto_id']
     try:
         import motor                                   # motor de edição (bora_estudio/worker/motor.py)
-        motor.executar(p, etapa=lambda t, n, **k: etapa(pid, t, n, **k), sb=sb)
+        et = lambda t, n, **k: etapa(pid, t, n, **k)
+        if EXTERNO and p['tipo'] == 'final':         # 4K vai pra fila do render externo (Acer); prévias seguem no VPS
+            fila_enfileirar(motor.preparar(p, et, sb))
+            return                                     # a entrega acontece quando o worker devolver (entregar_prontos)
+        motor.executar(p, etapa=et, sb=sb)
         avisar(p, True)
     except Exception as e:
         traceback.print_exc()
@@ -109,18 +113,164 @@ def inspecionar(arq):
     dur = float((o.get('format') or {}).get('duration', 0) or 0)
     return {'res': f'{w} × {h}', 'fps': f'{fps:g} fps'.replace('.', ','), 'cor': cor, 'hdr': hdr, 'dur': f'{round(dur)} s'}
 
+
+# ---------------- Render externo do 4K (opcional: BORA_RENDER_EXTERNO=1 e BORA_WORKER_TOKEN no bora.env) ----------------
+# Só o final 4K aprovado vai pro worker (ex.: o Acer). Análise, plano e prévia 480p continuam aqui.
+# O VPS continua dono do banco: grava o trabalho em render_trabalhos (Supabase), entrega os arquivos ao worker por HTTPS
+# com token próprio, recebe o resultado e conclui. SEM fallback: se o worker estiver desligado ou falhar, o trabalho fica
+# na fila (até BORA_MAX_TENTATIVAS tentativas; depois vira erro com o botão Tentar de novo no app).
+EXTERNO = os.environ.get('BORA_RENDER_EXTERNO', '0') == '1' and bool(os.environ.get('BORA_WORKER_TOKEN'))
+WTOKEN = os.environ.get('BORA_WORKER_TOKEN', '')
+SILENCIO = int(os.environ.get('BORA_WORKER_SILENCIO', '900'))
+MAX_TENT = int(os.environ.get('BORA_MAX_TENTATIVAS', '3'))
+JOBS = {}                                              # cache em memória: id -> trabalho (o Supabase é a fonte)
+
+def agora(): return time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+
+def fila_get(jid):
+    j = (sb('GET', f'/rest/v1/render_trabalhos?id=eq.{jid}&select=*') or [None])[0]
+    if j: JOBS[jid] = j
+    return j
+
+def fila_patch(jid, corpo, cond=''):
+    r = sb('PATCH', f'/rest/v1/render_trabalhos?id=eq.{jid}{cond}', corpo)
+    if r: JOBS[jid] = r[0]
+    return r
+
+def _iso_seg(iso):
+    import calendar
+    return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
+
+def fila_enfileirar(pac):
+    """Grava o trabalho de render (o índice único impede duplicado da mesma versão) e volta na hora."""
+    try:
+        sb('POST', '/rest/v1/render_trabalhos', {'projeto_id': pac['projeto_id'], 'versao_id': pac['versao_id'], 'tipo': pac['tipo'],
+                                                 'altura': pac['altura'], 'pacote': pac})
+    except urllib.error.HTTPError as e:                # já existe um ativo (ex.: o VPS reiniciou): segue com ele, sem mexer no andamento
+        if e.code != 409: raise
+        return
+    etapa(pac['projeto_id'], 'Na fila do render 4K (aguardando o computador de render)', None)
+
+def _falhou(job, erro):
+    """Falha do worker: volta pra fila; depois de MAX_TENT tentativas vira erro (sem cair pro VPS)."""
+    if job['tentativas'] < MAX_TENT:
+        fila_patch(job['id'], {'status': 'pendente', 'worker': None, 'erro': erro[:300]}, '&status=eq.renderizando')
+        etapa(job['projeto_id'], f"Render 4K vai tentar de novo ({job['tentativas']} de {MAX_TENT}): {erro[:80]}", None)
+    else:
+        fila_patch(job['id'], {'status': 'falhou', 'erro': erro[:300], 'concluido_em': agora()}, '&status=eq.renderizando')
+        sem_mem = erro.startswith('memória')
+        etapa(job['projeto_id'], ('Erro: ' if sem_mem else 'Erro no render 4K: ') + erro[:120], None,
+              **({'falha_memoria': 'final:' + job['versao_id']} if sem_mem else {}))
+        avisar({'tipo': job['tipo'], 'projeto_id': job['projeto_id']}, False, erro[:80])
+
+def cuidar_da_fila():
+    """Chamado pela vigia: entrega o que o worker terminou e devolve pra fila trabalho de worker que sumiu."""
+    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.concluido&select=*'):
+        if not fila_patch(j['id'], {'status': 'entregue'}, '&status=eq.concluido'): continue
+        try:
+            import motor
+            motor.concluir(j['pacote'], j['resultado'], sb)
+            avisar({'tipo': j['tipo'], 'projeto_id': j['projeto_id'], 'versao': j['pacote'].get('n')}, True)
+        except Exception as e:
+            traceback.print_exc(); fila_patch(j['id'], {'status': 'concluido'})     # tenta entregar de novo na próxima volta
+    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.renderizando&select=*'):
+        if time.time() - _iso_seg(j.get('batida')) > SILENCIO:
+            _falhou(j, f"o computador {j.get('worker')} ficou sem sinal por {SILENCIO // 60} min")
+
+def _permitidos(job):
+    p = job['pacote']; return set(p['arquivos'] + p['transcricoes'] + [p['plano']] + (p.get('anexos') or []))
+
+def _rota_worker(h, metodo, u):
+    """Rotas /worker/* : autenticadas pelo BORA_WORKER_TOKEN (cabeçalho X-Bora-Worker); o worker só vê os arquivos do trabalho dele."""
+    if not WTOKEN or not hmac.compare_digest(h.headers.get('X-Bora-Worker', ''), WTOKEN): return h._r(401, {'erro': 'token do worker'})
+    nome_w = (h.headers.get('X-Bora-Worker-Nome') or 'worker')[:40]
+    partes = [urllib.parse.unquote(x) for x in u.path.split('/')[2:]]
+    acao = partes[0] if partes else ''
+    corpo = json.loads(h.rfile.read(int(h.headers.get('Content-Length', 0))) or b'{}') if metodo == 'POST' else {}
+    if acao == 'pegar' and metodo == 'POST':
+        for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.pendente&order=criado_em&limit=3&select=*'):
+            ok = fila_patch(j['id'], {'status': 'renderizando', 'worker': nome_w, 'codificador': corpo.get('codificador', 'x265'),
+                                      'pego_em': agora(), 'batida': agora(), 'tentativas': j['tentativas'] + 1}, '&status=eq.pendente')
+            if ok:                                     # PATCH condicional: só um worker consegue pegar
+                d = pasta(j['projeto_id'])
+                arqs = [{'nome': n, 'tamanho': os.path.getsize(os.path.join(d, n))} for n in sorted(_permitidos(j)) if os.path.exists(os.path.join(d, n))]
+                etapa(j['projeto_id'], f'Render externo ({nome_w}) começou', None)
+                return h._r(200, {'job': j['id'], 'pacote': j['pacote'], 'arquivos': arqs})
+        return h._r(204, {})
+    jid = partes[1] if len(partes) > 1 else ''
+    job = JOBS.get(jid) if JOBS.get(jid, {}).get('worker') == nome_w else fila_get(jid)
+    if not job or job.get('worker') != nome_w: return h._r(404, {'erro': 'trabalho não é deste worker'})
+    if job['status'] != 'renderizando': return h._r(409, {'erro': 'trabalho ' + job['status']})
+    d = pasta(job['projeto_id'])
+    if acao == 'arquivo' and metodo == 'GET':
+        nome = os.path.basename(partes[2] if len(partes) > 2 else '')
+        if nome not in _permitidos(job) or not os.path.exists(os.path.join(d, nome)): return h._r(404, {'erro': 'arquivo'})
+        arq = os.path.join(d, nome); total = os.path.getsize(arq)
+        ini = int((h.headers.get('Range') or 'bytes=0-').split('=')[1].split('-')[0] or 0)
+        h.send_response(206 if ini else 200); h.send_header('Content-Type', 'application/octet-stream')
+        h.send_header('Content-Length', str(total - ini))
+        if ini: h.send_header('Content-Range', f'bytes {ini}-{total - 1}/{total}')
+        h.end_headers()
+        with open(arq, 'rb') as f:
+            f.seek(ini)
+            while True:
+                b = f.read(1 << 20)
+                if not b: break
+                h.wfile.write(b)
+        return
+    if acao == 'progresso' and metodo == 'POST':
+        et = job.get('etapas') or []
+        if not et or et[-1].get('texto') != corpo.get('texto'):
+            et.append({'t': round(time.time() - _iso_seg(job.get('pego_em'))), 'texto': corpo.get('texto'), 'pct': corpo.get('pct')})
+        fila_patch(jid, {'batida': agora(), 'etapas': et})
+        ULTIMA[0] = time.time()                        # worker vivo: o VPS não considera travado
+        if corpo.get('texto') and corpo.get('pct') is not None: etapa(job['projeto_id'], corpo['texto'], corpo['pct'])
+        return h._r(200, {'ok': True})
+    if acao == 'resultado':                            # envio do resultado em partes (retomável)
+        nome = os.path.basename(partes[2] if len(partes) > 2 else '')
+        if not nome: return h._r(400, {'erro': 'nome'})
+        dest = os.path.join(d, '_externo'); os.makedirs(dest, exist_ok=True); parcial = os.path.join(dest, nome + '.parcial')
+        atual = os.path.getsize(parcial) if os.path.exists(parcial) else 0
+        if metodo == 'GET': return h._r(200, {'recebido': atual})
+        if int(urllib.parse.parse_qs(u.query).get('offset', ['0'])[0]) != atual: return h._r(409, {'recebido': atual})
+        n = int(h.headers.get('Content-Length', 0))
+        with open(parcial, 'ab') as f:
+            while n > 0:
+                b = h.rfile.read(min(n, 1 << 20))
+                if not b: break
+                f.write(b); n -= len(b)
+        return h._r(200, {'recebido': os.path.getsize(parcial)})
+    if acao == 'concluir' and metodo == 'POST':
+        res = corpo.get('resultado') or {}; tam = corpo.get('tamanhos') or {}
+        for rel in res.get('arquivos') or []:
+            parcial = os.path.join(d, '_externo', os.path.basename(rel) + '.parcial')
+            if not os.path.exists(parcial) or os.path.getsize(parcial) != int(tam.get(rel, -1)): return h._r(409, {'erro': f'{rel} incompleto'})
+        for rel in res.get('arquivos') or []:
+            final = os.path.normpath(os.path.join(d, rel))
+            if not final.startswith(d + os.sep): return h._r(400, {'erro': 'caminho'})
+            os.makedirs(os.path.dirname(final), exist_ok=True)
+            os.replace(os.path.join(d, '_externo', os.path.basename(rel) + '.parcial'), final)
+        fila_patch(jid, {'status': 'concluido', 'resultado': res, 'concluido_em': agora(), 'segundos': corpo.get('segundos'),
+                         'etapas': (job.get('etapas') or []) + [{'t': corpo.get('segundos'), 'texto': 'Concluído no ' + nome_w, 'pct': 100}]})
+        return h._r(200, {'ok': True})
+    if acao == 'falhou' and metodo == 'POST':
+        _falhou(job, corpo.get('erro') or 'falhou')
+        return h._r(200, {'ok': True})
+    return h._r(404, {'erro': 'rota'})
+
 class H(BaseHTTPRequestHandler):
     def _r(self, cod, obj):
         self.send_response(cod); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(json.dumps(obj).encode())
     def end_headers(self):
         self.send_header('Access-Control-Allow-Origin', ORIGEM)
-        self.send_header('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Bora-Token')
+        self.send_header('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Bora-Token, X-Bora-Worker, X-Bora-Worker-Nome, Range')
         self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
         super().end_headers()
     def do_OPTIONS(self):
         self.send_response(204); self.end_headers()
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path.startswith('/worker/'): return _rota_worker(self, 'GET', u)
         if u.path == '/push/chave':
             import avisos; return self._r(200, {'chave': avisos.chave_publica()})
         if u.path.startswith('/final/'): return self._final(u)
@@ -151,6 +301,7 @@ class H(BaseHTTPRequestHandler):
     def do_PUT(self):
         """Envio do original em partes: PUT /upload/<projeto>?offset=N (corpo = pedaço do arquivo)."""
         u = urllib.parse.urlparse(self.path); q = urllib.parse.parse_qs(u.query)
+        if u.path.startswith('/worker/'): return _rota_worker(self, 'PUT', u)
         if not u.path.startswith('/upload/'): return self._r(404, {'erro': 'rota'})
         if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
         partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
@@ -166,6 +317,7 @@ class H(BaseHTTPRequestHandler):
         self._r(200, {'recebido': os.path.getsize(arq)})
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
+        if u.path.startswith('/worker/'): return _rota_worker(self, 'POST', u)
         if u.path.startswith('/final/') and u.path.endswith('/link'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             pid = os.path.basename(u.path.split('/')[2]); exp = str(int(time.time()) + 7200)
@@ -249,12 +401,14 @@ def vigia():
                 if vs and not vs[-1]['final_drive_id'] and not m.get('final_pronto') and ((retomar and m.get('falha_memoria') != 'final:' + vs[-1]['id']) or m.get('andamento_versao') != 'final:' + vs[-1]['id']):
                     enfileirar({'tipo': 'final', 'projeto_id': pr['id'], 'cliente': pr['cliente_id'], 'versao_id': vs[-1]['id'], 'versao': vs[-1]['numero']})
             retomar = False
+            if EXTERNO: cuidar_da_fila()
         except Exception as e:
             print('vigia:', e, flush=True)
         time.sleep(10)
 
-threading.Thread(target=vigia, daemon=True).start()
-for _ in range(int(os.environ.get("BORA_PARALELO", "2"))):   # até 2 vídeos ao mesmo tempo
-    threading.Thread(target=trabalhador, daemon=True).start()
-print('Editor Bora Studio ouvindo na porta 8787')
-ThreadingHTTPServer(('0.0.0.0', 8787), H).serve_forever()
+if __name__ == '__main__':
+    threading.Thread(target=vigia, daemon=True).start()
+    for _ in range(int(os.environ.get("BORA_PARALELO", "2"))):   # até 2 vídeos ao mesmo tempo
+        threading.Thread(target=trabalhador, daemon=True).start()
+    print('Editor Bora Studio ouvindo na porta 8787' + (' (render externo ligado)' if EXTERNO else ''))
+    ThreadingHTTPServer(('0.0.0.0', 8787), H).serve_forever()

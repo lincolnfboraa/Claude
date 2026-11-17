@@ -1,0 +1,16 @@
+# Render worker do Bora Studio (ex.: no Acer). Só faz o final 4K aprovado; não tem chave do Supabase nem da IA.
+# Rodar a partir da raiz do repositório:  docker compose -f bora_estudio/worker/docker-compose.worker.yml up -d --build
+# Com placa NVIDIA, acrescente:          -f bora_estudio/worker/docker-compose.worker.gpu.yml
+services:
+  bora-render:
+    build: { context: ../.., dockerfile: bora_estudio/worker/Dockerfile }
+    container_name: bora-render
+    restart: unless-stopped
+    command: ["python3", "bora_estudio/worker/render_worker.py"]
+    env_file: worker.env                  # BORA_EDITOR, BORA_WORKER_TOKEN, BORA_WORKER_NOME (veja worker.env.exemplo)
+    environment:
+      - BORA_TRABALHO=/trabalho
+      - BORA_ACELERACAO=${BORA_ACELERACAO:-auto}   # auto: usa NVENC só nos intermediários e só se passar no teste
+    volumes:
+      - ./render_cache:/trabalho          # originais e trechos ficam em cache (não baixa de novo)
+      - ./modelos:/root/.cache            # modelo de transcrição usado na conferência

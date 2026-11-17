@@ -1,0 +1,12 @@
+# Acrescenta a placa NVIDIA ao render worker (Docker Desktop com WSL2 no Windows, ou nvidia-container-toolkit no Linux).
+services:
+  bora-render:
+    environment:
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility   # "video" libera o NVENC dentro do container
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, video]
