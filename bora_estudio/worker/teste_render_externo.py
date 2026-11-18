@@ -12,7 +12,7 @@ A, B = SP + '/poc/vps', SP + '/poc/pc'
 PID, TOKEN = 'poc-prostata', 'token-de-teste-do-worker'
 for d in (A, B): shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
 os.environ.update({'BORA_TRABALHO': A, 'SUPABASE_URL': 'http://supabase.falso', 'SUPABASE_SECRET': 'x', 'BORA_TOKEN': 'x',
-                   'BORA_RENDER_EXTERNO': '1', 'BORA_WORKER_TOKEN': TOKEN})
+                   'BORA_RENDER_EXTERNO': '1', 'BORA_WORKER_TOKEN': TOKEN, 'BORA_WHISPER': 'medium'})
 sys.path.insert(0, AQUI)
 
 # ---------- projeto real: original 4K HDR, transcrição, plano e 4 cards anexados ----------
@@ -92,69 +92,63 @@ def call(metodo, rota, token=TOKEN, nome='pc-teste', corpo=None):
 
 R = []
 def ok(nome, cond, det=''): R.append(cond); print(('PASSOU ' if cond else 'FALHOU ') + nome + (f' ({det})' if det else ''), flush=True)
-def job_final(): return next(j for j in reversed(TAB['render_trabalhos']) if j['tipo'] == 'final')
 def M(): return TAB['projetos'][0]['original_meta']
+def jobs(**f): return [j for j in TAB['render_trabalhos'] if all(j.get(k) == v for k, v in f.items())]
+servidor.INICIO = 0                                    # sem a espera de 30 s do começo
+TR = P + '/transcricao_01.json'; tr_ref = open(TR).read()
 
-# 1) com o render externo ligado, a prévia 480p continua no VPS (estrutura atual)
-servidor.EXTERNO = True
+# 1) referência: tudo no VPS (computador de render desligado)
+servidor.EXTERNO = True; servidor.VISTO.clear()
 servidor.processar({'tipo': 'nova_edicao', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1})
-ok('prévia 480p feita no próprio VPS, sem ir pra fila externa', not TAB['render_trabalhos'] and TAB['versoes'][0]['status'] == 'revisao'
-   and info(P + '/previa_v1.mp4').startswith('480x854') and any(k.endswith('/v1.mp4') for k in ENVIADOS), info(P + '/previa_v1.mp4'))
-
-# 2) final 4K pelo renderizador atual (referência)
-TAB['projetos'][0]['status'] = 'aprovado'; servidor.EXTERNO = False
-t = time.time(); servidor.processar({'tipo': 'final', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1}); t_ref4 = time.time() - t
-zref = P + '/final_ref.zip'; shutil.move(M()['final_zip'], zref); M().update({'final_pronto': None, 'final_zip': None})
-print(f'referência 4K (renderizador atual): {t_ref4:.0f} s', flush=True)
-
-# 3) final com render externo e o Acer DESLIGADO: fica na fila, o VPS não renderiza
-servidor.EXTERNO = True
-t = time.time(); servidor.processar({'tipo': 'final', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1}); t_fila = time.time() - t
-j = job_final(); time.sleep(12); servidor.cuidar_da_fila()
-ok('aprovação só grava o trabalho e libera o VPS na hora', t_fila < 30 and j['status'] == 'pendente', f'{t_fila:.1f} s')
-ok('Acer desligado: trabalho continua na fila, sem fallback pro VPS', job_final()['status'] == 'pendente' and not job_final().get('worker')
-   and not M().get('final_pronto') and 'fila do render 4K' in (M().get('andamento') or ''), M().get('andamento'))
+ok('Acer desligado: prévia feita no VPS, sem fila', not TAB['render_trabalhos'] and TAB['versoes'][0]['status'] == 'revisao')
+ref = P + '/previa_ref.mp4'; shutil.copy(P + '/previa_v1.mp4', ref)
+TAB['projetos'][0]['status'] = 'aprovado'
 servidor.processar({'tipo': 'final', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1})
-ok('aprovar de novo (ou VPS reiniciado) não duplica o trabalho', sum(x['tipo'] == 'final' for x in TAB['render_trabalhos']) == 1)
+ok('Acer desligado: 4K feito no VPS, sem fila', not TAB['render_trabalhos'] and bool(M().get('final_pronto')))
+zref = P + '/final_ref.zip'; shutil.move(M()['final_zip'], zref); M().update({'final_pronto': None, 'final_zip': None})
 
-# 4) segurança e duplicidade
-ok('token errado é recusado', call('POST', '/worker/pegar', token='errado', corpo={}) == 401)
-res = []; ths = [threading.Thread(target=lambda n=n: res.append(call('POST', '/worker/pegar', nome=f'acer{n}', corpo={}))) for n in range(5)]
-[x.start() for x in ths]; [x.join() for x in ths]
-ok('5 workers ao mesmo tempo: só 1 pega o trabalho', sorted(res) == [200, 204, 204, 204, 204], str(sorted(res)))
-dono = job_final()['worker']; jid = job_final()['id']
-ok('outro worker não baixa arquivo do trabalho', call('GET', f'/worker/arquivo/{jid}/original_01.mov', nome='intruso') == 404)
-ok('nome fora do pacote é recusado', call('GET', f'/worker/arquivo/{jid}/..%2F..%2Fbora.env', nome=dono) == 404)
+# 2) Acer ligado: transcrição e prévia vão pra ele; a IA (plano) fica no VPS
+for f in glob.glob(P + '/previa_v1.mp4*') + glob.glob(P + '/transcricao_01.*'): os.remove(f)
+w = subprocess.Popen([sys.executable, os.path.join(AQUI, 'render_worker.py')],
+                     env={**os.environ, 'BORA_TRABALHO': B, 'BORA_EDITOR': f'http://127.0.0.1:{PORTA}', 'BORA_WORKER_NOME': 'acer-teste'})
+for _ in range(30):
+    if servidor.acer_ligado(): break
+    time.sleep(1)
+ok('VPS percebe o Acer ligado', servidor.acer_ligado())
+TAB['versoes'][0]['status'] = 'editando'; t0 = time.time()
+servidor.processar({'tipo': 'nova_edicao', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1})
+jt = [j for j in jobs(tipo='previa') if j['pacote'].get('etapa') == 'transcricao']; jp = [j for j in jobs(tipo='previa') if not j['pacote'].get('etapa')]
+ok('transcrição feita no Acer', jt and jt[-1]['status'] == 'entregue' and jt[-1]['worker'] == 'acer-teste' and os.path.exists(TR))
+ok('transcrição do Acer igual à do VPS', os.path.exists(TR) and open(TR).read() == tr_ref)
+ok('prévia renderizada no Acer e entregue no app', jp and jp[-1]['status'] == 'entregue' and TAB['versoes'][0]['status'] == 'revisao')
+ok('prévia do Acer idêntica à do VPS (imagem)', md5_video(P + '/previa_v1.mp4') == md5_video(ref), f'{time.time() - t0:.0f} s')
 
-# 5) falha no Acer: volta pra fila (tentativa 1)
-call('POST', f'/worker/falhou/{jid}', nome=dono, corpo={'erro': 'falha simulada no Acer'})
-ok('falha no Acer: trabalho volta pra fila', job_final()['status'] == 'pendente' and job_final()['tentativas'] == 1 and 'tentar de novo' in M()['andamento'], M()['andamento'])
-# 6) Acer some no meio (sem sinal): volta pra fila (tentativa 2)
-call('POST', '/worker/pegar', nome='acer-sumiu', corpo={}); job_final()['batida'] = '2026-01-01T00:00:00Z'
-servidor.cuidar_da_fila()
-ok('Acer sem sinal: trabalho volta pra fila', job_final()['status'] == 'pendente' and job_final()['tentativas'] == 2 and 'sem sinal' in job_final()['erro'])
-
-# 7) Acer ligado: renderiza o 4K e o VPS entrega no app (tentativa 3)
-w = worker({'BORA_WORKER_NOME': 'acer-teste'}); t = time.time(); w.wait(); t_ext4 = time.time() - t
-servidor.cuidar_da_fila(); job4 = job_final()
-print('\nTRABALHO 4K', json.dumps({k: job4.get(k) for k in ('status', 'worker', 'codificador', 'tentativas', 'segundos', 'erro')}, ensure_ascii=False))
-for e in job4['etapas']: print('   ', e)
-ok('final 4K renderizado no worker e entregue no app', job4['status'] == 'entregue' and M().get('final_pronto') and os.path.exists(M().get('final_zip') or ''))
+# 3) Acer ligado: 4K vai pra ele e o VPS entrega quando ele termina
+t0 = time.time(); servidor.processar({'tipo': 'final', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1})
+while not jobs(tipo='final', status='concluido') and time.time() - t0 < 1500: time.sleep(5)
+servidor.cuidar_da_fila(); jf = jobs(tipo='final')[-1]
+ok('4K renderizado no Acer e entregue no app', jf['status'] == 'entregue' and jf['worker'] == 'acer-teste' and bool(M().get('final_pronto')), f'{time.time() - t0:.0f} s')
 d1, d2 = SP + '/poc/zref', SP + '/poc/zext'
 for z, d in ((zref, d1), (M()['final_zip'], d2)): shutil.rmtree(d, ignore_errors=True); zipfile.ZipFile(z).extractall(d)
 for nome in sorted(os.listdir(d1)):
-    a, b = os.path.join(d1, nome), os.path.join(d2, nome)
-    if nome.endswith('.mp4'):
-        ok(f'{nome}: imagem idêntica à do renderizador atual', md5_video(a) == md5_video(b), info(b) + ('' if md5_video(a) == md5_video(b) else f' SSIM {ssim(a, b)}'))
-        ok(f'{nome}: áudio idêntico', md5_audio(a) == md5_audio(b))
-    else:
-        ok(f'{nome}: idêntico', open(a, 'rb').read() == open(b, 'rb').read())
-print(f'tempo 4K: atual {t_ref4:.0f} s | worker {t_ext4:.0f} s (inclui baixar os originais e devolver o zip)')
+    ok(f'{nome}: imagem e áudio idênticos ao do VPS', md5_video(os.path.join(d1, nome)) == md5_video(os.path.join(d2, nome)) and md5_audio(os.path.join(d1, nome)) == md5_audio(os.path.join(d2, nome)), info(os.path.join(d2, nome)))
 
-# 8) limite de tentativas: depois de 3 falhas vira erro com Tentar de novo (sem loop e sem VPS)
-TAB['render_trabalhos'].append({**job4, 'id': 'jobY', 'versao_id': 'v9', 'status': 'renderizando', 'worker': 'acer-teste', 'tentativas': 3})
-call('POST', '/worker/falhou/jobY', nome='acer-teste', corpo={'erro': 'memória insuficiente no trecho 2 (3200 MB, código -9)'})
-y = TAB['render_trabalhos'][-1]
-ok('3ª falha: vira erro claro no app, sem repetir sozinho', y['status'] == 'falhou' and M()['andamento'].startswith('Erro: memória') and M().get('falha_memoria') == 'final:v9', M()['andamento'])
+# 4) segurança e duplicidade (com o Acer ligado)
+ok('token errado é recusado', call('POST', '/worker/pegar', token='errado', corpo={}) == 401)
+ok('nome fora do pacote é recusado', call('GET', f"/worker/arquivo/{jf['id']}/..%2F..%2Fbora.env", nome='acer-teste') in (404, 409))
+
+# 5) Acer desliga com 4K na fila: depois do tempo limite o VPS assume
+w.terminate(); w.wait(); servidor.VISTO.clear()
+M().update({'final_pronto': None, 'final_zip': None})
+TAB['render_trabalhos'].append({'id': 'jobZ', 'projeto_id': PID, 'versao_id': 'v1', 'tipo': 'final', 'altura': 3840, 'status': 'pendente', 'tentativas': 0,
+                                'etapas': [], 'criado_em': '2026-01-01T00:00:00Z', 'pacote': jf['pacote']})
+servidor.cuidar_da_fila()
+ok('Acer desligado por 10 min: 4K sai da fila e volta pro VPS', TAB['render_trabalhos'][-1]['status'] == 'cancelado' and M().get('andamento_versao') is None, M().get('andamento'))
+
+# 6) prévia com o Acer desligado no meio (trabalho pendente sem ninguém): o VPS faz
+TAB['versoes'][0]['status'] = 'editando'; servidor.VISTO['acer-teste'] = time.time()      # parece ligado na hora de decidir
+for f in glob.glob(P + '/previa_v1.mp4*'): os.remove(f)
+t0 = time.time(); servidor.processar({'tipo': 'nova_edicao', 'projeto_id': PID, 'versao_id': 'v1', 'versao': 1})
+ok('Acer some no meio da prévia: o VPS termina sozinho', TAB['versoes'][0]['status'] == 'revisao' and md5_video(P + '/previa_v1.mp4') == md5_video(ref), f'{time.time() - t0:.0f} s')
 
 print(f'\n{sum(R)} de {len(R)} verificações passaram')

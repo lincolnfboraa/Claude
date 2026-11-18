@@ -69,6 +69,18 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
 def _final_nome(cliente_nome, titulo):
     return ''.join(c for c in f"{cliente_nome}_{titulo}".replace(' ', '_') if c.isalnum() or c in '_-')[:60]
 
+def pacote_transcricao(p, sb):
+    """Pacote só de transcrição (pro computador de render), ou None se as transcrições já existem."""
+    pid = p['projeto_id']
+    meta = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta') or [{}])[0].get('original_meta') or {}
+    arqs = _arquivos(pid, meta); pasta = os.path.join(TRAB, pid)
+    if not arqs: return None
+    falta = [i for i in range(1, len(arqs) + 1) if not os.path.exists(os.path.join(pasta, f'transcricao_{i:02d}.json'))]
+    if not falta: return None
+    v = (sb('GET', f"/rest/v1/versoes?id=eq.{p.get('versao_id')}&select=numero") or [{'numero': p.get('versao', 1)}])[0]
+    return {'projeto_id': pid, 'tipo': 'previa', 'etapa': 'transcricao', 'versao_id': p.get('versao_id'), 'n': v['numero'], 'altura': 854,
+            'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [], 'plano': None, 'anexos': []}
+
 def preparar(p, etapa, sb):
     """Parte leve (fica no VPS): lê o pedido, transcreve (com cache), a IA monta o plano e grava o PACOTE de render.
     O pacote só tem nomes de arquivo relativos à pasta do projeto, então qualquer máquina com os mesmos arquivos renderiza igual."""

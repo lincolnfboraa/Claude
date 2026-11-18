@@ -95,8 +95,17 @@ def um_trabalho():
         etapa('Baixando os arquivos pro render externo', 3)
         novos = sum(baixar(job, a['nome'], a['tamanho'], pasta) for a in r['arquivos'])
         log(f"{len(r['arquivos'])} arquivos ({novos} baixados, {len(r['arquivos']) - novos} do cache)")
-        import motor
-        res = motor.renderizar(pac, etapa, pasta)
+        import motor, montagem
+        if pac.get('etapa') == 'transcricao':          # só transcrever (a IA monta o plano no VPS)
+            feitos = []
+            for i, a in enumerate(pac['arquivos'], 1):
+                n = len(pac['arquivos']); rotulo = 'o vídeo' if n == 1 else f'o vídeo {i} de {n}'
+                etapa(f'Transcrevendo {rotulo}', 8 + int(17 * (i - 1) / n))
+                montagem.transcrever(os.path.join(pasta, a), os.path.join(pasta, f'transcricao_{i:02d}.json')); feitos.append(f'transcricao_{i:02d}.json')
+            montagem.liberar_modelo()
+            res = {'arquivos': feitos}
+        else:
+            res = motor.renderizar(pac, etapa, pasta)
         etapa('Enviando o resultado pro editor', 96)
         tam = {rel: enviar(job, os.path.join(pasta, rel), rel) for rel in res['arquivos']}
         st, rr = chamar('POST', f'/worker/concluir/{job}', {'resultado': res, 'tamanhos': tam, 'segundos': round(time.time() - t0)})

@@ -48,10 +48,16 @@ def processar(p):
     try:
         import motor                                   # motor de edição (bora_estudio/worker/motor.py)
         et = lambda t, n, **k: etapa(pid, t, n, **k)
-        if EXTERNO and p['tipo'] == 'final':         # 4K vai pra fila do render externo (Acer); prévias seguem no VPS
-            fila_enfileirar(motor.preparar(p, et, sb))
-            return                                     # a entrega acontece quando o worker devolver (entregar_prontos)
-        motor.executar(p, etapa=et, sb=sb)
+        if EXTERNO:
+            espera = 30 - (time.time() - INICIO)       # logo depois de ligar, dá tempo do computador de render dar sinal
+            if espera > 0: time.sleep(espera)
+        if EXTERNO and acer_ligado():                  # computador de render ligado: transcrição, prévia e 4K vão pra ele
+            if p['tipo'] == 'final':
+                fila_enfileirar(motor.preparar(p, et, sb))
+                return                                 # a entrega acontece quando o worker devolver (cuidar_da_fila)
+            if previa_externa(p, et):
+                avisar(p, True); return
+        motor.executar(p, etapa=et, sb=sb)             # computador de render desligado: tudo no VPS (como sempre)
         avisar(p, True)
     except Exception as e:
         traceback.print_exc()
@@ -141,6 +147,53 @@ def _iso_seg(iso):
     import calendar
     return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
 
+INICIO = time.time()
+VISTO = {}                                             # nome do worker -> última vez que pediu trabalho ou deu sinal
+OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume
+
+def acer_ligado():
+    return any(time.time() - t < 45 for t in VISTO.values())
+
+def _esperar_externo(pac):
+    """Manda um trabalho de prévia (transcrição ou render) pro computador de render e espera.
+    Devolve o resultado, ou None se ele desligar, sumir ou falhar (aí o VPS faz)."""
+    try:
+        job = sb('POST', '/rest/v1/render_trabalhos', {'projeto_id': pac['projeto_id'], 'versao_id': pac['versao_id'], 'tipo': 'previa',
+                                                       'altura': pac['altura'], 'pacote': pac})[0]
+    except urllib.error.HTTPError as e:
+        if e.code != 409: raise
+        job = sb('GET', f"/rest/v1/render_trabalhos?versao_id=eq.{pac['versao_id']}&tipo=eq.previa&status=in.(pendente,renderizando)&select=*")[0]
+        if job['status'] == 'pendente': fila_patch(job['id'], {'pacote': pac})
+    jid, desde = job['id'], time.time()
+    while True:
+        time.sleep(4)
+        j = fila_get(jid) or {}; st = j.get('status')
+        if st == 'concluido':
+            fila_patch(jid, {'status': 'entregue'}); return j['resultado']
+        if st in ('falhou', 'cancelado'):
+            print('prévia externa:', st, j.get('erro'), '| o VPS faz', flush=True); return None
+        if st == 'pendente' and not acer_ligado() and time.time() - desde > 60:
+            if fila_patch(jid, {'status': 'cancelado', 'erro': 'computador de render desligado'}, '&status=eq.pendente'): return None
+        if st == 'renderizando' and time.time() - _iso_seg(j.get('batida')) > 150:
+            if fila_patch(jid, {'status': 'cancelado', 'erro': 'computador de render sem sinal'}, '&status=eq.renderizando'): return None
+
+def previa_externa(p, et):
+    """Transcrição e prévia no computador de render; a IA (plano) continua no VPS. Se ele sumir no meio, o VPS termina."""
+    import motor
+    pac_t = motor.pacote_transcricao(p, sb)
+    if pac_t:
+        et('Transcrevendo no computador de render', 6)
+        res = _esperar_externo(pac_t)
+        if res is None: return False                   # o VPS transcreve e faz tudo
+    pac = motor.preparar(p, et, sb)                    # transcrições já prontas: só a IA monta o plano
+    et('Montando a prévia no computador de render', 40)
+    res = _esperar_externo(pac)
+    if res is None:
+        et('Computador de render saiu: o VPS termina a prévia', 40)
+        res = motor.renderizar(pac, et)
+    motor.concluir(pac, res, sb)
+    return True
+
 def fila_enfileirar(pac):
     """Grava o trabalho de render (o índice único impede duplicado da mesma versão) e volta na hora."""
     try:
@@ -152,7 +205,9 @@ def fila_enfileirar(pac):
     etapa(pac['projeto_id'], 'Na fila do render 4K (aguardando o computador de render)', None)
 
 def _falhou(job, erro):
-    """Falha do worker: volta pra fila; depois de MAX_TENT tentativas vira erro (sem cair pro VPS)."""
+    """Falha do worker: a prévia volta pro VPS na hora; o 4K volta pra fila e, depois de MAX_TENT tentativas, vira erro."""
+    if job['tipo'] == 'previa':
+        fila_patch(job['id'], {'status': 'falhou', 'erro': erro[:300]}); return
     if job['tentativas'] < MAX_TENT:
         fila_patch(job['id'], {'status': 'pendente', 'worker': None, 'erro': erro[:300]}, '&status=eq.renderizando')
         etapa(job['projeto_id'], f"Render 4K vai tentar de novo ({job['tentativas']} de {MAX_TENT}): {erro[:80]}", None)
@@ -165,7 +220,7 @@ def _falhou(job, erro):
 
 def cuidar_da_fila():
     """Chamado pela vigia: entrega o que o worker terminou e devolve pra fila trabalho de worker que sumiu."""
-    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.concluido&select=*'):
+    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.concluido&tipo=eq.final&select=*'):
         if not fila_patch(j['id'], {'status': 'entregue'}, '&status=eq.concluido'): continue
         try:
             import motor
@@ -173,17 +228,23 @@ def cuidar_da_fila():
             avisar({'tipo': j['tipo'], 'projeto_id': j['projeto_id'], 'versao': j['pacote'].get('n')}, True)
         except Exception as e:
             traceback.print_exc(); fila_patch(j['id'], {'status': 'concluido'})     # tenta entregar de novo na próxima volta
-    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.renderizando&select=*'):
+    for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.renderizando&tipo=eq.final&select=*'):
         if time.time() - _iso_seg(j.get('batida')) > SILENCIO:
             _falhou(j, f"o computador {j.get('worker')} ficou sem sinal por {SILENCIO // 60} min")
+    if not acer_ligado() and time.time() - INICIO > 120:           # computador de render desligado: o VPS assume o 4K
+        for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.pendente&tipo=eq.final&select=*'):
+            ref = max(_iso_seg(j['criado_em']), max(VISTO.values(), default=0))
+            if time.time() - ref > OFFLINE_MIN * 60 and fila_patch(j['id'], {'status': 'cancelado', 'erro': 'computador de render desligado: o VPS fez'}, '&status=eq.pendente'):
+                etapa(j['projeto_id'], 'Computador de render desligado: o VPS vai fazer o 4K', None, andamento_versao=None)
 
 def _permitidos(job):
-    p = job['pacote']; return set(p['arquivos'] + p['transcricoes'] + [p['plano']] + (p.get('anexos') or []))
+    p = job['pacote']; return {n for n in p['arquivos'] + p['transcricoes'] + [p.get('plano')] + (p.get('anexos') or []) if n}
 
 def _rota_worker(h, metodo, u):
     """Rotas /worker/* : autenticadas pelo BORA_WORKER_TOKEN (cabeçalho X-Bora-Worker); o worker só vê os arquivos do trabalho dele."""
     if not WTOKEN or not hmac.compare_digest(h.headers.get('X-Bora-Worker', ''), WTOKEN): return h._r(401, {'erro': 'token do worker'})
     nome_w = (h.headers.get('X-Bora-Worker-Nome') or 'worker')[:40]
+    VISTO[nome_w] = time.time()
     partes = [urllib.parse.unquote(x) for x in u.path.split('/')[2:]]
     acao = partes[0] if partes else ''
     corpo = json.loads(h.rfile.read(int(h.headers.get('Content-Length', 0))) or b'{}') if metodo == 'POST' else {}
