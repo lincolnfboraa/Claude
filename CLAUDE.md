@@ -24,3 +24,4 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   Final leve pro celular: HEVC (libx265, crf 24, tag hvc1).
 - **Áudio fiel ao gravado** (microfone Hollyland já cancela ruído): sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo (limitador só em picos).
 - Respostas em português, linguagem natural, sem travessões.
+- **Testes antes de subir:** ajustes de layout, visual ou texto do app sobem direto, sem teste. Teste completo do motor (testes_regras.py, teste_completo.py e, se mexer no Acer, teste_render_externo.py) só quando a mudança pode comprometer uma entrega: montagem do vídeo, imagem, áudio, 4K, fila ou envio de arquivos.

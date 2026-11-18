@@ -57,7 +57,11 @@ def processar(p):
                 return                                 # a entrega acontece quando o worker devolver (cuidar_da_fila)
             if previa_externa(p, et):
                 avisar(p, True); return
+        t0 = time.time()
         motor.executar(p, etapa=et, sb=sb)             # computador de render desligado: tudo no VPS (como sempre)
+        chave = 'motor_final' if p['tipo'] == 'final' else f"motor_v{p.get('versao') or ''}"
+        registrar_motor(pid, chave, {'feito': 'VPS', 'segundos': round(time.time() - t0)} if p['tipo'] == 'final'
+                        else {'transcricao': 'VPS', 'previa': 'VPS', 'ia': 'VPS', 'segundos': round(time.time() - t0)})
         avisar(p, True)
     except Exception as e:
         if pid in DESCARTADOS: print('projeto descartado durante a edição:', pid, flush=True); return
@@ -171,7 +175,7 @@ def _esperar_externo(pac):
         time.sleep(4)
         j = fila_get(jid) or {}; st = j.get('status')
         if st == 'concluido':
-            fila_patch(jid, {'status': 'entregue'}); return j['resultado']
+            fila_patch(jid, {'status': 'entregue'}); ULT_WORKER[0] = j.get('worker') or 'worker'; return j['resultado']
         if st in ('falhou', 'cancelado'):
             print('prévia externa:', st, j.get('erro'), '| o VPS faz', flush=True); return None
         if st == 'pendente' and not acer_ligado() and time.time() - desde > 60:
@@ -179,21 +183,34 @@ def _esperar_externo(pac):
         if st == 'renderizando' and time.time() - _iso_seg(j.get('batida')) > 150:
             if fila_patch(jid, {'status': 'cancelado', 'erro': 'computador de render sem sinal'}, '&status=eq.renderizando'): return None
 
+ULT_WORKER = ['']
+def _nome(w): return {'vps': 'VPS'}.get(w, (w or 'VPS').capitalize())
+
+def registrar_motor(pid, chave, dados):
+    """Guarda no projeto onde cada etapa foi feita e quanto levou (o app mostra junto de Arquivos e Versões)."""
+    try:
+        m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        m[chave] = dados; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+    except Exception as e: print('registrar motor:', e, flush=True)
+
 def previa_externa(p, et):
     """Transcrição e prévia no computador de render; a IA (plano) continua no VPS. Se ele sumir no meio, o VPS termina."""
     import motor
+    t0 = time.time(); quem_t = 'já transcrito'
     pac_t = motor.pacote_transcricao(p, sb)
     if pac_t:
         et('Transcrevendo no computador de render', 6)
         res = _esperar_externo(pac_t)
         if res is None: return False                   # o VPS transcreve e faz tudo
+        quem_t = _nome(ULT_WORKER[0])
     pac = motor.preparar(p, et, sb)                    # transcrições já prontas: só a IA monta o plano
     et('Montando a prévia no computador de render', 40)
-    res = _esperar_externo(pac)
+    res = _esperar_externo(pac); quem_p = _nome(ULT_WORKER[0])
     if res is None:
         et('Computador de render saiu: o VPS termina a prévia', 40)
-        res = motor.renderizar(pac, et)
+        res = motor.renderizar(pac, et); quem_p = 'VPS'
     motor.concluir(pac, res, sb)
+    registrar_motor(p['projeto_id'], f"motor_v{pac['n']}", {'transcricao': quem_t, 'previa': quem_p, 'ia': 'VPS', 'segundos': round(time.time() - t0)})
     return True
 
 def fila_enfileirar(pac):
@@ -227,6 +244,7 @@ def cuidar_da_fila():
         try:
             import motor
             motor.concluir(j['pacote'], j['resultado'], sb)
+            registrar_motor(j['projeto_id'], 'motor_final', {'feito': _nome(j.get('worker')), 'segundos': j.get('segundos')})
             avisar({'tipo': j['tipo'], 'projeto_id': j['projeto_id'], 'versao': j['pacote'].get('n')}, True)
         except Exception as e:
             traceback.print_exc(); fila_patch(j['id'], {'status': 'concluido'})     # tenta entregar de novo na próxima volta
