@@ -290,11 +290,13 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
             os.replace(chave + '.tmp.mp4', chave)
         usados.append((chave, fa / FPS)); ult_fim = fa / FPS + n / FPS
     if not usados: return base
-    args, fc, ult = ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base], [], '0:v'
+    grande = altura >= 1500                            # 4K: decodificadores e x265 enxutos (cada quadro 10 bits tem ~25 MB)
+    args, fc, ult = ['ffmpeg', '-nostdin', '-v', 'error', '-y'] + (['-threads', '2'] if grande else []) + ['-i', base], [], '0:v'
     for j, (c, t0) in enumerate(usados, 1):
-        args += ['-i', c]
-        fc.append(f'[{j}:v]setpts=PTS-STARTPTS+{t0:.6f}/TB[b{j}];[{ult}][b{j}]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
-    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params])
+        args += (['-threads', '1'] if grande else []) + ['-itsoffset', f'{t0:.6f}', '-i', c]     # cena já no tempo certo: só é lida quando chega a vez
+        fc.append(f'[{ult}][{j}:v]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
+    enx = ':frame-threads=1:pools=4:rc-lookahead=10:lookahead-slices=0' if grande else ''
+    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params + enx])
     with pesado(altura):
         rc, msg, mb = rodar(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:a', 'copy', *cod, *tags,
                                     '-tag:v', 'hvc1', saida], 'b-roll (juntar)')
