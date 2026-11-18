@@ -18,7 +18,7 @@ sys.path.insert(0, AQUI)
 # ---------- projeto real: original 4K HDR, transcrição, plano e 4 cards anexados ----------
 P = os.path.join(A, PID); os.makedirs(P)
 os.symlink(SP + '/prost/raw/IMG_2589.MOV', P + '/original_01.mov')
-shutil.copy(SP + '/trab/teste/transcricao_01.json', P)
+shutil.copy(SP + '/tr_vps.json', P + '/transcricao_01.json')   # transcrição feita com o código atual
 anexos = []
 for k, f in enumerate(sorted(glob.glob(SP + '/canetas/card*_9x16.png')), 1):
     shutil.copy(f, P + f'/anexo_{k:02d}.png'); anexos.append({'nome': os.path.basename(f), 'caminho': P + f'/anexo_{k:02d}.png', 'tipo': 'imagem', 'versao': 1})
