@@ -222,9 +222,13 @@ def trecho_estavel(tremor, ini, dur_cena, dur_take, folga=3.0):
         a, b = int(s), int(min(dur_take, s + dur_cena) - 1e-3)
         return max(tremor[a:b + 1] or [0.0])
     if not tremor or pior(ini) <= TREMOR_ALTO: return ini
-    cands = [round(ini + d / 2, 2) for d in range(-int(folga * 2), int(folga * 2) + 1)]
-    cands = [c for c in cands if 0 <= c <= max(0.0, dur_take - dur_cena - 0.05)]
-    return min(cands, key=lambda c: (pior(c), abs(c - ini))) if cands else ini
+    lim = max(0.0, dur_take - dur_cena - 0.05)
+    perto = [c for c in (round(ini + d / 2, 2) for d in range(-int(folga * 2), int(folga * 2) + 1)) if 0 <= c <= lim]
+    melhor = min(perto, key=lambda c: (pior(c), abs(c - ini))) if perto else ini
+    if pior(melhor) > TREMOR_ALTO:                     # nada firme por perto: procura no take inteiro
+        todos = [round(d / 2, 2) for d in range(int(lim * 2) + 1)]
+        if todos: melhor = min(todos, key=lambda c: (pior(c) > TREMOR_ALTO, abs(c - ini), pior(c)))
+    return melhor
 
 def quadro_jpg(video, saida, largura=512):
     """Um quadro do meio do vídeo em JPEG (convertido pra SDR só pra IA enxergar a cena; não vai pro vídeo)."""

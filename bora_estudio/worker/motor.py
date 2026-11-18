@@ -115,9 +115,10 @@ def preparar(p, etapa, sb):
         brolls = []
         for i, a in enumerate(arqs):
             if papeis[i] == 'ambiente':
-                etapa(f'Analisando as cenas de ambiente (quadros e estabilidade da câmera)', 26)
+                etapa('Separando quadros das cenas de ambiente', 26)
                 jpg, tempos = montagem.folha_take(a, os.path.join(pasta, f'broll_{i + 1:02d}_folha.jpg'))
-                trem = montagem.tremor_por_segundo(a, os.path.join(pasta, f'broll_{i + 1:02d}_tremor.json'))
+                cache_t = os.path.join(pasta, f'broll_{i + 1:02d}_tremor.json')      # tremor só se já foi medido (medição é feita depois, só nos escolhidos)
+                trem = json.load(open(cache_t)) if os.path.exists(cache_t) else None
                 if jpg: brolls.append({'n': len(brolls) + 1, 'ai': i, 'nome': (info[i] if i < len(info) else {}).get('nome') or os.path.basename(a),
                                        'dur': montagem.duracao(a), 'jpg': jpg, 'tempos': tempos, 'tremor': trem})
         if info and any((x.get('papel') != papeis[i]) for i, x in enumerate(info[:len(papeis)])):
@@ -138,6 +139,11 @@ def preparar(p, etapa, sb):
             pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
+        escolhidos = {int(b['video']) for b in pl.get('broll') or []}
+        if escolhidos: etapa('Medindo a estabilidade das cenas escolhidas', 30)
+        for b in brolls:                               # mede o tremor só dos takes que a IA escolheu (cache pros ajustes)
+            if b['n'] in escolhidos and b['tremor'] is None:
+                b['tremor'] = montagem.tremor_por_segundo(arqs[b['ai']], os.path.join(pasta, f"broll_{b['ai'] + 1:02d}_tremor.json"))
         pl['_broll_tremor'] = [b['tremor'] for b in brolls]
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re

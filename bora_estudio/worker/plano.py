@@ -127,7 +127,7 @@ def _conteudo(texto, brolls):
     for b in brolls:
         tr = ' '.join(f'{i}s:{x:g}' for i, x in enumerate(b.get('tremor') or []))
         qs = ', '.join(f'{t:g} s' for t in b.get('tempos') or [])
-        blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.1f} s. Quadros em: {qs}. Tremor por segundo: {tr or 'não medido'}"})
+        blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.1f} s. Quadros em: {qs}. Tremor por segundo: {tr or 'ainda não medido (o motor mede depois da escolha e desloca a cena se estiver tremida); escolha pela imagem dos quadros'}"})
         blocos.append({'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': base64.b64encode(open(b['jpg'], 'rb').read()).decode()}})
     return blocos
 
