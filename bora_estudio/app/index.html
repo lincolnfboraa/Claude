@@ -468,7 +468,7 @@ const V={
   <div class="player" id="vid">${capa(v)}${a.previa?`<button class="play" data-play="${v.id}" aria-label="Reproduzir">${SV(I.play)}</button>`:''}
    <div class="leg"><b>${esc(v.tema)} · v${a.n||1}</b><span>${esc(v.dur)}</span></div></div>
   ${m.aviso?`<div class="aviso"><b>Atenção</b>${esc(m.aviso)}</div>`:''}
-  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?(esc(detalhe(v))||'O app atualiza sozinho'):'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="btn" data-tentar="${v.id}">Tentar de novo</button>`:''}`:''}
+  ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?(esc(detalhe(v))||'O app atualiza sozinho'):'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="pill full" style="margin-top:12px" data-tentar="${v.id}">${SV(I.refaz)}Tentar de novo</button>`:''}`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
