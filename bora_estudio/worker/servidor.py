@@ -162,7 +162,8 @@ VISTO = {}                                             # nome do worker -> últi
 OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume
 
 def acer_ligado():
-    return any(time.time() - t < 45 for t in VISTO.values())
+    # parado, o worker pede trabalho a cada 5 s; renderizando, dá sinal a cada 60 s (batida): 90 s cobre os dois sem alarme falso
+    return any(time.time() - t < 90 for t in VISTO.values())
 
 def _esperar_externo(pac):
     """Manda um trabalho de prévia (transcrição ou render) pro computador de render e espera.
@@ -480,6 +481,7 @@ def _ck_acer():
     if not EXTERNO: return 'info', 'render externo desligado: tudo na VPS'
     if acer_ligado():
         w = max(VISTO, key=VISTO.get); return 'ok', f'{_nome(w)} online (sinal há {int(time.time() - VISTO[w])} s)'
+    if time.time() - INICIO < 120: return 'ok', 'editor acabou de reiniciar: aguardando o sinal do computador de render'
     if VISTO:
         w = max(VISTO, key=VISTO.get); return 'atencao', f'{_nome(w)} desligado há {int((time.time() - VISTO[w]) // 60)} min: a VPS faz os vídeos'
     return 'atencao', 'nenhum computador de render conectado: a VPS faz os vídeos'
