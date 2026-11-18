@@ -485,7 +485,7 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.pal
  <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
  ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}${falta(v)?' · '+esc(falta(v)):''}</small></span><span class="seta">›</span></button>`).join('')}</div>
- <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 20 segundos.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
+ <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 8 segundos e atualiza na hora quando você volta pra ele.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
 function onde(m,n){const min=s=>s==null?'':s<90?' · '+Math.round(s)+' s':' · '+Math.round(s/60)+' min',p=m['motor_v'+n],f=m.motor_final,l=[];
  if(p)l.push(`Prévia v${n}: transcrição ${esc(p.transcricao)}, render ${esc(p.previa)}, IA ${esc(p.ia||'VPS')}${min(p.segundos)}`);
  if(f)l.push(`4K: ${esc(f.feito)}${min(f.segundos)}`);return l.join('<br>')}
@@ -659,10 +659,14 @@ document.addEventListener('change',e=>{const t=e.target;
  if(t.id.startsWith('arq_')&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;const papel=t.id.slice(4);[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);f._papel=papel;S.arquivos.push(f)});t.value='';reRender()}
  else if(t.id==='selcli'){S.novaCli=t.value;S.cores=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(t.dataset.cc){S.cores[t.dataset.cc]=t.value;reRender()}});
-setInterval(()=>{if(document.hidden||!DB.clientes.length)return;
+function atualizar(){if(document.hidden||!DB.clientes.length)return;
  if($('#sheet.on [data-stgo]')){carregarTudo().then(()=>{$('#sheet').innerHTML=sheetStatus()}).catch(()=>{});return}
  const nm=S.stack[S.stack.length-1].v.split(':')[0];if($('#sheet').classList.contains('on')||['login','nova'].includes(nm)||$('#vid video')||$('#aj'))return;
- carregarTudo().then(reRender).catch(()=>{})},20000);
+ carregarTudo().then(reRender).catch(()=>{})}
+// com vídeo em produção confere a cada 8 s; sem nada rodando, a cada 30 s; ao voltar pro app, atualiza na hora
+(function ciclo(){let prod=0;try{prod=emProducao().length}catch(e){}setTimeout(()=>{atualizar();ciclo()},prod?8000:30000)})();
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)atualizar()});
+window.addEventListener('pageshow',()=>atualizar());window.addEventListener('focus',()=>atualizar());
 function b64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');const b=atob(s+'='.repeat((4-s.length%4)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))}
 async function ativarPush(){try{
  if(!('serviceWorker' in navigator)||!('PushManager' in window))return toast('No iPhone, abra o Bora Studio pelo ícone da Tela de Início');
