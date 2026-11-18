@@ -81,3 +81,18 @@ def baixar(fid, destino, prog=None):
             print('drive: download interrompido, retomando', fid, e, flush=True); time.sleep(3 * (t + 1))
     if not os.path.exists(parcial) or os.path.getsize(parcial) != total: raise RuntimeError('o download do Drive não terminou')
     os.replace(parcial, destino); return total
+
+_minis = {}
+def miniatura(fid):
+    """Miniatura do vídeo (gerada pelo próprio Drive), pra escolher os takes no app sem abrir um por um."""
+    if fid in _minis: return _minis[fid]
+    meta = _get(f'files/{fid}', fields='thumbnailLink,parents')
+    pais = meta.get('parents') or []
+    if not pais or not dentro_da_raiz(pais[0]): raise PermissionError('fora da pasta do Bora Studio')
+    link = meta.get('thumbnailLink')
+    if not link: return None
+    link = link.split('=s')[0] + '=s320' if '=s' in link else link
+    r = urllib.request.Request(link, headers={'Authorization': 'Bearer ' + token()})
+    img = urllib.request.urlopen(r, timeout=30).read()
+    if len(_minis) > 500: _minis.clear()
+    _minis[fid] = img; return img

@@ -372,6 +372,15 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/worker/'): return _rota_worker(self, 'GET', u)
+        if u.path == '/drive/miniatura':                   # imagem do vídeo pra escolher no app
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            import drive
+            try: img = drive.miniatura(urllib.parse.parse_qs(u.query).get('id', [''])[0])
+            except PermissionError as e: return self._r(403, {'erro': str(e)})
+            except Exception as e: return self._r(502, {'erro': 'Drive: ' + str(e)[:120]})
+            if not img: return self._r(404, {'erro': 'sem miniatura ainda'})
+            self.send_response(200); self.send_header('Content-Type', 'image/jpeg'); self.send_header('Cache-Control', 'private, max-age=3600')
+            self.send_header('Content-Length', str(len(img))); self.end_headers(); self.wfile.write(img); return
         if u.path == '/drive/listar':                      # pastas e vídeos do Drive (só dentro da pasta raiz)
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             import drive
