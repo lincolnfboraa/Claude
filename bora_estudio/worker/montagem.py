@@ -200,9 +200,10 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
         if not (0 <= k < len(amb)): continue
         arq = arquivos[amb[k]]
         if sondar(arq)[2] != transf_base: print('broll: cor diferente do vídeo (HDR x SDR), pulado', arq, flush=True); continue
-        a = next((t['s'] for t in tokens if t['i'] >= int(b['palavra_inicio'])), None)
-        z = max((t['e'] for t in tokens if t['i'] <= int(b['palavra_fim'])), default=None)
-        if a is None or z is None: continue
+        # só as palavras do trecho escolhido que ficaram no vídeo montado (os segmentos podem vir fora da ordem dos arquivos)
+        sel = [t for t in tokens if int(b['palavra_inicio']) <= t['i'] <= int(b['palavra_fim'])]
+        if not sel: print('broll: trecho escolhido não está no vídeo montado, pulado', b, flush=True); continue
+        a = min(t['s'] for t in sel); z = max(t['e'] for t in sel)
         z = min(max(z, a + 1.5), a + 4.5, dur)               # 1,5 a 4,5 s
         if a < ult_fim + 1.0 or z - a < 1.0: continue        # sem colar um B-roll no outro
         fa, fb = round(a * FPS), round(z * FPS); n = fb - fa
