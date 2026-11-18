@@ -45,3 +45,7 @@ Aba **Biblioteca** no app; arquivos no Storage do Supabase; o motor escolhe na e
 17. Editor leve no app: arrastar corte, trocar B-roll, mover destaque sem escrever o ajuste.
 
 **Primeiro pacote sugerido:** biblioteca com efeitos sonoros e música automáticos (1 e 2) e estilos de texto por cliente (4).
+
+## Capacidade (ideia registrada em 18/11/2026)
+- Hoje: Acer faz 1 transcrição/prévia e 1 4K por vez; VPS faz a IA (2 em paralelo) e assume tudo com o Acer desligado.
+- Ideia: quando o Acer estiver ocupado, a VPS pega o próximo vídeo; e 2 prévias juntas no Acer (4K segue 1 por vez). Medir o tempo real do primeiro vídeo completo antes.
