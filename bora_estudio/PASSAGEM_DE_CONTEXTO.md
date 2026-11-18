@@ -1,59 +1,55 @@
-# Bora Studio: passagem de contexto (16/11/2026)
+# Bora Studio: passagem de contexto (atualizada em 18/11/2026)
 
-Documento para continuar o trabalho numa nova conversa. Leia junto com `CLAUDE.md` (regras de edição) e `bora_estudio/worker/GUIA_INSTALACAO.md`.
+Documento pra continuar o trabalho numa nova conversa ou projeto. Ler junto com `CLAUDE.md` (regras de edição e de trabalho),
+`bora_estudio/ROADMAP.md` (próximas funcionalidades) e `bora_estudio/worker/GUIA_RENDER_EXTERNO.md` (Acer).
 
 ## Regras de trabalho com o Lincoln
-- Responder em português, linguagem natural, **sem travessões**. Economizar créditos e tokens.
-- **Nunca subir código sem testar:** rodar `bora_estudio/worker/testes_regras.py` (9 testes) e `teste_completo.py` antes de cada push de motor.
-- **Correções são globais** (todos os clientes), nunca só para um vídeo.
-- A IA nunca diz que fez algo que não fez. Ao mandar vídeo de teste feito com outro material, avisar claramente.
-- Segredos nunca no chat nem no repositório (chaves ficam em `/opt/bora/bora.env` na VPS e no formulário de credenciais).
-- **Push no GitHub = atualização automática da VPS** (cron a cada 2 min, só quando o editor está livre). Quando o Lincoln pedir para não mexer na VPS, segurar o push e explicar.
-- Imagem sagrada: HDR HLG / BT.2020 / 10 bits do iPhone, nunca SDR (nem em prévia), sem filtros nem suavização. Legendas brancas **sem pontos**. Nunca cortar fim de palavra. Áudio fiel (só passa-alta 60 Hz e -14 LUFS com ganho fixo e limitador só em picos).
+- Português, linguagem natural, **sem travessões**. Economizar créditos e tokens.
+- **Quando testar:** ajuste de layout, visual ou texto do app sobe direto. Teste completo só quando pode comprometer entrega
+  (montagem, imagem, áudio, 4K, fila, envio): `testes_regras.py` (9 testes), `teste_completo.py`, e se mexer no Acer `teste_render_externo.py` (13 verificações).
+- **Push no GitHub = atualização automática da VPS** (cron a cada 2 min, só com o editor livre). Antes de subir mudança de servidor, conferir no
+  Supabase se não há vídeo em produção (`versoes?status=eq.editando`).
+- Correções são globais (todos os clientes). Nunca dizer que fez algo que não fez. Segredos nunca no chat nem no repositório.
+- Imagem sagrada: HDR HLG/BT.2020/10 bits do iPhone, nunca SDR, sem filtros. Legendas brancas **sem pontos**. Nunca cortar fim de palavra.
+  Áudio fiel (só passa-alta 60 Hz e -14 LUFS com ganho fixo).
+- Repositório: `lincolnfboraa/Claude`, branch `claude/upbeat-tesla-qu1g6k`.
 
-## Arquitetura atual
-- **App (PWA):** `bora_estudio/app/index.html`, servido por nginx em `studio.borasolucoesdigitais.com`. Abas: Início, Clientes, +, Revisões, Padrão Bora. Notificações push (manifest.json + sw.js).
-- **Banco:** Supabase `gsychapfrpfjqmzbcpkk` (tabelas equipe, regras_globais, clientes, dna_versoes, dna_ativo, projetos, versoes, sugestoes_dna; bucket privado `previas`).
-- **Editor:** container Docker `bora-editor` na VPS Peramix vmid3238 (206.183.129.41), porta 8787 só em 127.0.0.1, exposto por nginx em `editor.borasolucoesdigitais.com`.
-  - `servidor.py`: vigia o Supabase a cada 10 s, fila com até 2 trabalhos, uploads, link do 4K, push.
-  - `motor.py`: transcreve (faster-whisper), IA monta o plano (`plano.py`, Claude via SDK anthropic), monta a partir dos originais (`montagem.py`), cards (`insercoes.py`), textos (`textos.py` + `hdr_texto.py`), verificação (`validacao.py`), prévia 480p e final 4K (.zip com legendado, sem legenda e .srt).
-- **Atualização automática:** `/opt/bora/repo/bora_estudio/worker/auto_atualizar.sh` no cron. Log em `/var/log/bora-atualizacao.log`. Se um trabalho fica parado (30 min na prévia, 2 h no 4K), atualiza assim mesmo.
+## Arquitetura
+- **App (PWA):** `bora_estudio/app/index.html` em `studio.borasolucoesdigitais.com`. Abas: Início, Clientes, +, Revisões, Padrão Bora.
+- **Banco:** Supabase `gsychapfrpfjqmzbcpkk` (projetos, versoes, clientes, dna_versoes, regras_globais, render_trabalhos, ...; bucket `previas`).
+- **VPS Peramix vmid3238** (206.183.129.41, 24 GB, 8 vCPU): container `bora-editor` (editor + vigia + IA). `/opt/bora/bora.env` tem as chaves.
+  `/opt/bora/repo/bora_estudio/worker/.env` tem `BORA_MEM=18g`. Também: `BORA_RENDER_EXTERNO=1`, `BORA_WORKER_TOKEN`.
+  Atenção: o balloon do Proxmox já reteve 17 GB uma vez; um desligar/ligar da VM resolveu. Disco: 200 GB, partição só com 100 GB (expandir com snapshot).
+- **Acer (render externo):** Acer Nitro, i5-10300H 4c/8t, 16 GB, GTX 1650 (NVENC reprovado no teste de HLG/BT.2020, usa x265).
+  Docker Desktop + container `bora-render` (`C:\bora\Claude-claude-upbeat-tesla-qu1g6k\bora_estudio\worker`). Liga sozinho com o Docker.
+  Pra precisar de virtualização foi preciso: WSL, `VirtualMachinePlatform`, `bcdedit /set "{current}" hypervisorlaunchtype auto` e reinícios.
+  Atualizar o código do Acer: baixar o zip do GitHub (comando em GUIA_RENDER_EXTERNO.md) e rodar `instalar_worker.ps1`.
+- **Regra de render:** Acer ligado faz transcrição, prévia e 4K; IA (plano) sempre na VPS. Acer desligado: a VPS faz tudo
+  (prévia cai pra VPS em 1 min; 4K pendente cai pra VPS em 10 min). Piloto do Acer: ~47 s de render por segundo de vídeo com card (3 a 4x a VPS).
+- **Google Drive:** conta de serviço `bora-editor` (projeto Google Cloud "bora-studio", kinetic-anvil-515022-q9), só leitura, pasta "Bora Claude"
+  compartilhada como Leitor. Chave em `/opt/bora/trabalho/google_sa.json`. O editor baixa os originais direto do Drive.
 
-## O problema de 16/11 e o diagnóstico
-- O 4K da **IMG_2575 v5** (Fabiola Pedron, cards Mounjaro, Ozempic, Tirzepatida, Semaglutida) travou várias vezes.
-- **Causa comprovada:** OOM. A Peramix entrega 24 GB à VM (`lsmem`: 24G online), mas o **balloon do Proxmox retém ~17,2 GB** (`/proc/vmstat`: balloon_inflate 4501248, balloon_deflate 0). O Ubuntu só usa **6,3 GB**, sem swap. Cada ffmpeg 4K usava ~3,2 GB; o `hdr_texto` em 4K usava 5,3 GB e rodava a 0,65 quadro/s.
-- **Peramix:** diz que 24 GB, 8 vCPU e 200 GB estão atribuídos, e que **não permite 100% de CPU contínuo**. Foi enviada mensagem pedindo para desativar o ballooning ou fixar a memória mínima em 24 GB (aguardando resposta).
-- **Disco:** 200 GB no disco, partição com só 100 GB (GPT pede ajuste). Ainda há 39 GB livres. Expandir depois, com snapshot e sem vídeo rodando (`growpart` + `resize2fs`).
+## Funcionalidades no ar
+- **Novo projeto:** blocos **Locução** e **Complementos (B-roll)**, cada um com "Do celular" e "Do Google Drive", com miniaturas; dá pra misturar.
+  Celular exige app aberto; Drive não.
+- **B-roll em HDR:** vídeos de ambiente (bloco Complementos, ou sem fala) viram B-roll; a IA recebe 1 quadro de cada e encaixa durante a fala
+  (1,5 a 4 s, fora do gancho e dos destaques); o motor sobrepõe em 10 bits sem conversão. **Ainda não testado com IA real** (Helenice é o teste).
+- **4K só legendado** (zip com 1 vídeo). Previsão de tempo e quadro atual no app.
+- **Descartar vídeo** (apaga projeto, versões, prévias e pasta; originais do Drive ficam).
+- **Onde foi feito** (Acer ou VPS, tempo) em cada vídeo.
+- **Painel Sistemas** (Padrão Bora): Editor, Supabase, Drive, IA, Saldo da IA, Acer, Fila do 4K, Notificações; servidor confere a cada 2 min e
+  manda push quando algo cai, fica lento ou volta; faixa amarela na tela inicial. Última correção (231c4a9): rota quebrava por `import time` local.
+- **Saldo da IA:** não existe endpoint de saldo na Anthropic; o app mostra gasto do mês (Usage and Cost Analytics API) e saldo estimado
+  a partir da recarga registrada no app (botão "Registrar recarga da IA").
+- App atualiza a cada 8 s com vídeo em produção e na hora ao voltar pro app. Push: prévia pronta, 4K pronto, erro, sistemas.
 
-## O que foi feito (commits até 5b9fe0d, já no GitHub)
-- Um render 4K por vez no servidor inteiro (`BORA_4K_SIMULTANEOS`, padrão 1). Prévias continuam em paralelo.
-- `hdr_texto` só calcula a área com texto ou arte: resultado **idêntico pixel a pixel** (MD5 igual), 4K de 136 s para 64 s e de 5,3 GB para 4,2 GB. Processo filho morto agora vira erro (antes podia sair vídeo cortado).
-- Falta de memória registrada (código de saída, pico de memória, trecho). Depois de 1 nova tentativa para com "Erro: memória insuficiente..." e **não repete sozinho**, nem ao reiniciar. Botão **Tentar de novo** no app.
-- Trechos 4K já prontos são reaproveitados na retomada (`_trechos_<altura>`).
-- Modelo do Whisper sai da memória antes do render.
-- Docker reversível: `mem_limit ${BORA_MEM:-5500m}`, `cpus ${BORA_CPUS:-6}` (75%, termos da Peramix). Com a RAM liberada: criar `/opt/bora/repo/bora_estudio/worker/.env` com `BORA_MEM=18g` e `BORA_4K_SIMULTANEOS=2`.
-- Intermediários dos trechos em x265 veryfast crf 14 (entrega final continua medium crf 24, HLG/BT.2020/10 bits). Se o Lincoln quiser garantia total, voltar intermediários para medium.
-
-## Passos pendentes agora (na VPS, um de cada vez)
-1. Swap de 4 GB: `fallocate -l 4G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab && free -h`
-2. Parar o processo antigo da v5: `docker restart bora-editor`
-3. Após ~3 min conferir: `cd /opt/bora/repo && git log -1 --format='%h %s' && docker inspect bora-editor --format 'mem={{.HostConfig.Memory}} cpus={{.HostConfig.NanoCpus}}'` (esperado 5b9fe0d ou mais novo, mem=5767168000, cpus=6000000000)
-4. No app, aprovar a v5 da IMG_2575 de novo (o projeto foi colocado em "revisão" no banco para cancelar o 4K travado). Estimativa: 40 min a 1 h.
-
-## Próximo projeto: render externo
-Ideia aprovada em princípio: app, Supabase e IA continuam na Peramix; o render pesado vai para outra máquina.
-- O editor já é um container que busca trabalho no Supabase, então um segundo editor é simples. Falta: trava no Supabase para dois editores não pegarem o mesmo trabalho, download seguro dos originais da VPS e devolução do resultado.
-- Opção 1 (teste sem custo): o PC Windows do Lincoln (Docker Desktop). Pedir print do Gerenciador de Tarefas > Desempenho (CPU, Memória e GPU). Processador forte importa mais que GPU.
-- Opção 2: servidor com **CPU dedicada** (Hetzner AX/CCX, DigitalOcean ou Vultr CPU-Optimized; Vultr tem São Paulo). Pesquisar preços atuais antes de recomendar.
-- Descartados: prévia em H.264 (iPhone não toca H.264 10 bits HDR, viraria SDR), Shotstack/Creatomate (não preservam HDR HLG), HostGator (mesmo problema de CPU compartilhada). NVENC ajuda só na codificação.
-- Fazer prova de conceito comparando com o render atual, sem desligar o editor da VPS.
-
-## Outras pendências
-- Testar notificações no iPhone (Padrão Bora > Ativar notificações).
-- Estilos de texto por cliente (The House, Up Studio, Agropec...) antes de editar outros clientes.
-- Botão para remover anexos antigos (IMG_2575 acumula 9).
-- Confirmar os DNAs provisórios dos 5 clientes analisados.
-- Deixar o repositório GitHub privado.
-
-## Edits (registro)
-- Existe MCP do Edits para Mac. A compatibilidade com o Acer (Windows) não foi comprovada. Não foi testado nesta sessão.
+## Pendências
+1. Confirmar o painel Sistemas verde no app depois da correção 231c4a9.
+2. **Teste real da Helenice** (cliente Padrão Bora, falas em Locução, cenas em Complementos): validar escolha da IA no B-roll.
+   Se faltar qualidade: medir movimento de câmera por segundo nos takes de ambiente e mandar 3 quadros por take (proposta pronta, não feita).
+3. Chave de administrador da Anthropic (`ANTHROPIC_ADMIN_KEY` no bora.env) pra ver gasto e saldo da IA.
+4. Expandir o disco da VPS pra 200 GB (com snapshot e sem vídeo rodando).
+5. Repositório GitHub ainda público: tornar privado (o Acer baixa o zip público; ajustar se fechar).
+6. Roadmap (`ROADMAP.md`): biblioteca de assets, efeitos sonoros e música automáticos, estilos de texto por cliente, capacidade em paralelo.
+7. Slides complementares da Bora (8 páginas, PDF entregue) aguardando os dados de preenchimento (história, fotos, números, depoimentos, WhatsApp).
+8. Edits via MCP: existe pra Mac; compatibilidade com o Acer não comprovada; não testado.
