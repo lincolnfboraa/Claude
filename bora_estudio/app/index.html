@@ -409,7 +409,7 @@ const V={
   const bloco=(t,arr,cor)=>arr&&arr.length?`<div class="secao"><h2>${t}</h2><span class="cnt">${arr.length}</span></div><div class="lst">${linhas(arr,cor)}</div>`:'';
   return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
   <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
-  <div class="secao" id="sistemas"><h2>Sistemas</h2><button class="lk" data-saude style="background:none;border:0;color:var(--l,#FF5E16);font-weight:600">Conferir agora</button></div>${cardsSistemas()}
+  <div class="secao" id="sistemas"><h2>Sistemas</h2><button class="lk" data-saude style="background:none;border:0;color:var(--l,#FF5E16);font-weight:600;font-size:14px;white-space:nowrap;flex-shrink:0;margin-left:auto">Conferir agora</button></div>${cardsSistemas()}
   <button class="ln" data-recarga style="margin-top:8px"><span class="tx"><b>Registrar recarga da IA</b><small>Depois de colocar crédito na Anthropic, informe o valor pra acompanhar o saldo estimado</small></span><span class="seta">›</span></button>
   <button class="pill ${S.pushOk?'':'pri'} full" data-push-ativar style="margin-bottom:6px">${SV(I.sino)}${S.pushOk?'Notificações ativadas neste aparelho':'Ativar notificações'}</button>
   <p class="nota" style="margin-top:4px">Avisa quando a prévia fica pronta, quando o 4K termina e se der erro. No iPhone, abra o app pelo ícone da Tela de Início.</p>
