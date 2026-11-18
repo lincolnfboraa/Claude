@@ -443,11 +443,6 @@ const V={
   <h1 class="titulo">Novo projeto</h1><p class="apoio">Envie os vídeos e conte o que precisa. O resto segue o DNA do cliente.</p>
   <h3 class="rot">Cliente</h3><label class="campo"><span class="ini ${c.cls}" style="width:36px;height:36px;font-size:12px">${c.ini}</span>
    <select id="selcli" aria-label="Cliente">${DB.clientes.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select><span class="seta">›</span></label>
-  <h3 class="rot">Materiais do projeto</h3>
-  <div class="solta">${SV(I.nuvem,'ico nuvem')}<b>${fs.length?fs.length+(fs.length>1?' vídeos selecionados':' vídeo selecionado'):'Envie os vídeos brutos'}</b>
-   <small>${fs.length?(fs.reduce((a,f)=>a+f.size,0)/1048576).toFixed(0)+' MB · takes, partes e B-rolls do mesmo Reels':'Takes, partes e B-rolls do mesmo Reels'}</small>
-   <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden>
-</div>
   <h3 class="rot">Locução</h3>
   <div class="lst">${(S.drive&&S.drive.fala||[]).map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · take com fala</small></span><button class="voltar" data-rmd="fala:${i}" aria-label="Remover">✕</button></div>`).join('')}
    <button class="ln" data-drive="fala">${SV(I.nuvem)}<span class="tx"><b>${S.drive&&S.drive.fala.length?'Adicionar mais takes do Drive':'Takes com fala, do Google Drive'}</b><small>Onde a pessoa fala pra câmera</small></span><span class="seta">›</span></button></div>
@@ -455,8 +450,12 @@ const V={
   <div class="lst">${(S.drive&&S.drive.amb||[]).map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · cena de ambiente</small></span><button class="voltar" data-rmd="amb:${i}" aria-label="Remover">✕</button></div>`).join('')}
    <button class="ln" data-drive="ambiente">${SV(I.nuvem)}<span class="tx"><b>${S.drive&&S.drive.amb.length?'Adicionar mais complementos':'Cenas de ambiente, do Google Drive'}</b><small>Opcional: entram durante a fala, em HDR, sem som</small></span><span class="seta">›</span></button></div>
   ${S.drive&&(S.drive.fala.length||S.drive.amb.length)?`<p class="nota">O servidor baixa direto do Drive: pode fechar o app depois de enviar.</p>`:''}
+  ${S.celular||fs.length?`<h3 class="rot">Envio direto do celular</h3>  <div class="solta">${SV(I.nuvem,'ico nuvem')}<b>${fs.length?fs.length+(fs.length>1?' vídeos selecionados':' vídeo selecionado'):'Envie os vídeos brutos'}</b>
+   <small>${fs.length?(fs.reduce((a,f)=>a+f.size,0)/1048576).toFixed(0)+' MB · takes, partes e B-rolls do mesmo Reels':'Takes, partes e B-rolls do mesmo Reels'}</small>
+   <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden>
+</div>`:`<button class="ln" data-celular style="margin-top:10px"><span class="tx"><b>Enviar direto do celular</b><small>Sem Drive: o app envia os vídeos e precisa ficar aberto até terminar</small></span><span class="seta">›</span></button>`}
   ${fs.length?`<div class="thumbs">${fs.map((f,i)=>`<div class="th"><video src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="nm">${esc(f.name)}</span><span class="du" id="du${i}">${f._dur||''}</span><button class="rm" data-rmarq="${i}" aria-label="Remover ${esc(f.name)}">✕</button></div>`).join('')}</div>`:''}
-  <p class="nota">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p>
+  ${S.celular||fs.length?`<p class="nota">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p>`:''}
   <h3 class="rot">Briefing do projeto</h3>
   <textarea id="briefing" placeholder="Ex.: Reels de Novembro Azul pros homens, gancho com o canudinho, até 60 s.">${esc(S.briefing)}</textarea>
   <h3 class="rot">Cores do texto</h3>
@@ -644,6 +643,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   const lado=S.dmodo==='ambiente'?'amb':'fala',outro=lado==='amb'?'fala':'amb',novos=D.r.videos.filter(v=>D.sel[v.id]).map(v=>({id:v.id,nome:v.nome,tamanho:v.tamanho}));
   novos.forEach(v=>{S.drive[outro]=S.drive[outro].filter(x=>x.id!==v.id);if(!S.drive[lado].some(x=>x.id===v.id))S.drive[lado].push(v)});
   S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];close();reRender()}
+ else if('celular' in d){S.celular=true;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(d.rmd){const[k,i]=d.rmd.split(':');S.drive[k].splice(+i,1);S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
