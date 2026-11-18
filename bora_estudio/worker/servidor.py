@@ -341,9 +341,11 @@ def receber_originais(pid, lista):
     sb('POST', '/rest/v1/versoes', {'projeto_id': pid, 'numero': 1, 'status': 'editando', 'resumo': 'Primeira versão'})
     return arquivos, aviso
 
-def importar_do_drive(pid, lista):
-    """Baixa os vídeos escolhidos do Drive direto pra VPS (servidor com servidor) e segue o fluxo normal."""
+def importar_do_drive(pid, lista, locais=()):
+    """Baixa os vídeos escolhidos do Drive direto pra VPS (servidor com servidor) e segue o fluxo normal.
+    locais: vídeos que já chegaram do celular (original_01..k); os do Drive entram depois deles."""
     import drive
+    k = len(locais)
     try:
         total = sum(int(a.get('tamanho') or 0) for a in lista) or 1; feito = [0]; ult = [0.0]
         for i, a in enumerate(lista, 1):
@@ -352,10 +354,10 @@ def importar_do_drive(pid, lista):
                 if time.time() - ult[0] > 5:
                     ult[0] = time.time()
                     etapa(pid, f'Baixando do Drive ({i} de {len(lista)})', min(99, round((base + n) / total * 100)), aguardando_upload=True)
-            drive.baixar(a['id'], os.path.join(pasta(pid), f'original_{i:02d}.parcial'), prog)
+            drive.baixar(a['id'], os.path.join(pasta(pid), f'original_{k + i:02d}.parcial'), prog)
             feito[0] += int(a.get('tamanho') or 0)
         etapa(pid, 'Vídeos recebidos do Drive', None, aguardando_upload=True)
-        receber_originais(pid, lista)
+        receber_originais(pid, list(locais) + lista)
     except Exception as e:
         traceback.print_exc(); etapa(pid, 'Erro ao baixar do Drive: ' + str(e)[:120], None)
 
@@ -442,13 +444,18 @@ class H(BaseHTTPRequestHandler):
             pid = os.path.basename(u.path.split('/')[3]); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
             lista = [{'id': str(a['id']), 'nome': os.path.basename(str(a.get('nome') or 'video.mov')), 'tamanho': int(a.get('tamanho') or 0),
                       'papel': a.get('papel') if a.get('papel') in ('fala', 'ambiente') else None} for a in corpo.get('arquivos') or []]
+            locais = [{'nome': os.path.basename(str(a.get('nome') or 'video.mov')), 'tamanho': int(a.get('tamanho') or -1),
+                       'papel': a.get('papel') if a.get('papel') in ('fala', 'ambiente') else None} for a in corpo.get('locais') or []]
+            for i, a in enumerate(locais, 1):              # os do celular precisam ter chegado inteiros antes
+                parcial = os.path.join(pasta(pid), f'original_{i:02d}.parcial')
+                if not os.path.exists(parcial) or os.path.getsize(parcial) != a['tamanho']: return self._r(409, {'erro': f'vídeo do celular {i} incompleto'})
             if not lista: return self._r(400, {'erro': 'nenhum vídeo escolhido'})
             try:
                 for a in lista:                            # cada arquivo precisa estar dentro da pasta raiz
                     pais = drive._get(f"files/{a['id']}", fields='parents').get('parents') or []
                     if not pais or not drive.dentro_da_raiz(pais[0]): return self._r(403, {'erro': f"{a['nome']} está fora da pasta do Bora Studio"})
             except Exception as e: return self._r(502, {'erro': 'Drive: ' + str(e)[:150]})
-            threading.Thread(target=importar_do_drive, args=(pid, lista), daemon=True).start()
+            threading.Thread(target=importar_do_drive, args=(pid, lista, locais), daemon=True).start()
             return self._r(202, {'ok': True, 'arquivos': len(lista)})
         if u.path.startswith('/final/') and u.path.endswith('/link'):
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})

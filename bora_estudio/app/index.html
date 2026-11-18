@@ -443,19 +443,10 @@ const V={
   <h1 class="titulo">Novo projeto</h1><p class="apoio">Envie os vídeos e conte o que precisa. O resto segue o DNA do cliente.</p>
   <h3 class="rot">Cliente</h3><label class="campo"><span class="ini ${c.cls}" style="width:36px;height:36px;font-size:12px">${c.ini}</span>
    <select id="selcli" aria-label="Cliente">${DB.clientes.map(x=>`<option value="${x.id}" ${x.id===c.id?'selected':''}>${esc(x.nome)}</option>`).join('')}</select><span class="seta">›</span></label>
-  <h3 class="rot">Locução</h3>
-  <div class="lst">${(S.drive&&S.drive.fala||[]).map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · take com fala</small></span><button class="voltar" data-rmd="fala:${i}" aria-label="Remover">✕</button></div>`).join('')}
-   <button class="ln" data-drive="fala">${SV(I.nuvem)}<span class="tx"><b>${S.drive&&S.drive.fala.length?'Adicionar mais takes do Drive':'Takes com fala, do Google Drive'}</b><small>Onde a pessoa fala pra câmera</small></span><span class="seta">›</span></button></div>
-  <h3 class="rot">Complementos (B-roll)</h3>
-  <div class="lst">${(S.drive&&S.drive.amb||[]).map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · cena de ambiente</small></span><button class="voltar" data-rmd="amb:${i}" aria-label="Remover">✕</button></div>`).join('')}
-   <button class="ln" data-drive="ambiente">${SV(I.nuvem)}<span class="tx"><b>${S.drive&&S.drive.amb.length?'Adicionar mais complementos':'Cenas de ambiente, do Google Drive'}</b><small>Opcional: entram durante a fala, em HDR, sem som</small></span><span class="seta">›</span></button></div>
-  ${S.drive&&(S.drive.fala.length||S.drive.amb.length)?`<p class="nota">O servidor baixa direto do Drive: pode fechar o app depois de enviar.</p>`:''}
-  ${S.celular||fs.length?`<h3 class="rot">Envio direto do celular</h3>  <div class="solta">${SV(I.nuvem,'ico nuvem')}<b>${fs.length?fs.length+(fs.length>1?' vídeos selecionados':' vídeo selecionado'):'Envie os vídeos brutos'}</b>
-   <small>${fs.length?(fs.reduce((a,f)=>a+f.size,0)/1048576).toFixed(0)+' MB · takes, partes e B-rolls do mesmo Reels':'Takes, partes e B-rolls do mesmo Reels'}</small>
-   <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden>
-</div>`:`<button class="ln" data-celular style="margin-top:10px"><span class="tx"><b>Enviar direto do celular</b><small>Sem Drive: o app envia os vídeos e precisa ficar aberto até terminar</small></span><span class="seta">›</span></button>`}
-  ${fs.length?`<div class="thumbs">${fs.map((f,i)=>`<div class="th"><video src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="nm">${esc(f.name)}</span><span class="du" id="du${i}">${f._dur||''}</span><button class="rm" data-rmarq="${i}" aria-label="Remover ${esc(f.name)}">✕</button></div>`).join('')}</div>`:''}
-  ${S.celular||fs.length?`<p class="nota">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p>`:''}
+  ${blocoMat('fala','Locução','Takes em que a pessoa fala pra câmera')}
+  ${blocoMat('ambiente','Complementos (B-roll)','Opcional: cenas de ambiente que entram durante a fala, em HDR, sem som')}
+  ${fs.length?`<p class="nota">Do celular: na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR. O app precisa ficar aberto até o envio terminar.</p>`:''}
+  ${S.drive&&(S.drive.fala.length||S.drive.amb.length)?`<p class="nota">Do Drive: o servidor baixa direto, não depende do app aberto.</p>`:''}
   <h3 class="rot">Briefing do projeto</h3>
   <textarea id="briefing" placeholder="Ex.: Reels de Novembro Azul pros homens, gancho com o canudinho, até 60 s.">${esc(S.briefing)}</textarea>
   <h3 class="rot">Cores do texto</h3>
@@ -493,6 +484,13 @@ function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.pal
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
  ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}${falta(v)?' · '+esc(falta(v)):''}</small></span><span class="seta">›</span></button>`).join('')}</div>
  <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 20 segundos.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
+function blocoMat(lado,titulo,sub){const k=lado==='fala'?'fala':'amb',drv=(S.drive&&S.drive[k])||[],loc=S.arquivos.map((f,i)=>({f,i})).filter(x=>(x.f._papel||'fala')===lado);
+ return `<h3 class="rot">${titulo}</h3><div class="lst">
+  ${drv.map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · do Google Drive</small></span><button class="voltar" data-rmd="${k}:${i}" aria-label="Remover">✕</button></div>`).join('')}
+  ${loc.map(({f,i})=>`<div class="ln"><video class="mini" src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="tx"><b>${esc(f.name)}</b><small>${(f.size/1048576).toFixed(0)} MB · do celular <span id="du${i}">${f._dur||''}</span></small></span><button class="voltar" data-rmarq="${i}" aria-label="Remover">✕</button></div>`).join('')}
+  ${!drv.length&&!loc.length?`<p class="vazio" style="padding:14px 4px 4px">${sub}</p>`:''}
+  <div style="display:flex;gap:8px;padding:12px 0 4px"><label class="pill sm" for="arq_${lado}" style="cursor:pointer;flex:1;justify-content:center">${SV(I.pasta)}Do celular</label><input type="file" id="arq_${lado}" accept="video/*" multiple hidden>
+   <button class="pill sm" data-drive="${lado}" style="flex:1;justify-content:center">${SV(I.nuvem)}Do Google Drive</button></div></div>`}
 function sheetDrive(){const D=S.dnav||{};if(D.erro)return `<div class="grab"></div><div class="sh"><button data-close>Fechar</button><b>Google Drive</b><span style="width:52px"></span></div><div class="lst"><p class="vazio">${esc(D.erro)}</p></div>`;
  if(!D.r)return `<div class="grab"></div><div class="sh"><button data-close>Fechar</button><b>Google Drive</b><span style="width:52px"></span></div><div class="lst"><p class="vazio">Abrindo o Drive…</p></div>`;
  const sel=D.sel||{},n=Object.keys(sel).length;
@@ -588,30 +586,24 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{await q(sb.from('clientes').update({nome:dd.nome,segmento:dd.segmento}).eq('id',c.id));
    await q(sb.from('dna_versoes').insert({cliente_id:c.id,numero:c.dna_numero+1,dna,motivo:'Edição manual do perfil',confirmado_por:(await sb.auth.getUser()).data.user.id}));
    if(S.novaCli===c.id)S.cores=null;close();await recarregar();toast('Perfil salvo como DNA v'+(c.dna_numero+1))})()}
- else if('iniciar' in d&&S.drive&&(S.drive.fala.length||S.drive.amb.length)){const c=cli(S.novaCli),brief=($('#briefing')||{}).value||'';if(!EDITOR)return toast('Endereço do editor não configurado');
-  if(!S.drive.fala.length)return toast('Escolha pelo menos um take com fala na Locução');
-  const dv={nome:S.drive.nome,arquivos:[...S.drive.fala.map(f=>({...f,papel:'fala'})),...S.drive.amb.map(f=>({...f,papel:'ambiente'}))]};
-  (async()=>{try{const n=dv.arquivos[0].nome.replace(/\.[^.]+$/,'');
-   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:dv.arquivos.length>1?dv.arquivos.length+' vídeos':dv.arquivos[0].nome,briefing:brief||undefined,aguardando_upload:true,andamento:'Baixando do Drive',progresso:0}}).select());
-   const tok=(await sb.auth.getSession()).data.session.access_token;
-   const r=await fetch(`${EDITOR}/drive/importar/${p.id}`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:dv.arquivos})});
+ else if('iniciar' in d){const c=cli(S.novaCli),fs=S.arquivos,dv=S.drive||{fala:[],amb:[]},brief=($('#briefing')||{}).value||'';
+  if(!EDITOR)return toast('Endereço do editor não configurado');
+  const falasCel=fs.filter(f=>(f._papel||'fala')==='fala');if(!falasCel.length&&!dv.fala.length)return toast('Escolha pelo menos um take com fala na Locução');
+  const drv=[...dv.fala.map(f=>({...f,papel:'fala'})),...dv.amb.map(f=>({...f,papel:'ambiente'}))],total=fs.length+drv.length;
+  const n=(falasCel[0]?falasCel[0].name:dv.fala[0].nome).replace(/\.[^.]+$/,'');
+  (async()=>{try{
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
+   if(fs.length){const w=$('#upwrap');w.classList.remove('rodape');
+    w.innerHTML=`<div class="envio" style="margin-top:26px"><span id="upanel">${anel(0,60)}</span><span class="tx"><b>Enviando ${fs.length>1?fs.length+' vídeos':'o vídeo'} do celular</b><small id="upinfo">Preparando…</small></span></div><p class="nota">Deixe o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
+    const TOT=fs.reduce((a,x)=>a+x.size,0);let feito=0;
+    for(let i=0;i<fs.length;i++){await enviarOriginal(p.id,fs[i],i+1,x=>{const y=feito+x,pc=Math.round(y/TOT*100);$('#upanel').innerHTML=anel(pc,60);$('#upinfo').textContent=`${fs.length>1?'Vídeo '+(i+1)+' de '+fs.length+' · ':''}${(y/1048576).toFixed(0)} de ${(TOT/1048576).toFixed(0)} MB`});feito+=fs[i].size}}
+   const tok=(await sb.auth.getSession()).data.session.access_token,locais=fs.map(x=>({nome:x.name,tamanho:x.size,papel:x._papel||'fala'}));
+   const r=drv.length?await fetch(`${EDITOR}/drive/importar/${p.id}`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:drv,locais})})
+                     :await fetch(`${EDITOR}/upload/${p.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:locais})});
    const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
-   S.drive=null;S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();toast('O servidor está baixando '+dv.arquivos.length+(dv.arquivos.length>1?' vídeos':' vídeo')+' do Drive. Pode fechar o app.')}
-   catch(e){toast('Não consegui começar: '+e.message)}})()}
- else if('iniciar' in d){const c=cli(S.novaCli),fs=S.arquivos,f=fs[0];if(!f)return toast('Selecione os vídeos primeiro');if(!EDITOR)return toast('Endereço do editor não configurado');
-  const brief=($('#briefing')||{}).value||'';
-  (async()=>{const n=f.name.replace(/\.[^.]+$/,'');
-   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:fs.length>1?fs.length+' vídeos':f.name,briefing:brief||undefined,aguardando_upload:true,andamento:'Enviando o original',progresso:0}}).select());
-   const w=$('#upwrap');w.classList.remove('rodape');
-   w.innerHTML=`<div class="envio" style="margin-top:26px"><span id="upanel">${anel(0,60)}</span><span class="tx"><b>Enviando ${fs.length>1?fs.length+' vídeos':'o vídeo'}</b><small id="upinfo">Preparando…</small></span></div><p class="nota">Deixe o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
-   const TOT=fs.reduce((a,x)=>a+x.size,0);let feito=0;
-   try{for(let i=0;i<fs.length;i++){await enviarOriginal(p.id,fs[i],i+1,x=>{const y=feito+x,pc=Math.round(y/TOT*100);$('#upanel').innerHTML=anel(pc,60);$('#upinfo').textContent=`${fs.length>1?'Vídeo '+(i+1)+' de '+fs.length+' · ':''}${(y/1048576).toFixed(0)} de ${(TOT/1048576).toFixed(0)} MB`});feito+=fs[i].size}
-    const tok=(await sb.auth.getSession()).data.session.access_token;
-    const r=await fetch(`${EDITOR}/upload/${p.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:fs.map(x=>({nome:x.name,tamanho:x.size}))})});
-    const j=await r.json();if(!r.ok)throw new Error(j.erro||'falha ao concluir');
-    fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
-    toast(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':(fs.length>1?fs.length+' vídeos recebidos':'Vídeo recebido')+'. Editando no DNA de '+c.nome)}
-   catch(e){toast('Envio parou: '+e.message);$('#upinfo').textContent='Envio interrompido. Toque em Nova edição e envie de novo pra retomar.'}})()}
+   fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
+   toast(drv.length?'O servidor está baixando os vídeos do Drive. Pode fechar o app.':(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':'Vídeos recebidos. Editando no DNA de '+c.nome))}
+  catch(e){toast('Envio parou: '+e.message);const u=$('#upinfo');if(u)u.textContent='Envio interrompido. Toque em Enviar projeto de novo pra retomar.'}})()}
  else if(d.parecer){const[id,k]=d.parecer.split(':');S.parecer[id]=k;reRender()}
  else if(d.rmanx){const[id,i]=d.rmanx.split(':');S.ajTxt=($('#aj')||{}).value||'';S.anexos[id].splice(+i,1);reRender()}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
@@ -643,7 +635,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   const lado=S.dmodo==='ambiente'?'amb':'fala',outro=lado==='amb'?'fala':'amb',novos=D.r.videos.filter(v=>D.sel[v.id]).map(v=>({id:v.id,nome:v.nome,tamanho:v.tamanho}));
   novos.forEach(v=>{S.drive[outro]=S.drive[outro].filter(x=>x.id!==v.id);if(!S.drive[lado].some(x=>x.id===v.id))S.drive[lado].push(v)});
   S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];close();reRender()}
- else if('celular' in d){S.celular=true;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(d.rmd){const[k,i]=d.rmd.split(':');S.drive[k].splice(+i,1);S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
@@ -656,7 +647,7 @@ async function enviarOriginal(pid,f,n,prog,tipo){const qt=tipo?'&tipo='+tipo:'';
   if(!ok)throw new Error('sem conexão com o editor');prog(off)}}
 document.addEventListener('change',e=>{const t=e.target;
  if(t.id==='anx'&&t.files.length){const id=t.dataset.proj;S.ajTxt=($('#aj')||{}).value||'';(S.anexos[id]=S.anexos[id]||[]).push(...t.files);t.value='';reRender();return}
- if(t.id==='arq'&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);S.arquivos.push(f)});t.value='';reRender()}
+ if(t.id.startsWith('arq_')&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;const papel=t.id.slice(4);[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);f._papel=papel;S.arquivos.push(f)});t.value='';reRender()}
  else if(t.id==='selcli'){S.novaCli=t.value;S.cores=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(t.dataset.cc){S.cores[t.dataset.cc]=t.value;reRender()}});
 setInterval(()=>{if(document.hidden||!DB.clientes.length)return;
