@@ -327,7 +327,8 @@ def receber_originais(pid, lista):
         parcial = os.path.join(d, f'original_{i:02d}.parcial')
         ext = os.path.splitext(a.get('nome', 'video.mov'))[1].lower() or '.mov'
         final = os.path.join(d, f'original_{i:02d}{ext}'); os.replace(parcial, final)
-        arquivos.append({'nome': a.get('nome'), 'caminho': final, **inspecionar(final)})
+        arquivos.append({'nome': a.get('nome'), 'caminho': final, **inspecionar(final),
+                         **({'papel_usuario': a['papel']} if a.get('papel') in ('fala', 'ambiente') else {})})
     info = {k: arquivos[0][k] for k in ('res', 'fps', 'cor')}
     sem_hdr = [x['nome'] for x in arquivos if not x['hdr']]
     aviso = None if not sem_hdr else ('Chegou sem HDR: ' + ', '.join(sem_hdr) + '. No iPhone, escolha Opções > Atual na Fototeca pra mandar o original')
@@ -430,7 +431,8 @@ class H(BaseHTTPRequestHandler):
             import drive
             if not drive.configurado(): return self._r(503, {'erro': 'o acesso ao Drive ainda não foi configurado no servidor'})
             pid = os.path.basename(u.path.split('/')[3]); corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
-            lista = [{'id': str(a['id']), 'nome': os.path.basename(str(a.get('nome') or 'video.mov')), 'tamanho': int(a.get('tamanho') or 0)} for a in corpo.get('arquivos') or []]
+            lista = [{'id': str(a['id']), 'nome': os.path.basename(str(a.get('nome') or 'video.mov')), 'tamanho': int(a.get('tamanho') or 0),
+                      'papel': a.get('papel') if a.get('papel') in ('fala', 'ambiente') else None} for a in corpo.get('arquivos') or []]
             if not lista: return self._r(400, {'erro': 'nenhum vídeo escolhido'})
             try:
                 for a in lista:                            # cada arquivo precisa estar dentro da pasta raiz

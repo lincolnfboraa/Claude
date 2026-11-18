@@ -86,6 +86,10 @@ def liberar_modelo():
 def transcrever(video, cache):
     """Palavras com tempo (segundos do arquivo original)."""
     if os.path.exists(cache): return json.load(open(cache))
+    tem_audio = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', video],
+                               capture_output=True, text=True).stdout.strip()
+    if not tem_audio:                                  # vídeo sem som (ex.: ambiente): nenhuma palavra
+        json.dump([], open(cache, 'w')); return []
     global _modelo
     from faster_whisper import WhisperModel
     if _modelo is None:
@@ -158,6 +162,84 @@ def pecas(plano, arquivos, palavras, pasta):
             out.append((ai, fa, fb, sg.get('quadro', 'medio')))
             t_out += (fb - fa) / FPS
     return out, tokens, round(t_out, 3)
+
+def duracao(video):
+    d = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', video], capture_output=True, text=True).stdout
+    return float((re.findall(r'[\d.]+', d) or ['0'])[0])
+
+def classificar(palavras_do_arquivo, video, escolha=None):
+    """'fala' (locução) ou 'ambiente' (B-roll). Vale a escolha do app; sem ela, pouca fala por segundo = ambiente."""
+    if escolha in ('fala', 'ambiente'): return escolha
+    d = max(duracao(video), 0.1); n = len(palavras_do_arquivo)
+    return 'ambiente' if n <= 3 or n / d < 0.6 else 'fala'
+
+def quadro_jpg(video, saida, largura=512):
+    """Um quadro do meio do vídeo em JPEG (convertido pra SDR só pra IA enxergar a cena; não vai pro vídeo)."""
+    if os.path.exists(saida): return saida
+    t = duracao(video) / 2; hdr = sondar(video)[2] in ('arib-std-b67', 'smpte2084')
+    tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if hdr else ''
+    for f in ((tm + f'scale={largura}:-2'), f'scale={largura}:-2'):
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{t:.2f}', '-i', video, '-frames:v', '1', '-vf', f, '-q:v', '4', saida], capture_output=True)
+        if r.returncode == 0 and os.path.exists(saida): return saida
+    return None
+
+BROLL_APLICADOS = 0
+def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
+    """Cenas de ambiente cobrindo a imagem durante a locução (a voz continua). Tudo em HDR do original:
+    recorte vertical + escala como os takes, sobreposto direto em 10 bits (sem conversão de cor, sem filtro)."""
+    global BROLL_APLICADOS
+    BROLL_APLICADOS = 0
+    amb = pl.get('_broll_arquivos') or []
+    OH = altura; OW = OH * 9 // 16
+    transf_base = sondar(base)[2]; params, tags = x265(transf_base)
+    nv = os.environ.get('BORA_INTERMEDIARIO') == 'nvenc'
+    cache = os.path.join(pasta, f'_trechos_{altura}'); os.makedirs(cache, exist_ok=True)
+    usados, ult_fim = [], -1.0
+    for b in sorted(pl.get('broll') or [], key=lambda x: int(x['palavra_inicio'])):
+        k = int(b['video']) - 1
+        if not (0 <= k < len(amb)): continue
+        arq = arquivos[amb[k]]
+        if sondar(arq)[2] != transf_base: print('broll: cor diferente do vídeo (HDR x SDR), pulado', arq, flush=True); continue
+        a = next((t['s'] for t in tokens if t['i'] >= int(b['palavra_inicio'])), None)
+        z = max((t['e'] for t in tokens if t['i'] <= int(b['palavra_fim'])), default=None)
+        if a is None or z is None: continue
+        z = min(max(z, a + 1.5), a + 4.5, dur)               # 1,5 a 4,5 s
+        if a < ult_fim + 1.0 or z - a < 1.0: continue        # sem colar um B-roll no outro
+        fa, fb = round(a * FPS), round(z * FPS); n = fb - fa
+        dclip = duracao(arq); ini = max(0.0, min(float(b.get('inicio_s') or 0), dclip - n / FPS - 0.05))
+        if dclip < n / FPS: n = int(dclip * FPS) - 1
+        if n < 20: continue
+        W, H = sondar(arq)[:2]
+        if W / H > 9 / 16: cw, ch = round(H * 9 / 16 / 2) * 2, H
+        else: cw, ch = W, round(W * 16 / 9 / 2) * 2
+        x, y = (W - cw) // 2, max(0, (H - ch) // 2)
+        chave = os.path.join(cache, f'broll{amb[k]}_{ini:.2f}_{n}_{"n" if nv else "r"}.mp4')
+        if not os.path.exists(chave):
+            if nv:
+                import codificadores; cod = codificadores.args_nvenc()
+            else:
+                cod = ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params]
+            with pesado(altura):
+                rc, msg, mb = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{ini:.3f}', '-i', arq, '-an',
+                                     '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(n),
+                                     *cod, *tags, chave + '.tmp.mp4'], 'b-roll')
+            if oom(rc, msg): raise SemMemoria(f'memória insuficiente no B-roll ({mb} MB)')
+            if rc: print('broll falhou:', msg, flush=True); continue
+            os.replace(chave + '.tmp.mp4', chave)
+        usados.append((chave, fa / FPS)); ult_fim = fa / FPS + n / FPS
+    if not usados: return base
+    args, fc, ult = ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base], [], '0:v'
+    for j, (c, t0) in enumerate(usados, 1):
+        args += ['-i', c]
+        fc.append(f'[{j}:v]setpts=PTS-STARTPTS+{t0:.6f}/TB[b{j}];[{ult}][b{j}]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
+    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params])
+    with pesado(altura):
+        rc, msg, mb = rodar(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:a', 'copy', *cod, *tags,
+                                    '-tag:v', 'hvc1', saida], 'b-roll (juntar)')
+    if oom(rc, msg): raise SemMemoria(f'memória insuficiente ao juntar o B-roll ({mb} MB)')
+    if rc: raise RuntimeError('b-roll: ' + (msg or f'código {rc}')[:150])
+    BROLL_APLICADOS = len(usados)
+    return saida
 
 def sondar(video):
     o = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',

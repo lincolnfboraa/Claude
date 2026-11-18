@@ -54,6 +54,9 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
     a, b = faixa
     prog = (lambda f, txt='Montando o vídeo a partir dos originais': etapa(txt, a + int((b - a) * f))) if etapa else None
     hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog)
+    if pl.get('broll') and pl.get('_broll_arquivos'):
+        if etapa: etapa('Encaixando as cenas de ambiente (B-roll)', a + int((b - a) * 0.9))
+        base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr)
     anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', ''))]
     if pl.get('insercoes') and anexos:
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
@@ -105,6 +108,19 @@ def preparar(p, etapa, sb):
            'cores': cores, 'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [f'transcricao_{i:02d}.json' for i in range(1, len(arqs) + 1)]}
 
     if tipo in ('nova_edicao', 'ajuste'):
+        # fala x ambiente: escolha do app (papel_usuario) ou pela quantidade de fala; ambiente vira B-roll pra IA (com um quadro de cada)
+        info = meta.get('arquivos') or []
+        papeis = [montagem.classificar(pal[i], arqs[i], (info[i] if i < len(info) else {}).get('papel_usuario')) for i in range(len(arqs))]
+        if all(p == 'ambiente' for p in papeis): papeis = ['fala'] * len(arqs)       # sem nenhuma locução: trata tudo como fala
+        brolls = []
+        for i, a in enumerate(arqs):
+            if papeis[i] == 'ambiente':
+                jpg = montagem.quadro_jpg(a, os.path.join(pasta, f'broll_{i + 1:02d}.jpg'))
+                if jpg: brolls.append({'n': len(brolls) + 1, 'ai': i, 'nome': (info[i] if i < len(info) else {}).get('nome') or os.path.basename(a), 'dur': montagem.duracao(a), 'jpg': jpg})
+        if info and any((x.get('papel') != papeis[i]) for i, x in enumerate(info[:len(papeis)])):
+            m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+            for i, x in enumerate((m2.get('arquivos') or [])[:len(papeis)]): x['papel'] = papeis[i]
+            sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m2})
         n = v['numero']
         anterior = None
         ant_arq = os.path.join(pasta, f'plano_v{n - 1}.json')
@@ -116,8 +132,9 @@ def preparar(p, etapa, sb):
             pl = json.load(open(pronto))
         else:
             import plano as plano_ia                   # só o VPS precisa da IA; o render externo não
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [])
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
+        pl['_broll_arquivos'] = [b['ai'] for b in brolls]
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()

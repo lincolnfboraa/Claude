@@ -447,7 +447,9 @@ const V={
    <small>${fs.length?(fs.reduce((a,f)=>a+f.size,0)/1048576).toFixed(0)+' MB · takes, partes e B-rolls do mesmo Reels':'Takes, partes e B-rolls do mesmo Reels'}</small>
    <label class="pill sm" for="arq" style="cursor:pointer">${SV(I.pasta)}${fs.length?'Adicionar mais':'Selecionar arquivos'}</label><input type="file" id="arq" accept="video/*" multiple hidden>
    <button class="pill sm" data-drive="" style="margin-top:8px">${SV(I.nuvem)}${S.drive?'Trocar vídeos do Drive':'Do Google Drive'}</button></div>
-  ${S.drive?`<div class="lst"><div class="ln"><span class="tx"><b>${S.drive.arquivos.length} ${S.drive.arquivos.length>1?'vídeos':'vídeo'} do Drive · ${esc(S.drive.nome)}</b><small>${(S.drive.arquivos.reduce((x,f)=>x+f.tamanho,0)/1048576).toFixed(0)} MB · o servidor baixa direto do Drive, não precisa deixar o app aberto</small></span><button class="voltar" data-semdrive aria-label="Remover">✕</button></div></div>`:''}
+  ${S.drive?`<div class="lst"><div class="ln"><span class="tx"><b>${S.drive.arquivos.length} ${S.drive.arquivos.length>1?'vídeos':'vídeo'} do Drive · ${esc(S.drive.nome)}</b><small>${(S.drive.arquivos.reduce((x,f)=>x+f.tamanho,0)/1048576).toFixed(0)} MB · o servidor baixa direto do Drive, não precisa deixar o app aberto</small></span><button class="voltar" data-semdrive aria-label="Remover">✕</button></div>
+   ${S.drive.arquivos.map((f,i)=>`<div class="ln"><span class="tx"><b>${esc(f.nome)}</b><small>${{'':'O editor decide pelo áudio',fala:'Locução: ela falando',ambiente:'Ambiente: entra como B-roll'}[f.papel||'']}</small></span><button class="chip" data-dpapel="${i}">${{'':'Auto',fala:'Fala',ambiente:'Ambiente'}[f.papel||'']}</button></div>`).join('')}</div>
+   <p class="nota">Toque na etiqueta pra corrigir: Auto, Fala ou Ambiente. Ambiente entra como B-roll durante a locução, em HDR.</p>`:''}
   ${fs.length?`<div class="thumbs">${fs.map((f,i)=>`<div class="th"><video src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="nm">${esc(f.name)}</span><span class="du" id="du${i}">${f._dur||''}</span><button class="rm" data-rmarq="${i}" aria-label="Remover ${esc(f.name)}">✕</button></div>`).join('')}</div>`:''}
   <p class="nota">No iPhone, na Fototeca toque em <b>Opções</b> e escolha <b>Atual</b> pra enviar o original em HDR, sem conversão.</p>
   <h3 class="rot">Briefing do projeto</h3>
@@ -610,7 +612,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
  else if('sair' in d){sb.auth.signOut().then(()=>{S.stack=[{v:'login'}];render()})}
  else if(d.info){const v=vid(d.info),m=v.media||{},arqs=m.arquivos||[];sheet(`<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Arquivos do projeto</b><button data-close>OK</button></div>
-  ${arqs.length>1?`<div class="lst">${arqs.map(x=>`<div class="ln">${SV(I.clipe)}<span class="tx"><b>${esc(x.nome)}</b><small>${esc(x.res)} · ${esc(x.fps)} · ${esc(x.cor)} · ${esc(x.dur)}</small></span></div>`).join('')}</div><div style="height:12px"></div>`:''}
+  ${arqs.length>1?`<div class="lst">${arqs.map(x=>`<div class="ln">${SV(I.clipe)}<span class="tx"><b>${esc(x.nome)}</b><small>${x.papel==='ambiente'?'<b>B-roll</b> · ':x.papel==='fala'?'Locução · ':''}${esc(x.res)} · ${esc(x.fps)} · ${esc(x.cor)} · ${esc(x.dur)}</small></span></div>`).join('')}</div><div style="height:12px"></div>`:''}
   <div class="lst">${par('Arquivo',m.arq||'—')}${par('Resolução',m.res||'Inspecionando')}${par('Quadros',m.fps||'—')}${par('Cor',m.cor||'—')}${par('Preservação','Cor, pele, rosto e enquadramento como gravados; sem filtro ou suavização')}${par('Final','Renderizado de novo a partir dos originais, na resolução nativa')}</div>`)}
  else if(d.play){const v=vid(d.play),a=vatual(v);if(!a.previa)return toast('A prévia da v'+a.n+' ainda não chegou');
   (async()=>{const {data,error}=await sb.storage.from('previas').createSignedUrl(a.previa,3600);if(error)return toast('Não abriu a prévia: '+error.message);
@@ -627,6 +629,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.dvid){const D=S.dnav;D.sel[d.dvid]?delete D.sel[d.dvid]:(D.sel[d.dvid]=1);sheet(sheetDrive())}
  else if('dusar' in d){const D=S.dnav,t=D.trilha[D.trilha.length-1];S.drive={nome:t.nome,arquivos:D.r.videos.filter(v=>D.sel[v.id]).map(v=>({id:v.id,nome:v.nome,tamanho:v.tamanho}))};
   S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.briefing=($('#briefing')||{}).value||S.briefing;close();reRender()}
+ else if(d.dpapel!==undefined&&S.drive){const f=S.drive.arquivos[+d.dpapel],ord=['','fala','ambiente'];f.papel=ord[(ord.indexOf(f.papel||'')+1)%3];S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if('semdrive' in d){S.drive=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);

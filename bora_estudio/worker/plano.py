@@ -9,7 +9,7 @@ MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
 
 ESQUEMA = {
     'type': 'object', 'additionalProperties': False,
-    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'insercoes', 'correcoes', 'cores', 'resumo', 'nao_feito'],
+    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'insercoes', 'broll', 'correcoes', 'cores', 'resumo', 'nao_feito'],
     'properties': {
         'segmentos': {'type': 'array', 'description': 'Trechos na ORDEM do vídeo final. Cada um é um intervalo contínuo de palavras de um mesmo arquivo.',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'palavra_fim', 'quadro', 'motivo'],
@@ -29,6 +29,12 @@ ESQUEMA = {
                 'properties': {'anexo': {'type': 'integer', 'description': 'número do anexo (1, 2, ...)'},
                                'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                                'modo': {'type': 'string', 'enum': ['tela_cheia', 'flutuando']}}}},
+        'broll': {'type': 'array', 'description': 'Cenas de ambiente (B-roll, vídeos SEM fala listados abaixo) cobrindo a imagem durante a locução. A voz continua por baixo. Vazio se não houver B-roll.',
+            'items': {'type': 'object', 'additionalProperties': False, 'required': ['video', 'palavra_inicio', 'palavra_fim', 'inicio_s', 'motivo'],
+                'properties': {'video': {'type': 'integer', 'description': 'número do B-roll (1, 2, ...)'},
+                               'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
+                               'inicio_s': {'type': 'number', 'description': 'segundo do vídeo de ambiente onde a cena começa (0 se não souber)'},
+                               'motivo': {'type': 'string'}}}},
         'correcoes': {'type': 'array', 'description': 'Grafia correta de palavras que a transcrição errou (só ortografia, nunca trocar o que foi dito).',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra', 'texto'],
                       'properties': {'palavra': {'type': 'integer'}, 'texto': {'type': 'string'}}}},
@@ -56,13 +62,16 @@ Como planejar
 
 O que o motor sabe fazer (e só isso): escolher e ordenar falas, cortar, enquadramento aberto/medio/fechado, título, destaques (pop, serifa, lettering, palavra_solta), corrigir grafia e trocar as cores da legenda e dos destaques (campo cores, em #RRGGBB; nomes comuns: bege/creme da Fabiola = #C8B9A7, branco = #FFFFFF).
 Também encaixa os ANEXOS enviados (lista abaixo, quando houver) no campo insercoes: 'tela_cheia' cobre a tela durante a fala indicada (B-roll, com a voz por baixo); 'flutuando' põe a imagem menor ao lado da pessoa, com leve desfoque e flutuação. Vídeos anexados entram sempre em tela cheia. Cada inserção fica durante as palavras palavra_inicio..palavra_fim; normalmente 1,5 a 6 s.
-O motor NÃO cria imagens nem vídeos novos: sem anexo, não existe B-roll. Também não faz animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
+B-roll (campo broll): quando houver vídeos de ambiente (sem fala) listados com imagem, encaixe-os DURANTE a locução, cobrindo a imagem da pessoa enquanto a voz continua. Escolha a cena que ilustra o que está sendo dito (ex.: ela fala do espaço, entra a sala; fala da recepção, entra a fachada). Regras: nunca no gancho (primeiro segmento) nem no título; nunca no mesmo intervalo de um destaque; cada B-roll dura de 1,5 a 4 s (palavra_inicio..palavra_fim dentro de um mesmo trecho falado); no máximo 1 a cada 8 a 10 s de vídeo; não repita a mesma cena; mostre o rosto de novo entre um B-roll e outro. Sem vídeos de ambiente, broll fica vazio.
+O motor NÃO cria imagens nem vídeos novos: sem anexo ou vídeo de ambiente, não existe B-roll. Também não faz animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
 Se o feedback pedir algo que o motor não faz, aplique o resto e escreva claramente em nao_feito o que ficou de fora. O resumo descreve apenas o que esta versão aplica de verdade; nunca diga que fez algo que não está no plano."""
 
-def numerar(palavras, arquivos):
-    """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase."""
+def numerar(palavras, arquivos, papeis=None):
+    """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase. Vídeos de ambiente não entram (os índices continuam valendo)."""
     linhas, g = [], 0
     for ai, pw in enumerate(palavras):
+        if papeis and papeis[ai] == 'ambiente':
+            linhas.append(f"\n=== Arquivo {ai + 1}: {os.path.basename(arquivos[ai])} (vídeo de ambiente, B-roll; não use como fala) ==="); g += len(pw); continue
         linhas.append(f"\n=== Arquivo {ai + 1}: {os.path.basename(arquivos[ai])} ===")
         frase = []
         for k, w in enumerate(pw):
@@ -73,10 +82,10 @@ def numerar(palavras, arquivos):
             g += 1
     return '\n'.join(linhas)
 
-def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=()):
+def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=()):
     client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
-    pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos)}"]
+    pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos, papeis)}"]
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
     if anexos: pedido.append('Anexos disponíveis para inserções:\n' + '\n'.join(f"{i}. {a['nome']} ({'vídeo' if a['tipo'] == 'video' else 'imagem'}, enviado na v{a.get('versao', 1)})" for i, a in enumerate(anexos, 1)))
     if anterior:
@@ -92,7 +101,7 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
         system=[{'type': 'text', 'text': SISTEMA},
                 {'type': 'text', 'text': 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False), 'cache_control': {'type': 'ephemeral'}},
                 {'type': 'text', 'text': 'DNA do cliente:\n' + dna_txt, 'cache_control': {'type': 'ephemeral'}}],
-        messages=[{'role': 'user', 'content': '\n\n'.join(pedido)}],
+        messages=[{'role': 'user', 'content': _conteudo('\n\n'.join(pedido), brolls)}],
     ) as st:
         msg = st.get_final_message()
     if msg.stop_reason == 'refusal':
@@ -102,9 +111,21 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
     plano = json.loads(next(b.text for b in msg.content if b.type == 'text'))
     plano['_modelo'] = msg.model
     plano['_uso'] = {'entrada': msg.usage.input_tokens, 'saida': msg.usage.output_tokens}
-    return validar(plano, sum(len(p) for p in palavras))
+    import montagem
+    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
+    return validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
 
-def validar(plano, total):
+def _conteudo(texto, brolls):
+    """Texto do pedido + um quadro de cada vídeo de ambiente, pra IA saber o que tem em cada cena."""
+    if not brolls: return texto
+    import base64
+    blocos = [{'type': 'text', 'text': texto + '\n\nVídeos de ambiente disponíveis para B-roll (um quadro de cada):'}]
+    for b in brolls:
+        blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.0f} s"})
+        blocos.append({'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': base64.b64encode(open(b['jpg'], 'rb').read()).decode()}})
+    return blocos
+
+def validar(plano, total, ambiente=None, n_broll=0, G=None):
     """Garante índices dentro da transcrição e ordem certa (a IA não consegue apontar pra fala que não existe)."""
     ok = []
     for s in plano['segmentos']:
@@ -114,4 +135,8 @@ def validar(plano, total):
     plano['segmentos'] = ok
     plano['insercoes'] = [x for x in plano.get('insercoes', []) if 0 <= int(x['palavra_inicio']) <= int(x['palavra_fim']) < total]
     plano['destaques'] = [d for d in plano.get('destaques', []) if 0 <= int(d['palavra_inicio']) <= int(d['palavra_fim']) < total][:7]
+    if ambiente and G:                                  # fala de vídeo de ambiente não vira segmento
+        plano['segmentos'] = [x for x in plano['segmentos'] if G[int(x['palavra_inicio'])][0] not in ambiente] or plano['segmentos']
+    plano['broll'] = [b for b in plano.get('broll') or [] if 1 <= int(b.get('video', 0)) <= n_broll
+                      and 0 <= int(b['palavra_inicio']) <= int(b['palavra_fim']) < total][:12]
     return plano
