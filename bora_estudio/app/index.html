@@ -475,6 +475,7 @@ const V={
   <div class="lst" style="margin-top:18px"><button class="ln" data-info="${id}">${SV(I.clipe)}<span class="tx"><b>Arquivos do projeto</b><small>${esc(m.arq||'Original')}${m.res?' · '+esc(m.res.replace(' × ','×'))+' · '+esc(m.cor||''):''}</small></span><span class="seta">›</span></button>
    <button class="ln" data-versoes="${id}">${SV(I.historico)}<span class="tx"><b>Versões</b><small>${v.versoes.length} ${v.versoes.length>1?'versões':'versão'} · feedback registrado em cada uma</small></span><span class="seta">›</span></button>
    ${m.briefing?`<div class="ln">${SV(I.doc)}<span class="tx"><b>Briefing</b><small style="white-space:normal">${esc(m.briefing)}</small></span></div>`:''}</div>
+  <button class="ln" data-descartar="${id}" style="margin-top:18px;width:100%;color:#FF6B5B;justify-content:center"><span class="tx" style="text-align:center"><b style="color:#FF6B5B">Descartar este vídeo</b><small>Apaga o projeto, as versões e os arquivos do servidor</small></span></button>
   ${v.st==='ok'&&(a.final||m.final_pronto)?`<div class="rodape">${m.final_zip?`<button class="pill pri full" data-baixar="${id}">${SV(I.baixar)}Baixar 4K${m.final_mb?' · '+m.final_mb+' MB':''}</button>`:a.final?`<a class="pill pri full" href="https://drive.google.com/uc?export=download&id=${a.final}" target="_blank" rel="noopener" style="text-decoration:none">${SV(I.baixar)}Baixar 4K</a>`:'<span class="pill full">Final entregue</span>'}</div>`:''}
   ${v.st==='wait'?`<div class="rodape"><button class="pill pri full" data-retorno="${id}" ${p?'':'disabled style="opacity:.45"'}>${p==='ok'?'Aprovar e gerar 4K':p==='ajuste'?'Enviar ajuste':'Enviar retorno'}${SV(I.seta)}</button></div>`:''}`}
 };
@@ -604,6 +605,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
    toast(drv.length?'O servidor está baixando os vídeos do Drive. Pode fechar o app.':(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':'Vídeos recebidos. Editando no DNA de '+c.nome))}
   catch(e){toast('Envio parou: '+e.message);const u=$('#upinfo');if(u)u.textContent='Envio interrompido. Toque em Enviar projeto de novo pra retomar.'}})()}
+ else if(d.descartar){const v=vid(d.descartar);if(!confirm(`Descartar "${v.tema||v.t}"?\n\nApaga o projeto, as versões e os vídeos do servidor. Não dá pra desfazer. Os originais no Google Drive continuam lá.`))return;
+  (async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
+   const r=await fetch(`${EDITOR}/projeto/${d.descartar}/descartar`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
+   S.stack=[{v:S.tab}];await recarregar();toast('Vídeo descartado')}catch(e){toast('Não consegui descartar: '+e.message)}})()}
  else if(d.parecer){const[id,k]=d.parecer.split(':');S.parecer[id]=k;reRender()}
  else if(d.rmanx){const[id,i]=d.rmanx.split(':');S.ajTxt=($('#aj')||{}).value||'';S.anexos[id].splice(+i,1);reRender()}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}

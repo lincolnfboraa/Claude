@@ -60,6 +60,7 @@ def processar(p):
         motor.executar(p, etapa=et, sb=sb)             # computador de render desligado: tudo no VPS (como sempre)
         avisar(p, True)
     except Exception as e:
+        if pid in DESCARTADOS: print('projeto descartado durante a edição:', pid, flush=True); return
         traceback.print_exc()
         sem_mem = type(e).__name__ == 'SemMemoria'          # não repete sozinho (nem ao reiniciar); só pelo botão Tentar de novo
         etapa(pid, ('Erro: ' if sem_mem else 'Erro na edição: ') + str(e)[:120], None,
@@ -72,6 +73,7 @@ def trabalhador():
     while True:
         p = FILA.get(); OCUPADO[0] += 1; FINAIS[0] += p['tipo'] == 'final'
         try: processar(p)
+        except Exception: traceback.print_exc()             # nada derruba a fila (ex.: projeto apagado no meio)
         finally:
             OCUPADO[0] -= 1; FINAIS[0] -= p['tipo'] == 'final'; FILA.task_done(); EM_FILA.discard(('final:' if p['tipo'] == 'final' else '') + str(p.get('versao_id')))
 
@@ -361,6 +363,29 @@ def importar_do_drive(pid, lista, locais=()):
     except Exception as e:
         traceback.print_exc(); etapa(pid, 'Erro ao baixar do Drive: ' + str(e)[:120], None)
 
+def descartar_projeto(pid):
+    """Botão Descartar do app: cancela o que estiver na fila, apaga prévias do Storage, as linhas do banco e a pasta no servidor."""
+    import shutil
+    DESCARTADOS.add(pid)
+    try: sb('PATCH', f'/rest/v1/render_trabalhos?projeto_id=eq.{pid}&status=in.(pendente,renderizando)', {'status': 'cancelado', 'erro': 'projeto descartado'})
+    except Exception as e: print('descartar fila:', e, flush=True)
+    try:
+        cli = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=cliente_id') or [{}])[0].get('cliente_id')
+        if cli:
+            r = urllib.request.Request(f'{URL}/storage/v1/object/list/previas', method='POST', data=json.dumps({'prefix': f'{cli}/{pid}/', 'limit': 100}).encode(),
+                                       headers={'apikey': KEY, 'Content-Type': 'application/json'})
+            nomes = [f'{cli}/{pid}/' + o['name'] for o in json.load(urllib.request.urlopen(r, timeout=30))]
+            if nomes:
+                r = urllib.request.Request(f'{URL}/storage/v1/object/previas', method='DELETE', data=json.dumps({'prefixes': nomes}).encode(),
+                                           headers={'apikey': KEY, 'Content-Type': 'application/json'})
+                urllib.request.urlopen(r, timeout=30).read()
+    except Exception as e: print('descartar prévias:', e, flush=True)
+    sb('DELETE', f'/rest/v1/versoes?projeto_id=eq.{pid}'); sb('DELETE', f'/rest/v1/projetos?id=eq.{pid}')
+    d = os.path.join(TRAB, pid)
+    if os.path.isdir(d) and os.path.dirname(os.path.abspath(d)) == os.path.abspath(TRAB): shutil.rmtree(d, ignore_errors=True)
+
+DESCARTADOS = set()
+
 class H(BaseHTTPRequestHandler):
     def _r(self, cod, obj):
         self.send_response(cod); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(json.dumps(obj).encode())
@@ -437,6 +462,14 @@ class H(BaseHTTPRequestHandler):
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/worker/'): return _rota_worker(self, 'POST', u)
+        if u.path.startswith('/projeto/') and u.path.endswith('/descartar'):   # apaga projeto, versões, prévias e arquivos
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            pid = os.path.basename(u.path.split('/')[2])
+            import re as _re
+            if not _re.fullmatch(r'[0-9a-f-]{36}', pid): return self._r(400, {'erro': 'projeto'})
+            try: descartar_projeto(pid)
+            except Exception as e: traceback.print_exc(); return self._r(500, {'erro': str(e)[:150]})
+            return self._r(200, {'ok': True})
         if u.path.startswith('/drive/importar/'):          # POST /drive/importar/<projeto> {arquivos:[{id,nome,tamanho}]}
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             import drive
