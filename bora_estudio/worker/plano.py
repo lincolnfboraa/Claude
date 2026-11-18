@@ -84,10 +84,14 @@ def numerar(palavras, arquivos, papeis=None):
             g += 1
     return '\n'.join(linhas)
 
-def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=()):
+def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=(), catalogo=None):
     client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
     pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos, papeis)}"]
+    if catalogo:
+        import analise_brutos
+        pedido.append("CATÁLOGO DE INTERVALOS AVALIADOS (análise técnica + visual dos brutos; tempos nos arquivos originais):\n" + analise_brutos.texto_para_plano(catalogo))
+        pedido.append(REGRAS_CATALOGO)
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
     if anexos: pedido.append('Anexos disponíveis para inserções:\n' + '\n'.join(f"{i}. {a['nome']} ({'vídeo' if a['tipo'] == 'video' else 'imagem'}, enviado na v{a.get('versao', 1)})" for i, a in enumerate(anexos, 1)))
     if anterior:
@@ -99,11 +103,11 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
     with client.beta.messages.stream(
         model=MODELO, max_tokens=32000,
         betas=['server-side-fallback-2026-07-01'], fallbacks='default',     # se o modelo recusar, o servidor tenta outro
-        output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': ESQUEMA}},
+        output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': esquema_catalogo() if catalogo else ESQUEMA}},
         system=[{'type': 'text', 'text': SISTEMA},
                 {'type': 'text', 'text': 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False), 'cache_control': {'type': 'ephemeral'}},
                 {'type': 'text', 'text': 'DNA do cliente:\n' + dna_txt, 'cache_control': {'type': 'ephemeral'}}],
-        messages=[{'role': 'user', 'content': _conteudo('\n\n'.join(pedido), brolls)}],
+        messages=[{'role': 'user', 'content': _conteudo('\n\n'.join(pedido), () if catalogo else brolls)}],
     ) as st:
         msg = st.get_final_message()
     if msg.stop_reason == 'refusal':
@@ -115,7 +119,9 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
     plano['_uso'] = {'entrada': msg.usage.input_tokens, 'saida': msg.usage.output_tokens}
     import montagem
     amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
-    return validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
+    plano = validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
+    if catalogo: return validar_catalogo(plano, catalogo, [b['ai'] for b in brolls])
+    plano.pop('_broll_bruto', None); return plano
 
 def _conteudo(texto, brolls):
     """Texto do pedido + um quadro de cada vídeo de ambiente, pra IA saber o que tem em cada cena."""
@@ -143,6 +149,67 @@ def validar(plano, total, ambiente=None, n_broll=0, G=None):
     plano['destaques'] = [d for d in plano.get('destaques', []) if 0 <= int(d['palavra_inicio']) <= int(d['palavra_fim']) < total][:7]
     if ambiente and G:                                  # fala de vídeo de ambiente não vira segmento
         plano['segmentos'] = [x for x in plano['segmentos'] if G[int(x['palavra_inicio'])][0] not in ambiente] or plano['segmentos']
+    plano['_broll_bruto'] = list(plano.get('broll') or [])
     plano['broll'] = [b for b in plano.get('broll') or [] if 1 <= int(b.get('video', 0)) <= n_broll
                       and 0 <= int(b['palavra_inicio']) <= int(b['palavra_fim']) < total][:12]
+    return plano
+
+
+REGRAS_CATALOGO = """Seleção SÓ com intervalos avaliados:
+- Cada segmento tem que estar DENTRO de um intervalo de fala UTILIZÁVEL do catálogo (campo intervalo = id, ex. 'I12'; palavra_inicio..palavra_fim dentro das palavras daquele intervalo). Pode usar só parte do intervalo.
+- Cada B-roll aponta um intervalo de ambiente UTILIZÁVEL (campo intervalo) e inicio_s dentro dele, de forma que a cena inteira caiba no intervalo.
+- Entre takes que repetem a mesma fala, prefira o de nota maior e sem problemas; diga por quê em justificativa.
+- Intervalos marcados NÃO USAR não entram. Se para algum momento não houver imagem adequada (fala só em take ruim, nenhuma cena de ambiente boa para o que é dito), NÃO escolha um trecho ruim em silêncio: registre em faltas o momento, o problema e a proposta (outro take, cobrir com B-roll X, regravar).
+- justificativa de cada escolha: por que este intervalo (conteúdo, imagem, nota, função narrativa)."""
+
+def esquema_catalogo():
+    """Esquema do plano com rastreio: cada segmento e B-roll cita o intervalo do catálogo; faltas registradas."""
+    import copy
+    e = copy.deepcopy(ESQUEMA)
+    seg = e['properties']['segmentos']['items']
+    seg['properties']['intervalo'] = {'type': 'string', 'description': 'id do intervalo do catálogo (ex. I12)'}
+    seg['properties']['justificativa'] = {'type': 'string'}
+    seg['required'] = seg['required'] + ['intervalo', 'justificativa']
+    br = e['properties']['broll']['items']
+    br['properties']['intervalo'] = {'type': 'string', 'description': 'id do intervalo de ambiente do catálogo'}
+    br['required'] = br['required'] + ['intervalo']
+    e['properties']['faltas'] = {'type': 'array', 'description': 'momentos sem imagem adequada (vazio se nada faltar)',
+        'items': {'type': 'object', 'additionalProperties': False, 'required': ['momento', 'problema', 'proposta'],
+                  'properties': {'momento': {'type': 'string'}, 'problema': {'type': 'string'}, 'proposta': {'type': 'string'}}}}
+    e['required'] = e['required'] + ['faltas']
+    return e
+
+def validar_catalogo(plano, cat, amb_ais):
+    """Só passa o que foi avaliado: segmento fora de intervalo de fala utilizável sai; B-roll vai pro intervalo citado
+    (inicio_s preso dentro dele). Tudo que sai fica registrado em _descartes; faltas da IA ficam em _faltas."""
+    por_id = {iv['id']: iv for iv in cat['intervalos']}
+    descartes, segs = [], []
+    for sg in plano['segmentos']:
+        iv = por_id.get(str(sg.get('intervalo', '')).strip())
+        a, b = int(sg['palavra_inicio']), int(sg['palavra_fim'])
+        if not iv or iv['tipo'] != 'fala' or not iv.get('palavras'):
+            descartes.append({'tipo': 'segmento', 'palavras': [a, b], 'motivo': f"intervalo {sg.get('intervalo')} não existe ou não é de fala"}); continue
+        if not iv.get('utilizavel'):
+            descartes.append({'tipo': 'segmento', 'palavras': [a, b], 'motivo': f"{iv['id']} marcado como não utilizável"}); continue
+        p0, p1 = iv['palavras']
+        if a < p0 or b > p1:
+            if b < p0 or a > p1: descartes.append({'tipo': 'segmento', 'palavras': [a, b], 'motivo': f"fora das palavras de {iv['id']}"}); continue
+            sg['palavra_inicio'], sg['palavra_fim'] = max(a, p0), min(b, p1)
+        segs.append(sg)
+    if not segs: raise RuntimeError('nenhum trecho do plano está dentro de um intervalo avaliado')
+    plano['segmentos'] = segs
+    brs = []
+    for b in plano.get('_broll_bruto') or []:
+        iv = por_id.get(str(b.get('intervalo', '')).strip())
+        if not iv or iv['tipo'] != 'ambiente' or not iv.get('utilizavel') or iv['arquivo'] not in amb_ais:
+            descartes.append({'tipo': 'broll', 'intervalo': b.get('intervalo'), 'motivo': 'intervalo inexistente, não é de ambiente ou não utilizável'}); continue
+        b['video'] = amb_ais.index(iv['arquivo']) + 1
+        b['inicio_s'] = round(min(max(float(b.get('inicio_s') or iv['inicio']), iv['inicio']), max(iv['inicio'], iv['fim'] - 1.5)), 2)
+        b['_fim_max'] = iv['fim']
+        brs.append(b)
+    plano['broll'] = brs[:12]
+    plano.pop('_broll_bruto', None)
+    plano['_descartes'] = descartes
+    plano['_faltas'] = plano.pop('faltas', [])
+    plano['_catalogo'] = {'intervalos': len(cat['intervalos']), 'uso': cat.get('uso'), 'tempos': cat.get('tempos')}
     return plano

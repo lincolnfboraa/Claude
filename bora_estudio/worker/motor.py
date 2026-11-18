@@ -135,7 +135,12 @@ def preparar(p, etapa, sb):
             pl = json.load(open(pronto))
         else:
             import plano as plano_ia                   # só o VPS precisa da IA; o render externo não
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
+            cat = None
+            if os.environ.get('BORA_ANALISE_BRUTOS') == '1':      # análise dos brutos antes da seleção (desligada por padrão)
+                import analise_brutos
+                nomes = [(info[i] if i < len(info) else {}).get('nome') or os.path.basename(a) for i, a in enumerate(arqs)]
+                cat = analise_brutos.catalogo(arqs, pal, papeis, pasta, nomes, etapa=etapa)
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls, cat)
         pl['_anexos'] = meta.get('anexos') or []
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
         pl['_broll_tremor'] = [b['tremor'] for b in brolls]
@@ -214,10 +219,20 @@ def concluir(pac, res, sb, pasta=None):
         pl = json.load(open(os.path.join(pasta, pac['plano'])))
         previa = os.path.join(pasta, res['arquivos'][0])
         caminho = f'{cli_id}/{pid}/v{n}.mp4'; _subir(sb, caminho, previa, 'video/mp4')
-        sb('PATCH', f"/rest/v1/versoes?id=eq.{pac['versao_id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': (pl.get('resumo') or f'Versão {n}') + (f" Ainda não aplicado (o motor não faz ainda): {pl['nao_feito']}" if (pl.get('nao_feito') or '').strip() else '')})
+        extra, conf = '', None
+        if pl.get('_faltas'): extra += ' Faltou imagem adequada: ' + '; '.join(f"{f['momento']}: {f['problema']} (proposta: {f['proposta']})" for f in pl['_faltas'])
+        if os.environ.get('BORA_ANALISE_BRUTOS') == '1':      # conferência da prévia montada (cortes e B-rolls)
+            try:
+                import analise_brutos
+                conf = analise_brutos.conferir_previa(previa, pl, pasta)
+                if conf['achados']: extra += ' Conferência da prévia: ' + '; '.join(f"{a['t']}s {a['problema']}" for a in conf['achados'][:6])
+            except Exception as e: print('conferência da prévia falhou:', e, flush=True)
+        sb('PATCH', f"/rest/v1/versoes?id=eq.{pac['versao_id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': (pl.get('resumo') or f'Versão {n}') + (f" Ainda não aplicado (o motor não faz ainda): {pl['nao_feito']}" if (pl.get('nao_feito') or '').strip() else '') + extra})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'status': 'revisao'})
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m.update({'andamento': None, 'progresso': None, 'dur': f"{round(res['dur'])} s", f'validacao_v{n}': res.get('verif')})
+        if conf is not None: m[f'conferencia_v{n}'] = conf
+        if pl.get('_catalogo'): m[f'analise_brutos_v{n}'] = {**pl['_catalogo'], 'descartes': len(pl.get('_descartes') or []), 'faltas': pl.get('_faltas') or []}
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
         return

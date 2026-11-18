@@ -173,6 +173,21 @@ def classificar(palavras_do_arquivo, video, escolha=None):
     d = max(duracao(video), 0.1); n = len(palavras_do_arquivo)
     return 'ambiente' if n <= 3 or n / d < 0.6 else 'fala'
 
+def deslocamentos(q):
+    """Deslocamento (dy, dx) da imagem inteira entre quadros seguidos, em pixels com fração (correlação de fase + parábola no pico)."""
+    if len(q) < 2: return []
+    H, W = q.shape[1:]; jan = np.outer(np.hanning(H), np.hanning(W)); desl = []
+    for a, b in zip(q[:-1], q[1:]):
+        A, B = np.fft.fft2((a - a.mean()) * jan), np.fft.fft2((b - b.mean()) * jan)
+        R = A * np.conj(B); r = np.abs(np.fft.ifft2(R / (np.abs(R) + 1e-6)))
+        y, x = np.unravel_index(np.argmax(r), r.shape)
+        def sub(c, m, n):
+            e, d = m((c - 1) % n), m((c + 1) % n); den = e - 2 * m(c) + d
+            return c + (0.5 * (e - d) / den if den else 0.0)
+        yf, xf = sub(y, lambda i: r[i, x], H), sub(x, lambda i: r[y, i], W)
+        desl.append((yf - H if yf > H / 2 else yf, xf - W if xf > W / 2 else xf))
+    return desl
+
 TREMOR_ALTO = 1.2      # px por quadro (a 144x256, 10 fps): acima disso a câmera está tremendo
 def tremor_por_segundo(video, cache=None):
     """Tremor da câmera em cada segundo do take: mede o deslocamento da imagem inteira entre quadros (correlação de fase)
@@ -182,16 +197,7 @@ def tremor_por_segundo(video, cache=None):
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', video, '-an', '-vf', f'fps={F},scale={W}:{H},format=gray', '-f', 'rawvideo', '-'],
                          capture_output=True).stdout
     q = np.frombuffer(raw, np.uint8)[: len(raw) // (W * H) * W * H].reshape(-1, H, W).astype(np.float32)
-    jan = np.outer(np.hanning(H), np.hanning(W)); desl = []
-    for a, b in zip(q[:-1], q[1:]):
-        A, B = np.fft.fft2((a - a.mean()) * jan), np.fft.fft2((b - b.mean()) * jan)
-        R = A * np.conj(B); r = np.abs(np.fft.ifft2(R / (np.abs(R) + 1e-6)))
-        y, x = np.unravel_index(np.argmax(r), r.shape)
-        def sub(c, m, n):                              # refinamento subpixel (parábola nos vizinhos do pico)
-            e, d = m((c - 1) % n), m((c + 1) % n); den = e - 2 * m(c) + d
-            return c + (0.5 * (e - d) / den if den else 0.0)
-        yf, xf = sub(y, lambda i: r[i, x], H), sub(x, lambda i: r[y, i], W)
-        desl.append((yf - H if yf > H / 2 else yf, xf - W if xf > W / 2 else xf))
+    desl = deslocamentos(q)
     d = np.array(desl, np.float32).reshape(-1, 2)
     salto = np.r_[0.0, np.hypot(*np.diff(d, axis=0).T)] if len(d) > 1 else np.zeros(len(d))
     res = [round(float(salto[i:i + F].mean()), 2) for i in range(0, len(salto), F)] or [0.0]
@@ -263,7 +269,8 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
         fa, fb = round(a * FPS), round(z * FPS); n = fb - fa
         dclip = duracao(arq); ini = max(0.0, min(float(b.get('inicio_s') or 0), dclip - n / FPS - 0.05))
         trem = (pl.get('_broll_tremor') or [])[k] if k < len(pl.get('_broll_tremor') or []) else None
-        novo = trecho_estavel(trem, ini, n / FPS, dclip)
+        if b.get('_fim_max'): ini = max(0.0, min(ini, float(b['_fim_max']) - n / FPS))      # cena inteira dentro do intervalo avaliado
+        novo = trecho_estavel(trem, ini, n / FPS, min(dclip, float(b.get('_fim_max') or dclip)))
         if novo != ini: print(f'broll: trecho tremido em {ini:.1f} s, usando {novo:.1f} s', arq, flush=True); ini = novo
         if dclip < n / FPS: n = int(dclip * FPS) - 1
         if n < 20: continue
