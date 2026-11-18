@@ -148,7 +148,7 @@ class Roteiro:
             else: self.linha(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'], 'pop' if x['grande'] else 'slide')
 
     def titulo(self, tit, t1):
-        """Título T1b: três linhas coladas com a mesma largura, degradê escuro atrás, entrada em cascata."""
+        """Título T1b: três linhas coladas com a mesma largura, entrada em cascata. Sombra só nas letras (regra geral: sem bloco/degradê atrás)."""
         lab, tema, sub = (tit.get('rotulo') or '').upper(), tit.get('tema') or '', tit.get('pergunta') or ''
         if not tema: return
         fl, spl, fsM, fsQ = 56, 9, 250, 80
@@ -163,8 +163,6 @@ class Roteiro:
             while largura(sub, 'Poppins SemiBold', fsQ + 1, -1) <= W: fsQ += 1
             while largura(sub, 'Poppins SemiBold', fsQ, -1) > W and fsQ > 40: fsQ -= 1
         capf_ = lambda f, fs: capf(f) * fs
-        rect = "m -300 960 l 1380 960 l 1380 1360 l -300 1360"
-        self.dlg(0, 0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c&H120A06&\\1a&H6E&\\bord0\\shad0\\blur90\\fad(300,300)\\p1}}{rect}")
         def tit_(tt0, f, txt, fs, sp, base, cor):
             top = base - FONTES[f][3] * fs; w = largura(txt, f, fs, sp)
             self.dlg(2, tt0, t1, 'Card', f"{{\\an7\\move({540 - w / 2:.0f},{top + 18:.0f},{540 - w / 2:.0f},{top:.0f},0,450)\\fad(350,300)\\fn{f}\\fs{fs}\\fsp{sp:.1f}\\c{cor}{SOMBRA}}}{txt}")

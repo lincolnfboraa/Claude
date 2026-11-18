@@ -115,8 +115,11 @@ def preparar(p, etapa, sb):
         brolls = []
         for i, a in enumerate(arqs):
             if papeis[i] == 'ambiente':
-                jpg = montagem.quadro_jpg(a, os.path.join(pasta, f'broll_{i + 1:02d}.jpg'))
-                if jpg: brolls.append({'n': len(brolls) + 1, 'ai': i, 'nome': (info[i] if i < len(info) else {}).get('nome') or os.path.basename(a), 'dur': montagem.duracao(a), 'jpg': jpg})
+                etapa(f'Analisando as cenas de ambiente (quadros e estabilidade da câmera)', 26)
+                jpg, tempos = montagem.folha_take(a, os.path.join(pasta, f'broll_{i + 1:02d}_folha.jpg'))
+                trem = montagem.tremor_por_segundo(a, os.path.join(pasta, f'broll_{i + 1:02d}_tremor.json'))
+                if jpg: brolls.append({'n': len(brolls) + 1, 'ai': i, 'nome': (info[i] if i < len(info) else {}).get('nome') or os.path.basename(a),
+                                       'dur': montagem.duracao(a), 'jpg': jpg, 'tempos': tempos, 'tremor': trem})
         if info and any((x.get('papel') != papeis[i]) for i, x in enumerate(info[:len(papeis)])):
             m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
             for i, x in enumerate((m2.get('arquivos') or [])[:len(papeis)]): x['papel'] = papeis[i]
@@ -135,6 +138,7 @@ def preparar(p, etapa, sb):
             pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
+        pl['_broll_tremor'] = [b['tremor'] for b in brolls]
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()
