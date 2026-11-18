@@ -404,6 +404,89 @@ def descartar_projeto(pid):
 
 DESCARTADOS = set()
 
+
+# ---------------- Saúde dos sistemas (painel no app + aviso no celular quando muda) ----------------
+SAUDE = {'quando': 0, 'itens': []}
+_ESTADO = {}
+
+def _ck_editor():
+    import shutil
+    mem = {l.split(':')[0]: int(l.split()[1]) // 1024 for l in open('/proc/meminfo') if l.split(':')[0] in ('MemTotal', 'MemAvailable')}
+    disco = shutil.disk_usage(TRAB).free // 1073741824
+    det = f"memória livre {mem.get('MemAvailable', 0) // 1024} de {mem.get('MemTotal', 0) // 1024} GB · disco livre {disco} GB · {OCUPADO[0]} em produção, {FILA.qsize()} na fila"
+    if disco < 10 or mem.get('MemAvailable', 0) < 2048: return 'erro', det
+    if disco < 25 or mem.get('MemAvailable', 0) < 4096: return 'atencao', det
+    return 'ok', det
+
+def _ck_supabase():
+    sb('GET', '/rest/v1/clientes?select=id&limit=1'); return 'ok', 'respondendo'
+
+def _ck_drive():
+    import drive
+    if not drive.configurado(): return 'atencao', 'acesso ao Drive não configurado no servidor'
+    nome = drive._get(f'files/{drive.RAIZ}', fields='name').get('name')
+    return 'ok', f'pasta "{nome}" acessível'
+
+def _ck_ia():
+    k = os.environ.get('ANTHROPIC_API_KEY')
+    if not k: return 'erro', 'chave da IA não configurada'
+    r = urllib.request.Request('https://api.anthropic.com/v1/models?limit=1', headers={'x-api-key': k, 'anthropic-version': '2023-06-01'})
+    urllib.request.urlopen(r, timeout=20).read(); return 'ok', 'respondendo'
+
+def _ck_acer():
+    if not EXTERNO: return 'info', 'render externo desligado: tudo na VPS'
+    if acer_ligado():
+        w = max(VISTO, key=VISTO.get); return 'ok', f'{_nome(w)} online (sinal há {int(time.time() - VISTO[w])} s)'
+    if VISTO:
+        w = max(VISTO, key=VISTO.get); return 'atencao', f'{_nome(w)} desligado há {int((time.time() - VISTO[w]) // 60)} min: a VPS faz os vídeos'
+    return 'atencao', 'nenhum computador de render conectado: a VPS faz os vídeos'
+
+def _ck_fila():
+    if not EXTERNO: return 'info', 'sem fila externa'
+    pend = sb('GET', '/rest/v1/render_trabalhos?status=eq.pendente&tipo=eq.final&select=criado_em')
+    rod = sb('GET', '/rest/v1/render_trabalhos?status=eq.renderizando&select=id')
+    if pend and not acer_ligado():
+        return 'atencao', f'{len(pend)} 4K esperando o computador de render (a VPS assume em até {OFFLINE_MIN} min)'
+    return 'ok', f'{len(rod)} renderizando, {len(pend)} na fila'
+
+def _ck_push():
+    import avisos
+    avisos.chave_publica()
+    n = len(json.load(open(os.path.join(TRAB, 'inscricoes_push.json')))) if os.path.exists(os.path.join(TRAB, 'inscricoes_push.json')) else 0
+    return ('ok' if n else 'atencao'), (f'{n} aparelho(s) recebendo avisos' if n else 'nenhum aparelho ativou as notificações')
+
+SISTEMAS = [('editor', 'Editor (VPS)', _ck_editor), ('supabase', 'Banco de dados (Supabase)', _ck_supabase), ('drive', 'Google Drive', _ck_drive),
+            ('ia', 'IA (Anthropic)', _ck_ia), ('acer', 'Computador de render (Acer)', _ck_acer), ('fila', 'Fila do 4K', _ck_fila),
+            ('push', 'Notificações', _ck_push)]
+
+def checar_sistemas(avisar_mudanca=True):
+    itens = []
+    for chave, nome, fn in SISTEMAS:
+        t = time.time()
+        try: st, det = fn()
+        except Exception as e: st, det = 'erro', str(e)[:140]
+        ms = round((time.time() - t) * 1000)
+        if st == 'ok' and ms > 4000: st, det = 'atencao', det + f' · lento ({ms / 1000:.1f} s)'
+        itens.append({'chave': chave, 'nome': nome, 'status': st, 'detalhe': det, 'ms': ms})
+        antes = _ESTADO.get(chave)
+        if avisar_mudanca and antes and antes != st and st != 'info':
+            try:
+                import avisos
+                if st == 'ok': avisos.enviar(f'{nome}: voltou ao normal', det, '/#sistemas')
+                else: avisos.enviar(f"{nome}: {'fora do ar' if st == 'erro' else 'atenção'}", det, '/#sistemas')
+            except Exception as e: print('aviso de sistema:', e, flush=True)
+        _ESTADO[chave] = st
+    SAUDE.update(quando=time.time(), itens=itens)
+    return SAUDE
+
+def vigia_saude():
+    time.sleep(60)                                     # dá tempo do computador de render dar sinal depois de ligar
+    primeira = True
+    while True:
+        try: checar_sistemas(avisar_mudanca=not primeira); primeira = False
+        except Exception as e: print('saúde:', e, flush=True)
+        time.sleep(120)
+
 class H(BaseHTTPRequestHandler):
     def _r(self, cod, obj):
         self.send_response(cod); self.send_header('Content-Type', 'application/json'); self.end_headers(); self.wfile.write(json.dumps(obj).encode())
@@ -417,6 +500,10 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         u = urllib.parse.urlparse(self.path)
         if u.path.startswith('/worker/'): return _rota_worker(self, 'GET', u)
+        if u.path == '/status/sistemas':                   # painel de saúde no app
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            if time.time() - SAUDE['quando'] > 90 or 'agora' in u.query: checar_sistemas(avisar_mudanca=False)
+            return self._r(200, SAUDE)
         if u.path == '/drive/miniatura':                   # imagem do vídeo pra escolher no app
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             import drive
@@ -585,6 +672,7 @@ def vigia():
 
 if __name__ == '__main__':
     threading.Thread(target=vigia, daemon=True).start()
+    threading.Thread(target=vigia_saude, daemon=True).start()
     for _ in range(int(os.environ.get("BORA_PARALELO", "2"))):   # até 2 vídeos ao mesmo tempo
         threading.Thread(target=trabalhador, daemon=True).start()
     print('Editor Bora Studio ouvindo na porta 8787' + (' (render externo ligado)' if EXTERNO else ''))

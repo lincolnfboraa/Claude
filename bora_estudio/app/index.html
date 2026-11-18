@@ -182,6 +182,10 @@ button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-vis
 .solta b{display:block;font:500 16px var(--display)}
 .solta small{display:block;color:var(--sub);font-size:13px;margin:4px 0 16px}
 .solta label{display:inline-flex}
+.sist{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.sc{background:rgba(255,255,255,.05);border-radius:16px;padding:12px 12px 11px}.sc-t{display:flex;flex-direction:column;gap:6px}.sc-t b{font-size:13.5px}
+.sc-p{align-self:flex-start;font-size:11px;font-weight:700;border:1px solid;border-radius:20px;padding:2px 8px}.sc small{display:block;margin-top:6px;font-size:11.5px;line-height:1.35;opacity:.7}
+.aviso-sist{background:rgba(255,178,63,.12);border:1px solid rgba(255,178,63,.45);border-radius:16px;margin:6px 0 10px;width:100%}
 .mini{width:46px;height:82px;border-radius:10px;object-fit:cover;background:#141C2A;flex:0 0 auto;margin-right:12px}
 .thumbs{display:flex;gap:10px;overflow-x:auto;margin:14px calc(var(--g)*-1) 0;padding:6px var(--g) 2px;scrollbar-width:none}
 .thumbs::-webkit-scrollbar{display:none}
@@ -390,6 +394,7 @@ const V={
  erro(){return `<div class="login"><h1 class="titulo">Não consegui carregar</h1><p class="apoio">Confira a internet e se o seu usuário está na equipe. Depois puxe a tela pra recarregar.</p></div>`},
  inicio(){const rv=paraRevisar(),pr=emProducao().filter(v=>v.st==='run'),fila=[...rv,...pr],n=emProducao().length;
   return `<header class="top">${marca}<button class="icb" data-status aria-label="Produção e avisos">${SV(I.sino)}${n?'<span class="pt"></span>':''}</button></header>
+  ${problemas().length?`<button class="ln aviso-sist" data-tab="ajustes"><span class="tx"><b>${problemas().some(x=>x.status==='erro')?'⚠ Sistema fora do ar':'⚠ Atenção nos sistemas'}</b><small>${problemas().map(x=>esc(x.nome)).join(', ')}</small></span><span class="seta">›</span></button>`:''}
   <div class="hero" role="group" aria-label="Nova edição" style="margin-top:6px"><h3>Edição no padrão de cada cliente.</h3><p>Envie o bruto. A primeira versão volta pronta pra revisar.</p>
    <button class="neon" data-go="nova">Nova edição<i>${SV(I.seta)}</i></button></div>
   <div class="secao"><h2>Para revisar</h2><span class="cnt">${rv.length?rv.length+(rv.length>1?' vídeos':' vídeo'):'em dia'}${pr.length?' · '+pr.length+' em produção':''}</span></div>
@@ -404,6 +409,7 @@ const V={
   const bloco=(t,arr,cor)=>arr&&arr.length?`<div class="secao"><h2>${t}</h2><span class="cnt">${arr.length}</span></div><div class="lst">${linhas(arr,cor)}</div>`:'';
   return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
   <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
+  <div class="secao" id="sistemas"><h2>Sistemas</h2><button class="lk" data-saude style="background:none;border:0;color:var(--l,#FF5E16);font-weight:600">Conferir agora</button></div>${cardsSistemas()}
   <button class="pill ${S.pushOk?'':'pri'} full" data-push-ativar style="margin-bottom:6px">${SV(I.sino)}${S.pushOk?'Notificações ativadas neste aparelho':'Ativar notificações'}</button>
   <p class="nota" style="margin-top:4px">Avisa quando a prévia fica pronta, quando o 4K termina e se der erro. No iPhone, abra o app pelo ícone da Tela de Início.</p>
   ${sug.length?`<div class="secao"><h2>Sugestões de aprendizado</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map(x=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>${esc(x.c.nome)} · v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${x.c.id}:${x.i}">Cliente</button><button class="mini ok" data-suggl="${x.c.id}:${x.i}" style="background:var(--cell2);color:var(--txt)">Todos</button></div>`).join('')}</div>`:''}
@@ -645,6 +651,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   novos.forEach(v=>{S.drive[outro]=S.drive[outro].filter(x=>x.id!==v.id);if(!S.drive[lado].some(x=>x.id===v.id))S.drive[lado].push(v)});
   S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];close();reRender()}
  else if(d.rmd){const[k,i]=d.rmd.split(':');S.drive[k].splice(+i,1);S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
+ else if('saude' in d){S.saude=null;reRender();carregarSaude(true).then(reRender)}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
  else if(d.sugok)decidir(d.sugok,true);else if(d.sugno)decidir(d.sugno,false);
@@ -659,12 +666,19 @@ document.addEventListener('change',e=>{const t=e.target;
  if(t.id.startsWith('arq_')&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;const papel=t.id.slice(4);[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);f._papel=papel;S.arquivos.push(f)});t.value='';reRender()}
  else if(t.id==='selcli'){S.novaCli=t.value;S.cores=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
  else if(t.dataset.cc){S.cores[t.dataset.cc]=t.value;reRender()}});
+async function carregarSaude(agora){try{const tok=(await sb.auth.getSession()).data.session.access_token;
+ const r=await fetch(`${EDITOR}/status/sistemas${agora?'?agora=1':''}`,{headers:{Authorization:'Bearer '+tok}});if(r.ok)S.saude=await r.json()}catch(e){S.saude={erro:'Não consegui falar com o editor (VPS)'}}}
+function problemas(){const s=S.saude;if(!s)return[];if(s.erro)return[{nome:'Editor (VPS)',status:'erro',detalhe:s.erro}];return(s.itens||[]).filter(x=>x.status==='erro'||x.status==='atencao')}
+function cardsSistemas(){const s=S.saude;if(!s)return`<p class="vazio">Conferindo os sistemas…</p>`;
+ const itens=s.erro?[{nome:'Editor (VPS)',status:'erro',detalhe:s.erro,ms:0}]:s.itens||[],cor={ok:'#3DDC97',atencao:'#FFB23F',erro:'#FF5B5B',info:'#7C8AA0'},rot={ok:'Online',atencao:'Atenção',erro:'Fora do ar',info:'Desligado'};
+ return `<div class="sist">${itens.map(x=>`<div class="sc"><div class="sc-t"><b>${esc(x.nome)}</b><span class="sc-p" style="color:${cor[x.status]};border-color:${cor[x.status]}">● ${rot[x.status]}</span></div><small>${esc(x.detalhe)}${x.ms>0&&x.status!=='info'?' · '+(x.ms<1000?x.ms+' ms':(x.ms/1000).toFixed(1)+' s'):''}</small></div>`).join('')}</div>
+ <p class="nota">Conferido ${s.quando?new Date(s.quando*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'agora'}. O servidor confere a cada 2 minutos e manda notificação quando algo cai, fica lento ou volta.</p>`}
 function atualizar(){if(document.hidden||!DB.clientes.length)return;
  if($('#sheet.on [data-stgo]')){carregarTudo().then(()=>{$('#sheet').innerHTML=sheetStatus()}).catch(()=>{});return}
  const nm=S.stack[S.stack.length-1].v.split(':')[0];if($('#sheet').classList.contains('on')||['login','nova'].includes(nm)||$('#vid video')||$('#aj'))return;
  carregarTudo().then(reRender).catch(()=>{})}
 // com vídeo em produção confere a cada 8 s; sem nada rodando, a cada 30 s; ao voltar pro app, atualiza na hora
-(function ciclo(){let prod=0;try{prod=emProducao().length}catch(e){}setTimeout(()=>{atualizar();ciclo()},prod?8000:30000)})();
+let _ultSaude=0;(function ciclo(){if(Date.now()-_ultSaude>60000&&!document.hidden&&typeof sb!=='undefined'){_ultSaude=Date.now();carregarSaude().then(()=>{if(['inicio','ajustes'].includes(S.stack[S.stack.length-1].v)&&!$('#sheet').classList.contains('on'))reRender()})}let prod=0;try{prod=emProducao().length}catch(e){}setTimeout(()=>{atualizar();ciclo()},prod?8000:30000)})();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)atualizar()});
 window.addEventListener('pageshow',()=>atualizar());window.addEventListener('focus',()=>atualizar());
 function b64u(s){s=s.replace(/-/g,'+').replace(/_/g,'/');const b=atob(s+'='.repeat((4-s.length%4)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))}
@@ -677,7 +691,7 @@ async function ativarPush(){try{
  const tok=(await sb.auth.getSession()).data.session.access_token;
  const r=await fetch(`${EDITOR}/push/inscrever`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify(sub)});
  if(!r.ok)throw new Error('servidor recusou');S.pushOk=true;reRender();toast('Notificações ativadas')}catch(e){toast('Não ativou: '+e.message)}}
-async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:S.tab||'inicio'}];const hv=(location.hash.match(/v=([\w-]+)/)||[])[1];if(hv&&vid(hv))S.stack.push({v:'video:'+hv});render()
+async function iniciar(){S.stack=[{v:'carregando'}];render();try{await carregarTudo();S.stack=[{v:S.tab||'inicio'}];const hv=(location.hash.match(/v=([\w-]+)/)||[])[1];if(hv&&vid(hv))S.stack.push({v:'video:'+hv});if(location.hash==='#sistemas'){S.tab='ajustes';S.stack=[{v:'ajustes'}]}render();carregarSaude().then(()=>{_ultSaude=Date.now();reRender()})
   try{const reg=await navigator.serviceWorker?.getRegistration();if(reg&&await reg.pushManager.getSubscription()&&Notification.permission==='granted')S.pushOk=true}catch(_){}}catch(e){S.stack=[{v:'erro'}];render()}}
 sb.auth.getSession().then(({data})=>{if(data.session)iniciar();else{S.stack=[{v:'login'}];render()}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.closest('#flogin')){e.preventDefault();document.querySelector('[data-entrar]').click()}});
