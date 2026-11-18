@@ -572,7 +572,6 @@ class H(BaseHTTPRequestHandler):
             partes = u.path.split('/'); pid = partes[2]; n = int(partes[3]) if len(partes) > 3 and partes[3].isdigit() else 1
             arq = os.path.join(pasta(pid), f"{'anexo' if urllib.parse.parse_qs(u.query).get('tipo') == ['anexo'] else 'original'}_{n:02d}.parcial")
             return self._r(200, {'recebido': os.path.getsize(arq) if os.path.exists(arq) else 0})
-        import time
         self._r(200, {'ok': True, 'na_fila': FILA.qsize(), 'ocupado': OCUPADO[0], 'parado_min': max(0, int((time.time() - ULTIMA[0]) / 60) - (90 if FINAIS[0] else 0)) if OCUPADO[0] else 0})
     def _final(self, u):
         """GET /final/<projeto>?exp=..&sig=.. : baixa o .zip do final (link assinado, vale 2 h)."""
