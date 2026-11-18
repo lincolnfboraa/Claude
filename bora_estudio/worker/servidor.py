@@ -65,6 +65,10 @@ def processar(p):
         avisar(p, True)
     except Exception as e:
         if pid in DESCARTADOS: print('projeto descartado durante a edição:', pid, flush=True); return
+        if 'credit balance' in str(e).lower():         # sem crédito na Anthropic: o painel e o celular avisam
+            IA_SEM_SALDO[0] = time.time()
+            try: checar_sistemas()
+            except Exception: pass
         traceback.print_exc()
         sem_mem = type(e).__name__ == 'SemMemoria'          # não repete sozinho (nem ao reiniciar); só pelo botão Tentar de novo
         etapa(pid, ('Erro: ' if sem_mem else 'Erro na edição: ') + str(e)[:120], None,
@@ -427,9 +431,48 @@ def _ck_drive():
     nome = drive._get(f'files/{drive.RAIZ}', fields='name').get('name')
     return 'ok', f'pasta "{nome}" acessível'
 
+IA_SEM_SALDO = [0.0]                                   # quando a IA recusou por falta de crédito
+_CUSTO = {'quando': 0, 'res': None}
+
+def _gasto_usd(inicio, fim=None):
+    """Gasto em USD na Anthropic entre duas datas (Usage and Cost Analytics API; atualiza com 4 a 24 h de atraso)."""
+    import datetime as dt
+    k = os.environ.get('ANTHROPIC_ADMIN_KEY'); total = 0.0
+    fim = fim or dt.datetime.now(dt.timezone.utc)
+    while inicio < fim:                                # no máximo 31 dias por consulta
+        ate = min(fim, inicio + dt.timedelta(days=31))
+        q = urllib.parse.urlencode({'starting_at': inicio.strftime('%Y-%m-%dT%H:00:00Z'), 'ending_at': ate.strftime('%Y-%m-%dT%H:00:00Z')})
+        r = urllib.request.Request(f'https://api.anthropic.com/v1/organizations/analytics/cost?{q}',
+                                   headers={'x-api-key': k, 'anthropic-version': '2023-06-01', 'anthropic-beta': 'analytics-usage-cost-2026-08-24'})
+        for row in json.load(urllib.request.urlopen(r, timeout=30)).get('data') or []:
+            total += float(row['cost']['amount']) / 100
+        inicio = ate
+    return total
+
+def _ck_ia_saldo():
+    import datetime as dt
+    if not os.environ.get('ANTHROPIC_ADMIN_KEY'): return 'info', 'pra ver gasto e saldo, falta a chave de administrador (ANTHROPIC_ADMIN_KEY) no servidor'
+    if time.time() - _CUSTO['quando'] < 1800 and _CUSTO['res']: return _CUSTO['res']      # o dado da Anthropic muda devagar
+    agora = dt.datetime.now(dt.timezone.utc)
+    mes = _gasto_usd(agora.replace(day=1, hour=0, minute=0, second=0, microsecond=0))
+    rec = ((sb('GET', '/rest/v1/regras_globais?id=eq.1&select=regras') or [{}])[0].get('regras') or {}).get('ia_recarga') or {}
+    det = f'gasto no mês US$ {mes:.2f}'
+    st = 'ok'
+    if rec.get('usd') and rec.get('em'):
+        desde = dt.datetime.fromisoformat(rec['em'].replace('Z', '+00:00'))
+        saldo = float(rec['usd']) - _gasto_usd(desde)
+        det = f'saldo estimado US$ {saldo:.2f} (recarga de US$ {float(rec["usd"]):.0f} em {desde:%d/%m}) · ' + det
+        alerta = float(os.environ.get('BORA_IA_ALERTA_USD', '10'))
+        st = 'erro' if saldo < 2 else 'atencao' if saldo < alerta else 'ok'
+    else:
+        det += ' · registre a última recarga no app pra ver o saldo estimado'
+    _CUSTO.update(quando=time.time(), res=(st, det + ' · dados da Anthropic com até 24 h de atraso'))
+    return _CUSTO['res']
+
 def _ck_ia():
     k = os.environ.get('ANTHROPIC_API_KEY')
     if not k: return 'erro', 'chave da IA não configurada'
+    if time.time() - IA_SEM_SALDO[0] < 6 * 3600: return 'erro', 'a IA recusou por falta de crédito: recarregue em platform.claude.com'
     r = urllib.request.Request('https://api.anthropic.com/v1/models?limit=1', headers={'x-api-key': k, 'anthropic-version': '2023-06-01'})
     urllib.request.urlopen(r, timeout=20).read(); return 'ok', 'respondendo'
 
@@ -456,7 +499,7 @@ def _ck_push():
     return ('ok' if n else 'atencao'), (f'{n} aparelho(s) recebendo avisos' if n else 'nenhum aparelho ativou as notificações')
 
 SISTEMAS = [('editor', 'Editor (VPS)', _ck_editor), ('supabase', 'Banco de dados (Supabase)', _ck_supabase), ('drive', 'Google Drive', _ck_drive),
-            ('ia', 'IA (Anthropic)', _ck_ia), ('acer', 'Computador de render (Acer)', _ck_acer), ('fila', 'Fila do 4K', _ck_fila),
+            ('ia', 'IA (Anthropic)', _ck_ia), ('ia_saldo', 'Saldo da IA', _ck_ia_saldo), ('acer', 'Computador de render (Acer)', _ck_acer), ('fila', 'Fila do 4K', _ck_fila),
             ('push', 'Notificações', _ck_push)]
 
 def checar_sistemas(avisar_mudanca=True):
@@ -502,6 +545,7 @@ class H(BaseHTTPRequestHandler):
         if u.path.startswith('/worker/'): return _rota_worker(self, 'GET', u)
         if u.path == '/status/sistemas':                   # painel de saúde no app
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            if 'agora' in u.query: _CUSTO['quando'] = 0
             if time.time() - SAUDE['quando'] > 90 or 'agora' in u.query: checar_sistemas(avisar_mudanca=False)
             return self._r(200, SAUDE)
         if u.path == '/drive/miniatura':                   # imagem do vídeo pra escolher no app

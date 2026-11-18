@@ -410,6 +410,7 @@ const V={
   return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
   <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
   <div class="secao" id="sistemas"><h2>Sistemas</h2><button class="lk" data-saude style="background:none;border:0;color:var(--l,#FF5E16);font-weight:600">Conferir agora</button></div>${cardsSistemas()}
+  <button class="ln" data-recarga style="margin-top:8px"><span class="tx"><b>Registrar recarga da IA</b><small>Depois de colocar crédito na Anthropic, informe o valor pra acompanhar o saldo estimado</small></span><span class="seta">›</span></button>
   <button class="pill ${S.pushOk?'':'pri'} full" data-push-ativar style="margin-bottom:6px">${SV(I.sino)}${S.pushOk?'Notificações ativadas neste aparelho':'Ativar notificações'}</button>
   <p class="nota" style="margin-top:4px">Avisa quando a prévia fica pronta, quando o 4K termina e se der erro. No iPhone, abra o app pelo ícone da Tela de Início.</p>
   ${sug.length?`<div class="secao"><h2>Sugestões de aprendizado</h2><span class="cnt">${sug.length}</span></div><div class="lst">${sug.map(x=>`<div class="ln"><span class="tx"><b style="font-weight:400;font-size:14.5px">${esc(x.texto)}</b><small>${esc(x.c.nome)} · v${x.versao} de ${esc(x.projeto)}</small></span><button class="mini ok" data-sugok="${x.c.id}:${x.i}">Cliente</button><button class="mini ok" data-suggl="${x.c.id}:${x.i}" style="background:var(--cell2);color:var(--txt)">Todos</button></div>`).join('')}</div>`:''}
@@ -651,6 +652,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   novos.forEach(v=>{S.drive[outro]=S.drive[outro].filter(x=>x.id!==v.id);if(!S.drive[lado].some(x=>x.id===v.id))S.drive[lado].push(v)});
   S.arquivos.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];close();reRender()}
  else if(d.rmd){const[k,i]=d.rmd.split(':');S.drive[k].splice(+i,1);S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}
+ else if('recarga' in d){const v=prompt('Valor da recarga na Anthropic, em dólares (ex.: 50):');const usd=parseFloat((v||'').replace(',','.'));if(!usd||usd<=0)return;
+  (async()=>{try{const g=(await q(sb.from('regras_globais').select('regras').eq('id',1).maybeSingle())).regras||{};g.ia_recarga={usd,em:new Date().toISOString()};
+   await q(sb.from('regras_globais').update({regras:g,atualizado_em:new Date().toISOString()}).eq('id',1));toast('Recarga de US$ '+usd+' registrada');S.saude=null;reRender();await carregarSaude(true);reRender()}catch(e){toast('Não consegui registrar: '+e.message)}})()}
  else if('saude' in d){S.saude=null;reRender();carregarSaude(true).then(reRender)}
  else if('pushAtivar' in d)ativarPush();
  else if(d.suggl)decidirGlobal(d.suggl);
