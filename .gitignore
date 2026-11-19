@@ -3,3 +3,4 @@ __pycache__/
 bora_estudio/worker/worker.env
 bora_estudio/worker/render_cache/
 bora_estudio/worker/modelos/
+entregas/
