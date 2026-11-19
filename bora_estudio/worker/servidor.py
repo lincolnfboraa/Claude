@@ -158,7 +158,7 @@ def _iso_seg(iso):
     return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
 
 INICIO = time.time()
-WORKER_VERSAO_MIN = 20261119                           # sobe junto com o VERSAO do render_worker.py quando o render muda
+WORKER_VERSAO_MIN = 20261120                           # sobe junto com o VERSAO do render_worker.py quando o render muda
 DESATUALIZADO = {}                                     # worker que chamou com código antigo -> quando
 VISTO = {}                                             # nome do worker -> última vez que pediu trabalho ou deu sinal
 OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume

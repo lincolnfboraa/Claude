@@ -147,7 +147,73 @@ class Roteiro:
             if est == 'lettering': self.linha_letras(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'])
             else: self.linha(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'], 'pop' if x['grande'] else 'slide')
 
-    def titulo(self, tit, t1):
+    @staticmethod
+    def _quebra(txt, f, fs, W, sp=0):
+        """Quebra a frase em linhas que cabem em W px."""
+        linhas, atual = [], ''
+        for w in txt.split():
+            t = (atual + ' ' + w).strip()
+            if atual and largura(t, f, fs, sp) > W: linhas.append(atual); atual = w
+            else: atual = t
+        return linhas + ([atual] if atual else [])
+
+    @classmethod
+    def _equilibra(cls, txt, f, fs, W, nmax):
+        """Menor número de linhas (até nmax) com larguras parecidas, sem deixar palavra sozinha na última linha."""
+        total = largura(txt, f, fs); maior = max(largura(w, f, fs) for w in txt.split())
+        for n in range(1, nmax + 1):
+            alvo = max(maior, total / n)
+            while alvo <= W:                           # alarga aos poucos até caber em n linhas parecidas
+                L = cls._quebra(txt, f, fs, alvo)
+                if len(L) <= n: return L
+                alvo *= 1.04
+        return None
+
+    def titulo(self, tit, t1, modelo='premium', cor_caixa=None):
+        """Título do gancho no template escolhido: premium (T1b), caixa (frase num retângulo sólido) ou impacto (frase grande)."""
+        if modelo == 'caixa': return self._titulo_caixa(tit, t1, cor_caixa)
+        if modelo == 'impacto': return self._titulo_impacto(tit, t1)
+        return self._titulo_premium(tit, t1)
+
+    def _titulo_caixa(self, tit, t1, cor_caixa):
+        """Frase em caixa alta dentro de um retângulo sólido (cor da caixa); rótulo pequeno embaixo, na cor de destaque."""
+        frase = (tit.get('frase') or tit.get('pergunta') or tit.get('tema') or '').upper().translate(LIMPA)
+        if not frase: return
+        f, W, fs = 'Poppins Bold', 860, 112
+        while fs > 50 and not self._equilibra(frase, f, fs, W, 3): fs -= 4
+        L = (self._equilibra(frase, f, fs, W, 3) or self._quebra(frase, f, fs, W))[:3]
+        lh = round(fs * 1.12); pad_x, pad_y = 34, round(fs * 0.34)
+        wmax = max(largura(x, f, fs, 0) for x in L)
+        topo = 960; x0, x1 = 540 - wmax / 2 - pad_x, 540 + wmax / 2 + pad_x
+        y1 = topo + pad_y * 2 + lh * len(L) - round(fs * 0.12)
+        cx = cor_ass(cor_caixa or '#1E2A47', '#1E2A47')
+        self.dlg(0, 0, t1, 'Card', f"{{\\an7\\pos(0,0)\\1c{cx}\\1a&H00&\\bord0\\shad3\\4c&H000000&\\4a&H90&\\fad(250,250)\\p1}}m {x0:.0f} {topo} l {x1:.0f} {topo} l {x1:.0f} {y1} l {x0:.0f} {y1}")
+        for k, x in enumerate(L):
+            base = topo + pad_y + lh * k + round(fs * FONTES[f][3])
+            self.dlg(2, 0.1 + 0.08 * k, t1, 'Card', f"{{\\an2\\pos(540,{base:.0f})\\fad(300,250)\\fn{f}\\fs{fs}\\c{self.BR}\\bord0\\shad0}}{x}")
+        rot = (tit.get('rotulo') or '').upper()
+        if rot:
+            fr = 46; base = y1 + 22 + round(fr * FONTES['Poppins SemiBold'][3])
+            self.dlg(2, 0.3, t1, 'Card', f"{{\\an2\\pos(540,{base:.0f})\\fad(350,250)\\fnPoppins SemiBold\\fs{fr}\\fsp3\\c{self.DEST}{SOMBRA}}}{rot}")
+
+    def _titulo_impacto(self, tit, t1):
+        """Frase grande em caixa alta (Poppins Black), palavra-chave na cor de destaque, entrada com pop."""
+        frase = (tit.get('frase') or tit.get('pergunta') or tit.get('tema') or '').upper().translate(LIMPA)
+        if not frase: return
+        chave = (tit.get('tema') or '').upper()
+        palavras = frase.split()
+        if not chave or chave not in frase: chave = max(palavras, key=len)
+        f, W, fs = 'Poppins Black', 920, 150
+        while fs > 60 and not self._equilibra(frase, f, fs, W, 3): fs -= 6
+        L = (self._equilibra(frase, f, fs, W, 3) or self._quebra(frase, f, fs, W))[:4]
+        lh = round(fs * 1.02); topo = 940
+        for k, x in enumerate(L):
+            txt = ' '.join(f"{{\\c{self.DEST}}}{w}{{\\c{self.BR}}}" if w.strip('?!,') in chave.split() else w for w in x.split())
+            base = topo + lh * k + round(fs * FONTES[f][3])
+            t0 = 0.08 * k
+            self.dlg(2, t0, t1, 'Card', f"{{\\an2\\pos(540,{base:.0f})\\fn{f}\\fs{fs}\\c{self.BR}{SOMBRA}\\fscx70\\fscy70\\t(0,180,\\fscx104\\fscy104)\\t(180,260,\\fscx100\\fscy100)\\fad(120,250)}}{txt}")
+
+    def _titulo_premium(self, tit, t1):
         """Título T1b: três linhas coladas com a mesma largura, entrada em cascata. Sombra só nas letras (regra geral: sem bloco/degradê atrás)."""
         lab, tema, sub = (tit.get('rotulo') or '').upper(), tit.get('tema') or '', tit.get('pergunta') or ''
         if not tema: return

@@ -62,10 +62,14 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
         base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb)
     ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
-    if pl.get('usar_titulo') and pl.get('titulo', {}).get('tema'):
+    g = pl.get('_gancho') or {}; modelo = g.get('template') or 'ia'
+    tit = dict(pl.get('titulo') or {})
+    if g.get('frase'): tit['frase'] = g['frase']; tit['pergunta'] = g['frase'] if modelo in ('premium', 'ia') else tit.get('pergunta', '')
+    mostrar = modelo != 'nenhum' and (pl.get('usar_titulo') or (modelo != 'ia' and (g.get('frase') or tit.get('tema'))))
+    if mostrar and (tit.get('tema') or tit.get('frase') or tit.get('pergunta')):
         s0 = pl['segmentos'][0]; fim1 = [t['e'] for t in tokens if int(s0['palavra_inicio']) <= t['i'] <= int(s0['palavra_fim'])]
         seg1 = max(fim1) if fim1 else 3.0
-        ro.titulo(pl['titulo'], min(max(seg1 + 1.0, 3.0), 5.5))
+        ro.titulo(tit, min(max(seg1 + 1.0, 3.0), 5.5), 'premium' if modelo == 'ia' else modelo, cores.get('caixa'))
     for d in pl.get('destaques', []): ro.destaque(d)
     ro.gravar(saida_base)
     return base, hdr, dur, tokens
@@ -100,7 +104,8 @@ def preparar(p, etapa, sb):
     if not arqs: raise RuntimeError('os vídeos originais não estão no servidor; envie de novo pelo app')
     tx = (dna.get('texto') or {})
     cores = {'leg': (proj.get('cores_texto') or {}).get('leg') or tx.get('legenda') or '#FFFFFF',
-             'dest': (proj.get('cores_texto') or {}).get('dest') or tx.get('destaque') or (((dna.get('paleta') or {}).get('cores') or [None])[0] if (dna.get('paleta') or {}).get('cores') else '#FFFFFF')}
+             'dest': (proj.get('cores_texto') or {}).get('dest') or tx.get('destaque') or (((dna.get('paleta') or {}).get('cores') or [None])[0] if (dna.get('paleta') or {}).get('cores') else '#FFFFFF'),
+             'caixa': (proj.get('cores_texto') or {}).get('caixa') or tx.get('caixa') or '#1E2A47'}
     pasta = os.path.join(TRAB, pid); os.makedirs(pasta, exist_ok=True)
     etapa('Lendo o pedido', 5)
     pal = _transcricoes(pid, arqs, etapa)
@@ -137,8 +142,15 @@ def preparar(p, etapa, sb):
             pl = json.load(open(pronto))
         else:
             import plano as plano_ia                   # só o VPS precisa da IA; o render externo não
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, meta.get('briefing', ''), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
+            g = meta.get('gancho') or {}
+            pedido_gancho = ''
+            if g.get('template') == 'nenhum': pedido_gancho = 'Gancho definido pelo editor: SEM título no gancho (usar_titulo = false).'
+            elif g.get('template') in ('premium', 'caixa', 'impacto') or g.get('frase'):
+                pedido_gancho = (f"Gancho definido pelo editor: título no template {g.get('template') or 'premium'} (o motor desenha)."
+                                 + (f" Frase do título, EXATA, não altere: \"{g['frase']}\". Preencha titulo.tema com a palavra-chave dessa frase e escolha a fala de abertura que combina com ela." if g.get('frase') else ''))
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho) if x), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
+        pl['_gancho'] = meta.get('gancho') or {}                # template e frase escolhidos no app (vale também pros ajustes)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
         escolhidos = {int(b['video']) for b in pl.get('broll') or []}
         if escolhidos: etapa('Medindo a estabilidade das cenas escolhidas', 30)

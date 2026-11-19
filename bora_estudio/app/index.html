@@ -204,6 +204,11 @@ textarea::placeholder{color:var(--faint)}
 .op.on{box-shadow:0 0 0 2px var(--deep),0 0 0 4px var(--orange)}
 .op.cus{position:relative;overflow:hidden;background:conic-gradient(#f55,#fd5,#5d8,#5bf,#a6f,#f55)}
 .op.cus input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.tpls{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0 6px}
+.tpl{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--sub)}
+.tpl .mini{width:100%;aspect-ratio:9/16;border-radius:10px;background:linear-gradient(170deg,#3a4c62,#141e2b);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;box-shadow:inset 0 0 0 1.5px rgba(242,234,223,.15);padding:4px;text-align:center;line-height:1.05}
+.tpl.on .mini{box-shadow:inset 0 0 0 2.5px var(--acc,#E8794A)}.tpl.on{color:var(--txt,#F2EADF)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 4px}.chip{font-size:12px;padding:7px 11px;border-radius:14px;background:var(--cell)}
 .amostra{border-radius:16px;padding:16px;text-align:center;background:linear-gradient(170deg,#28415C,#111D2C);font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.6);margin-bottom:6px}
 .amostra em{font:italic 900 22px Georgia,serif;display:block;margin-top:2px}
 .rodape{position:sticky;bottom:0;margin:26px calc(var(--g)*-1) 0;padding:22px var(--g) calc(16px + env(safe-area-inset-bottom,0px));z-index:4;background:linear-gradient(rgba(7,10,17,0),rgba(7,10,17,.94) 38%)}
@@ -334,7 +339,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -444,8 +449,8 @@ const V={
   <div class="secao"><h2>Regras confirmadas</h2><span class="cnt">${c.regras_confirmadas.length}</span></div><div class="lst">${linhas(c.regras_confirmadas)||'<p class="vazio">Ajustes aceitos viram sugestões depois da aprovação e só entram aqui quando você confirma.</p>'}</div>
   <div class="secao"><h2>Referências no Drive</h2><span class="cnt">${r.length}</span></div>
   ${r.length?`<div class="lst">${r.map(x=>`<div class="ln"><span class="tx"><b>${esc(x.titulo)}</b><small>${x.analise==='analisado'?'Analisada':'Ainda não analisada'}${x.tecnico?' · '+esc(x.tecnico):''}</small></span>${x.url?`<a class="lk" href="${x.url}" target="_blank" rel="noopener" aria-label="Abrir no Drive">${SV('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')}</a>`:''}</div>`).join('')}</div>`:'<div class="lst"><p class="vazio">Nenhum aprovado deste cliente encontrado no Drive ainda.</p></div>'}`},
- nova(pre){if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}if(!S.novaCli)S.novaCli=DB.clientes[0].id;const c=cli(S.novaCli);
-  if(!S.cores)S.cores={leg:c.texto.legenda||'#FFFFFF',dest:c.texto.destaque||'#FFFFFF'};const fs=S.arquivos;
+ nova(pre){if(S.gAj){S.gAj=null;S.cores=null;S.gancho={template:'ia',frase:''}}if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}if(!S.novaCli)S.novaCli=DB.clientes[0].id;const c=cli(S.novaCli);
+  if(!S.cores)S.cores={leg:c.texto.legenda||'#FFFFFF',dest:c.texto.destaque||'#FFFFFF',caixa:c.texto.caixa||'#1E2A47'};const fs=S.arquivos;
   return `<header class="top">${voltar()}<span class="tt">Novo projeto</span><span style="width:42px"></span></header>
   <h1 class="titulo">Novo projeto</h1><p class="apoio">Envie os vídeos e conte o que precisa. O resto segue o DNA do cliente.</p>
   <h3 class="rot">Cliente</h3><label class="campo"><span class="ini ${c.cls}" style="width:36px;height:36px;font-size:12px">${c.ini}</span>
@@ -456,6 +461,7 @@ const V={
   ${S.drive&&(S.drive.fala.length||S.drive.amb.length)?`<p class="nota">Do Drive: o servidor baixa direto, não depende do app aberto.</p>`:''}
   <h3 class="rot">Briefing do projeto</h3>
   <textarea id="briefing" placeholder="Ex.: Reels de Novembro Azul pros homens, gancho com o canudinho, até 60 s.">${esc(S.briefing)}</textarea>
+  ${blocoGancho(c)}
   <h3 class="rot">Cores do texto</h3>
   <button class="dobra" data-cores>${S.coresAbertas?'Legenda e destaques':'Padrão do DNA'}<span class="bolas"><i style="background:${S.cores.leg}"></i><i style="background:${S.cores.dest}"></i></span></button>
   ${S.coresAbertas?`<div class="cores"><div class="amostra"><span style="color:${S.cores.leg}">uma frase da legenda</span><em style="color:${S.cores.dest}">destaque</em></div>
@@ -472,6 +478,7 @@ const V={
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
+    ${S.gAj===id?blocoGancho(c,true):`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título e cores<span class="seta">›</span></button>`}
     <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
      <label class="pill sm" style="cursor:pointer">${SV(I.clipe)}Anexar imagens ou vídeos<input type="file" id="anx" data-proj="${id}" accept="image/*,video/*" multiple hidden></label>
      <small style="display:block;opacity:.6;margin-top:6px">B-roll e cards a equipe coloca depois, no CapCut. Anexe só se quiser que o editor encaixe (o 4K fica mais demorado).</small></div>
@@ -487,7 +494,21 @@ const V={
   ${v.st==='ok'&&(a.final||m.final_pronto)?`<div class="rodape">${m.final_zip?`<button class="pill pri full" data-baixar="${id}">${SV(I.baixar)}Baixar 4K${m.final_mb?' · '+m.final_mb+' MB':''}</button>`:a.final?`<a class="pill pri full" href="https://drive.google.com/uc?export=download&id=${a.final}" target="_blank" rel="noopener" style="text-decoration:none">${SV(I.baixar)}Baixar 4K</a>`:'<span class="pill full">Final entregue</span>'}</div>`:''}
   ${v.st==='wait'?`<div class="rodape"><button class="pill pri full" data-retorno="${id}" ${p?'':'disabled style="opacity:.45"'}>${p==='ok'?'Aprovar e gerar 4K':p==='ajuste'?'Enviar ajuste':'Enviar retorno'}${SV(I.seta)}</button></div>`:''}`}
 };
-function corOpts(k,c){const atual=S.cores[k],ops=[...new Set(['#FFFFFF',...c.paleta.cores])];
+const GANCHOS=['Você sabia que ...?','Pare de ... agora','3 sinais de que ...','O erro que quase todo mundo comete com ...','Ninguém te conta isso sobre ...','Se você sente ..., assista até o fim','Isso pode estar prejudicando o seu ...','Antes de ..., veja isso'];
+const TPLS=[['ia','A IA escolhe'],['premium','Premium'],['caixa','Caixa'],['impacto','Impacto'],['nenhum','Sem título']];
+function miniTpl(t){const L=S.cores.leg,D=S.cores.dest,C=S.cores.caixa||'#1E2A47';
+ if(t==='premium')return `<span style="font-size:5px;letter-spacing:1.5px;color:${D}">RÓTULO</span><i style="font:italic 900 12px Georgia,serif;color:${D}">Tema</i><span style="font-size:6px;color:${L}">pergunta?</span>`;
+ if(t==='caixa')return `<span style="background:${C};color:${L};font-weight:700;font-size:7px;padding:3px 4px">FRASE DO<br>GANCHO</span><span style="font-size:4.5px;color:${D};letter-spacing:1px">RÓTULO</span>`;
+ if(t==='impacto')return `<b style="font-size:9px;color:${L};font-weight:900">FRASE</b><b style="font-size:9px;color:${D};font-weight:900">FORTE</b>`;
+ if(t==='nenhum')return `<span style="font-size:5px;color:${L};margin-top:40%">só legenda</span>`;
+ return `<b style="font-size:11px;color:${L}">IA</b><span style="font-size:5px;color:${L};opacity:.7">segue o DNA</span>`}
+function blocoGancho(c,todas){const g=S.gancho;
+ return `<h3 class="rot">Gancho</h3><textarea id="gfrase" rows="2" placeholder="Frase do título no gancho (opcional). Vazio: a IA cria no DNA do cliente.">${esc(g.frase||'')}</textarea>
+  <div class="chips">${GANCHOS.map((x,i)=>`<button class="chip" data-gsug="${i}">${esc(x)}</button>`).join('')}</div>
+  <div class="tpls">${TPLS.map(([k,n])=>`<button class="tpl ${g.template===k?'on':''}" data-gtpl="${k}"><span class="mini">${miniTpl(k)}</span>${n}</button>`).join('')}</div>
+  ${todas?`<small style="color:var(--sub)">Legenda</small>${corOpts('leg',c)}<small style="color:var(--sub)">Palavra em destaque</small>${corOpts('dest',c)}`:''}
+  ${g.template==='caixa'?`<small style="color:var(--sub)">Cor da caixa</small>${corOpts('caixa',c)}`:''}`}
+function corOpts(k,c){const atual=S.cores[k]||'#1E2A47',ops=[...new Set(['#FFFFFF',...c.paleta.cores])];
  return `<div class="opts">${ops.map(x=>`<button class="op ${x.toLowerCase()===atual.toLowerCase()?'on':''}" style="background:${x}" data-cor="${k}:${x}" aria-label="Cor ${x}"></button>`).join('')}
  <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
@@ -572,11 +593,21 @@ async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),fs=S.anexos[id]||[]
   const r=await fetch(`${EDITOR}/anexo/${v.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({versao:a.n,arquivos:fs.map(x=>({nome:x.name,tamanho:x.size}))})});
   if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id]}
  S.ajTxt='';
+ if(S.gAj===id){const {data}=await sb.from('projetos').select('original_meta').eq('id',id).single();const m=(data&&data.original_meta)||{};
+  const fr=(S.gancho.frase||'').trim();m.gancho={template:S.gancho.template,frase:fr||undefined};
+  await q(sb.from('projetos').update({original_meta:m,cores_texto:{...S.cores}}).eq('id',id));
+  t+=`\n[Gancho escolhido no app: template ${S.gancho.template}${fr?`, frase "${fr}"`:''}; cores legenda ${S.cores.leg}, destaque ${S.cores.dest}${S.gancho.template==='caixa'?', caixa '+S.cores.caixa:''}]`;
+  S.gAj=null;S.cores=null;S.gancho={template:'ia',frase:''}}
  await q(sb.from('versoes').update({feedback:t,status:'ajuste',sugerir_dna:S.sugerir}).eq('id',a.id));
  await q(sb.from('versoes').insert({projeto_id:v.id,numero:a.n+1,status:'editando',resumo:'Ajuste da v'+a.n}));
  await q(sb.from('projetos').update({status:'editando'}).eq('id',v.id));delete S.parecer[id];close();await recarregar();toast('Feedback registrado na v'+a.n+'. A v'+(a.n+1)+' entrou na fila')}
 
 document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if(!b||b.disabled)return;const d=b.dataset||{};
+ {const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
+ if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
+ if(d.gsug){S.gancho.frase=GANCHOS[+d.gsug];reRender();const gf=$('#gfrase');if(gf){gf.focus();const k=gf.value.indexOf('...');if(k>=0)gf.setSelectionRange(k,k+3)}return}
+ if(d.gaj){const v=vid(d.gaj),g=(v.media||{}).gancho||{},cc=cli(v.cli),vc=v.cores||{};S.gAj=d.gaj;S.gancho={template:g.template||'ia',frase:g.frase||''};
+  S.cores={leg:vc.leg||cc.texto.legenda||'#FFFFFF',dest:vc.dest||cc.texto.destaque||'#FFFFFF',caixa:vc.caixa||cc.texto.caixa||'#1E2A47'};return reRender()}
  if(b.id==='dim'||'close' in d)return close();
  if(d.tab){S.tab=d.tab;S.stack=[{v:d.tab}];render()}
  else if(d.go){const[,cid]=d.go.split(':');if(cid){S.novaCli=cid;S.cores=null}S.stack.push({v:'nova'+(cid?':'+cid:'')});render('push')}
@@ -604,7 +635,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   const drv=[...dv.fala.map(f=>({...f,papel:'fala'})),...dv.amb.map(f=>({...f,papel:'ambiente'}))],total=fs.length+drv.length;
   const n=(falasCel[0]?falasCel[0].name:dv.fala[0].nome).replace(/\.[^.]+$/,'');
   (async()=>{try{
-   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,gancho:{template:S.gancho.template,frase:(S.gancho.frase||'').trim()||undefined},aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
    if(fs.length){const w=$('#upwrap');w.classList.remove('rodape');
     w.innerHTML=`<div class="envio" style="margin-top:26px"><span id="upanel">${anel(0,60)}</span><span class="tx"><b>Enviando ${fs.length>1?fs.length+' vídeos':'o vídeo'} do celular</b><small id="upinfo">Preparando…</small></span></div><p class="nota">Deixe o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
     const TOT=fs.reduce((a,x)=>a+x.size,0);let feito=0;
@@ -613,7 +644,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    const r=drv.length?await fetch(`${EDITOR}/drive/importar/${p.id}`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:drv,locais})})
                      :await fetch(`${EDITOR}/upload/${p.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:locais})});
    const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
-   fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
+   fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.gancho={template:'ia',frase:''};S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
    toast(drv.length?'O servidor está baixando os vídeos do Drive. Pode fechar o app.':(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':'Vídeos recebidos. Editando no DNA de '+c.nome))}
   catch(e){toast('Envio parou: '+e.message);const u=$('#upinfo');if(u)u.textContent='Envio interrompido. Toque em Enviar projeto de novo pra retomar.'}})()}
  else if(d.descartar){const v=vid(d.descartar);if(!confirm(`Descartar "${v.tema||v.t}"?\n\nApaga o projeto, as versões e os vídeos do servidor. Não dá pra desfazer. Os originais no Google Drive continuam lá.`))return;
@@ -626,9 +657,9 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if('sw' in d){S.sugerir=!S.sugerir;b.querySelector('.sw').classList.toggle('off',!S.sugerir)}
  else if(d.retorno){const id=d.retorno,p=S.parecer[id],v=vid(id);
   if(p==='ok')(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));delete S.parecer[id];await recarregar();toast('Aprovado. O 4K sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})();
-  else if(p==='ajuste'){const t=($('#aj')||{}).value.trim();if(!t)return toast('Escreva o que precisa mudar');b.disabled=true;pedirAjuste(id,t).catch(e=>{b.disabled=false;toast('Não enviou: '+e.message)})}}
+  else if(p==='ajuste'){const t=($('#aj')||{}).value.trim()||(S.gAj===id?'Manter o resto do plano, só trocar o gancho, o título e as cores.':'');if(!t)return toast('Escreva o que precisa mudar');b.disabled=true;pedirAjuste(id,t).catch(e=>{b.disabled=false;toast('Não enviou: '+e.message)})}}
  else if(d.reabrir)sheet(sheetReabrir(d.reabrir))
- else if(d.enviar){const t=$('#aj').value.trim();if(!t)return toast('Escreva o que precisa mudar');pedirAjuste(d.enviar,t)}
+ else if(d.enviar){const t=$('#aj').value.trim()||(S.gAj===d.enviar?'Manter o resto do plano, só trocar o gancho, o título e as cores.':'');if(!t)return toast('Escreva o que precisa mudar');pedirAjuste(d.enviar,t)}
  else if('entrar' in d){(async()=>{const {error}=await sb.auth.signInWithPassword({email:$('#lmail').value.trim(),password:$('#lsenha').value});if(error){const m=error.message||'';$('#lerr').textContent=/confirm/i.test(m)?'Esse e-mail ainda não foi confirmado':/invalid/i.test(m)?'E-mail ou senha não conferem':'Erro ao entrar: '+m;return}iniciar()})()}
  else if('sair' in d){sb.auth.signOut().then(()=>{S.stack=[{v:'login'}];render()})}
  else if(d.info){const v=vid(d.info),m=v.media||{},arqs=m.arquivos||[];sheet(`<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Arquivos do projeto</b><button data-close>OK</button></div>
