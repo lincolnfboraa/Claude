@@ -9,9 +9,9 @@ FPS = 30000 / 1001
 APLICADAS = 0
 
 def _tempo(tokens, i0, i1, fim):
-    a = next((t['s'] for t in tokens if t['i'] >= i0), None)
-    b = max((t['e'] for t in tokens if t['i'] <= i1), default=None)
-    if a is None: return None
+    sel = [t for t in tokens if i0 <= t['i'] <= i1]   # só as palavras do trecho (a história pode vir fora da ordem dos arquivos)
+    if not sel: return None
+    a = min(t['s'] for t in sel); b = max(t['e'] for t in sel)
     b = max(b if b is not None else a + 1.5, a + 1.2)
     return max(0.0, a - 0.15), min(fim, b + 0.04)    # termina junto da última palavra (não invade o corte seguinte)
 

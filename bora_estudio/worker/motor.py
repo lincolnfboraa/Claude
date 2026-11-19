@@ -63,7 +63,8 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
         base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb)
     ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
     if pl.get('usar_titulo') and pl.get('titulo', {}).get('tema'):
-        seg1 = next((t['e'] for t in tokens if t['i'] >= pl['segmentos'][0]['palavra_fim']), 3.0)
+        s0 = pl['segmentos'][0]; fim1 = [t['e'] for t in tokens if int(s0['palavra_inicio']) <= t['i'] <= int(s0['palavra_fim'])]
+        seg1 = max(fim1) if fim1 else 3.0
         ro.titulo(pl['titulo'], min(max(seg1 + 1.0, 3.0), 5.5))
     for d in pl.get('destaques', []): ro.destaque(d)
     ro.gravar(saida_base)
