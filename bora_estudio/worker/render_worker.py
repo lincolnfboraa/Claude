@@ -13,6 +13,7 @@ import json, os, sys, time, traceback, urllib.error, urllib.parse, urllib.reques
 EDITOR = os.environ.get('BORA_EDITOR', 'https://editor.borasolucoesdigitais.com').rstrip('/')
 TOKEN = os.environ.get('BORA_WORKER_TOKEN', '')
 NOME = os.environ.get('BORA_WORKER_NOME', 'worker')[:40]
+VERSAO = 20261119          # sobe junto com mudanças que o render precisa ter (o editor recusa worker mais antigo que o mínimo dele)
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
 os.environ.setdefault('BORA_ACELERACAO', 'auto')
 PARTE = 8 << 20
@@ -23,7 +24,7 @@ def chamar(metodo, rota, corpo=None, dados=None, extra=None, tentativas=5):
     """HTTP com o token do worker; repete em falhas de rede (não em recusas do editor)."""
     for t in range(tentativas):
         try:
-            h = {'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, **(extra or {})}
+            h = {'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, 'X-Bora-Worker-Versao': str(VERSAO), **(extra or {})}
             if corpo is not None: dados = json.dumps(corpo).encode(); h['Content-Type'] = 'application/json'
             r = urllib.request.urlopen(urllib.request.Request(EDITOR + rota, data=dados, method=metodo, headers=h), timeout=600)
             txt = r.read(); return r.status, (json.loads(txt) if txt else {})
@@ -45,7 +46,7 @@ def baixar(job, nome, tamanho, pasta):
         if ini >= tamanho: break
         try:
             req = urllib.request.Request(f'{EDITOR}/worker/arquivo/{job}/{urllib.parse.quote(nome)}',
-                                         headers={'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, 'Range': f'bytes={ini}-'})
+                                         headers={'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, 'X-Bora-Worker-Versao': str(VERSAO), 'Range': f'bytes={ini}-'})
             with urllib.request.urlopen(req, timeout=600) as r, open(parcial, 'ab' if ini and r.status == 206 else 'wb') as f:
                 while True:
                     b = r.read(1 << 20)
@@ -74,6 +75,7 @@ def um_trabalho():
     cod = codificadores.escolher(); os.environ['BORA_INTERMEDIARIO'] = cod
     st, r = chamar('POST', '/worker/pegar', {'codificador': cod})
     if st == 204: return False
+    if st == 426: log('código desatualizado:', r.get('erro')); time.sleep(55); return False
     if st != 200: raise RuntimeError(f'editor recusou ({st}): {r}')
     job, pac = r['job'], r['pacote']; pasta = os.path.join(TRAB, pac['projeto_id']); os.makedirs(pasta, exist_ok=True)
     t0 = time.time(); log(f"trabalho {job[:8]}: {pac['tipo']} v{pac['n']} {pac['altura']}p, intermediários em {cod}")

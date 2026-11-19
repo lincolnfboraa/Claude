@@ -158,6 +158,8 @@ def _iso_seg(iso):
     return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
 
 INICIO = time.time()
+WORKER_VERSAO_MIN = 20261119                           # sobe junto com o VERSAO do render_worker.py quando o render muda
+DESATUALIZADO = {}                                     # worker que chamou com código antigo -> quando
 VISTO = {}                                             # nome do worker -> última vez que pediu trabalho ou deu sinal
 OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume
 
@@ -269,6 +271,12 @@ def _rota_worker(h, metodo, u):
     """Rotas /worker/* : autenticadas pelo BORA_WORKER_TOKEN (cabeçalho X-Bora-Worker); o worker só vê os arquivos do trabalho dele."""
     if not WTOKEN or not hmac.compare_digest(h.headers.get('X-Bora-Worker', ''), WTOKEN): return h._r(401, {'erro': 'token do worker'})
     nome_w = (h.headers.get('X-Bora-Worker-Nome') or 'worker')[:40]
+    try: versao = int(h.headers.get('X-Bora-Worker-Versao') or 0)
+    except ValueError: versao = 0
+    if versao < WORKER_VERSAO_MIN:                     # código antigo monta diferente: não pega trabalho e não conta como ligado (a VPS faz)
+        DESATUALIZADO[nome_w] = time.time()
+        return h._r(426, {'erro': f'atualize o computador de render (versão {versao}, mínimo {WORKER_VERSAO_MIN})'})
+    DESATUALIZADO.pop(nome_w, None)
     VISTO[nome_w] = time.time()
     partes = [urllib.parse.unquote(x) for x in u.path.split('/')[2:]]
     acao = partes[0] if partes else ''
@@ -481,6 +489,8 @@ def _ck_acer():
     if not EXTERNO: return 'info', 'render externo desligado: tudo na VPS'
     if acer_ligado():
         w = max(VISTO, key=VISTO.get); return 'ok', f'{_nome(w)} online (sinal há {int(time.time() - VISTO[w])} s)'
+    velho = [w for w, t in DESATUALIZADO.items() if time.time() - t < 120]
+    if velho: return 'atencao', f'{_nome(velho[0])} ligado com código antigo: atualize pelo zip (até lá a VPS faz os vídeos)'
     if time.time() - INICIO < 120: return 'ok', 'editor acabou de reiniciar: aguardando o sinal do computador de render'
     if VISTO:
         w = max(VISTO, key=VISTO.get); return 'atencao', f'{_nome(w)} desligado há {int((time.time() - VISTO[w]) // 60)} min: a VPS faz os vídeos'
