@@ -5,6 +5,7 @@ A IA só escolhe e ordena o que FOI falado; nunca inventa fala. O vídeo em si �
 import json, os
 import anthropic
 
+from montagem import TREMOR_ALTO as TREMOR
 MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
 
 ESQUEMA = {
@@ -33,7 +34,7 @@ ESQUEMA = {
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['video', 'palavra_inicio', 'palavra_fim', 'inicio_s', 'motivo'],
                 'properties': {'video': {'type': 'integer', 'description': 'número do B-roll (1, 2, ...)'},
                                'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
-                               'inicio_s': {'type': 'number', 'description': 'segundo do vídeo de ambiente onde a cena começa (0 se não souber)'},
+                               'inicio_s': {'type': 'number', 'description': 'segundo do vídeo de ambiente onde a cena começa: o melhor momento, com a câmera firme (veja os quadros e o tremor)'},
                                'motivo': {'type': 'string'}}}},
         'correcoes': {'type': 'array', 'description': 'Grafia correta de palavras que a transcrição errou (só ortografia, nunca trocar o que foi dito).',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra', 'texto'],
@@ -63,6 +64,8 @@ Como planejar
 O que o motor sabe fazer (e só isso): escolher e ordenar falas, cortar, enquadramento aberto/medio/fechado, título, destaques (pop, serifa, lettering, palavra_solta), corrigir grafia e trocar as cores da legenda e dos destaques (campo cores, em #RRGGBB; nomes comuns: bege/creme da Fabiola = #C8B9A7, branco = #FFFFFF).
 Também encaixa os ANEXOS enviados (lista abaixo, quando houver) no campo insercoes: 'tela_cheia' cobre a tela durante a fala indicada (B-roll, com a voz por baixo); 'flutuando' põe a imagem menor ao lado da pessoa, com leve desfoque e flutuação. Vídeos anexados entram sempre em tela cheia. Cada inserção fica durante as palavras palavra_inicio..palavra_fim; normalmente 1,5 a 6 s.
 B-roll (campo broll): quando houver vídeos de ambiente (sem fala) listados com imagem, encaixe-os DURANTE a locução, cobrindo a imagem da pessoa enquanto a voz continua. Escolha a cena que ilustra o que está sendo dito (ex.: ela fala do espaço, entra a sala; fala da recepção, entra a fachada). Regras: nunca no gancho (primeiro segmento) nem no título; nunca no mesmo intervalo de um destaque; cada B-roll dura de 1,5 a 4 s (palavra_inicio..palavra_fim dentro de um mesmo trecho falado); no máximo 1 a cada 8 a 10 s de vídeo; não repita a mesma cena; mostre o rosto de novo entre um B-roll e outro. Sem vídeos de ambiente, broll fica vazio.
+Escolha do momento (inicio_s), como um editor que assistiu o take inteiro: olhe a folha de quadros e o tremor de cada segundo e comece a cena no MELHOR momento: câmera firme (tremor baixo durante toda a duração da cena), enquadramento limpo e a ação que interessa acontecendo (o brinde, a logo aparecendo, a porta abrindo, a sala inteira à mostra). Nunca use um trecho tremido nem o começo do take só por ser o começo. Se o pedido citar um take ou um momento (ex.: 'o brinde final do IMG_2967'), ache nos quadros o segundo em que ele aparece e comece cerca de 1 s antes. Se a cena fecha o vídeo, ela fica até o último quadro, então escolha um trecho que aguente até o fim. Em motivo, diga por que escolheu aquele segundo.
+Títulos e destaques já saem com sombra só nas letras, sem bloco ou degradê atrás (regra geral do motor): pedidos de tirar o bloco de sombra estão atendidos, não liste isso em nao_feito. A intensidade da sombra ainda não é ajustável.
 O motor NÃO cria imagens nem vídeos novos: sem anexo ou vídeo de ambiente, não existe B-roll. Também não faz animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
 Se o feedback pedir algo que o motor não faz, aplique o resto e escreva claramente em nao_feito o que ficou de fora. O resumo descreve apenas o que esta versão aplica de verdade; nunca diga que fez algo que não está no plano."""
 
@@ -119,9 +122,13 @@ def _conteudo(texto, brolls):
     """Texto do pedido + um quadro de cada vídeo de ambiente, pra IA saber o que tem em cada cena."""
     if not brolls: return texto
     import base64
-    blocos = [{'type': 'text', 'text': texto + '\n\nVídeos de ambiente disponíveis para B-roll (um quadro de cada):'}]
+    blocos = [{'type': 'text', 'text': texto + '\n\nVídeos de ambiente disponíveis para B-roll. De cada um: uma folha com vários quadros '
+               '(da esquerda pra direita, linha de cima e depois a de baixo, no segundo indicado) e o tremor da câmera em cada segundo '
+               f'(0 = firme; acima de {TREMOR} = tremido, não use esse trecho):'}]
     for b in brolls:
-        blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.0f} s"})
+        tr = ' '.join(f'{i}s:{x:g}' for i, x in enumerate(b.get('tremor') or []))
+        qs = ', '.join(f'{t:g} s' for t in b.get('tempos') or [])
+        blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.1f} s. Quadros em: {qs}. Tremor por segundo: {tr or 'ainda não medido (o motor mede depois da escolha e desloca a cena se estiver tremida); escolha pela imagem dos quadros'}"})
         blocos.append({'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': base64.b64encode(open(b['jpg'], 'rb').read()).decode()}})
     return blocos
 

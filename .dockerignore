@@ -1,0 +1,5 @@
+# pastas de dados montadas como volume: não entram na imagem
+bora_estudio/worker/render_cache
+bora_estudio/worker/modelos
+bora_estudio/worker/piloto
+.git

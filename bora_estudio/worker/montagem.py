@@ -173,6 +173,63 @@ def classificar(palavras_do_arquivo, video, escolha=None):
     d = max(duracao(video), 0.1); n = len(palavras_do_arquivo)
     return 'ambiente' if n <= 3 or n / d < 0.6 else 'fala'
 
+TREMOR_ALTO = 1.2      # px por quadro (a 144x256, 10 fps): acima disso a câmera está tremendo
+def tremor_por_segundo(video, cache=None):
+    """Tremor da câmera em cada segundo do take: mede o deslocamento da imagem inteira entre quadros (correlação de fase)
+    e soma o quanto ele muda de um quadro pro outro. Panorâmica suave dá número baixo; mão tremendo dá número alto."""
+    if cache and os.path.exists(cache): return json.load(open(cache))
+    W, H, F = 144, 256, 10
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', video, '-an', '-vf', f'fps={F},scale={W}:{H},format=gray', '-f', 'rawvideo', '-'],
+                         capture_output=True).stdout
+    q = np.frombuffer(raw, np.uint8)[: len(raw) // (W * H) * W * H].reshape(-1, H, W).astype(np.float32)
+    jan = np.outer(np.hanning(H), np.hanning(W)); desl = []
+    for a, b in zip(q[:-1], q[1:]):
+        A, B = np.fft.fft2((a - a.mean()) * jan), np.fft.fft2((b - b.mean()) * jan)
+        R = A * np.conj(B); r = np.abs(np.fft.ifft2(R / (np.abs(R) + 1e-6)))
+        y, x = np.unravel_index(np.argmax(r), r.shape)
+        def sub(c, m, n):                              # refinamento subpixel (parábola nos vizinhos do pico)
+            e, d = m((c - 1) % n), m((c + 1) % n); den = e - 2 * m(c) + d
+            return c + (0.5 * (e - d) / den if den else 0.0)
+        yf, xf = sub(y, lambda i: r[i, x], H), sub(x, lambda i: r[y, i], W)
+        desl.append((yf - H if yf > H / 2 else yf, xf - W if xf > W / 2 else xf))
+    d = np.array(desl, np.float32).reshape(-1, 2)
+    salto = np.r_[0.0, np.hypot(*np.diff(d, axis=0).T)] if len(d) > 1 else np.zeros(len(d))
+    res = [round(float(salto[i:i + F].mean()), 2) for i in range(0, len(salto), F)] or [0.0]
+    if cache: json.dump(res, open(cache, 'w'))
+    return res
+
+def folha_take(video, saida, largura=256):
+    """Folha com vários quadros do take (3 ou 4 por linha, 2 linhas), convertidos pra SDR só pra IA enxergar; não vai pro vídeo.
+    Devolve (jpg, [segundo de cada quadro])."""
+    dur = duracao(video); k = 6 if dur <= 15 else 8; cols = k // 2
+    tempos = [round(dur * (i + 0.5) / k, 1) for i in range(k)]
+    if os.path.exists(saida): return saida, tempos
+    hdr = sondar(video)[2] in ('arib-std-b67', 'smpte2084')
+    tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if hdr else ''
+    for t_ in (tm, ''):
+        args = ['ffmpeg', '-v', 'error', '-y']
+        for t in tempos: args += ['-ss', f'{t:.2f}', '-i', video]
+        fc = ';'.join(f'[{i}:v]trim=end_frame=1,{t_}scale={largura}:-2,setsar=1[q{i}]' for i in range(k))
+        fc += ';' + ''.join(f'[q{i}]' for i in range(cols)) + f'hstack={cols}[l1];' + ''.join(f'[q{i}]' for i in range(cols, k)) + f'hstack={cols}[l2];[l1][l2]vstack[o]'
+        r = subprocess.run(args + ['-filter_complex', fc, '-map', '[o]', '-frames:v', '1', '-q:v', '4', saida], capture_output=True)
+        if r.returncode == 0 and os.path.exists(saida): return saida, tempos
+    j = quadro_jpg(video, saida.replace('.jpg', '_1.jpg'), 512)
+    return j, ([round(dur / 2, 1)] if j else [])
+
+def trecho_estavel(tremor, ini, dur_cena, dur_take, folga=3.0):
+    """Se a cena escolhida pega segundos tremidos, procura até `folga` s pra frente ou pra trás um trecho firme do mesmo tamanho."""
+    def pior(s):
+        a, b = int(s), int(min(dur_take, s + dur_cena) - 1e-3)
+        return max(tremor[a:b + 1] or [0.0])
+    if not tremor or pior(ini) <= TREMOR_ALTO: return ini
+    lim = max(0.0, dur_take - dur_cena - 0.05)
+    perto = [c for c in (round(ini + d / 2, 2) for d in range(-int(folga * 2), int(folga * 2) + 1)) if 0 <= c <= lim]
+    melhor = min(perto, key=lambda c: (pior(c), abs(c - ini))) if perto else ini
+    if pior(melhor) > TREMOR_ALTO:                     # nada firme por perto: procura no take inteiro
+        todos = [round(d / 2, 2) for d in range(int(lim * 2) + 1)]
+        if todos: melhor = min(todos, key=lambda c: (pior(c) > TREMOR_ALTO, abs(c - ini), pior(c)))
+    return melhor
+
 def quadro_jpg(video, saida, largura=512):
     """Um quadro do meio do vídeo em JPEG (convertido pra SDR só pra IA enxergar a cena; não vai pro vídeo)."""
     if os.path.exists(saida): return saida
@@ -200,13 +257,18 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
         if not (0 <= k < len(amb)): continue
         arq = arquivos[amb[k]]
         if sondar(arq)[2] != transf_base: print('broll: cor diferente do vídeo (HDR x SDR), pulado', arq, flush=True); continue
-        a = next((t['s'] for t in tokens if t['i'] >= int(b['palavra_inicio'])), None)
-        z = max((t['e'] for t in tokens if t['i'] <= int(b['palavra_fim'])), default=None)
-        if a is None or z is None: continue
-        z = min(max(z, a + 1.5), a + 4.5, dur)               # 1,5 a 4,5 s
+        # só as palavras do trecho escolhido que ficaram no vídeo montado (os segmentos podem vir fora da ordem dos arquivos)
+        sel = [t for t in tokens if int(b['palavra_inicio']) <= t['i'] <= int(b['palavra_fim'])]
+        if not sel: print('broll: trecho escolhido não está no vídeo montado, pulado', b, flush=True); continue
+        a = min(t['s'] for t in sel); z = max(t['e'] for t in sel)
+        final = dur - z < 1.5 and dur - a <= 7.0             # cena que fecha o vídeo: vai até o último quadro, sem voltar pro rosto
+        z = dur if final else min(max(z, a + 1.5), a + 4.5, dur)    # 1,5 a 4,5 s
         if a < ult_fim + 1.0 or z - a < 1.0: continue        # sem colar um B-roll no outro
         fa, fb = round(a * FPS), round(z * FPS); n = fb - fa
         dclip = duracao(arq); ini = max(0.0, min(float(b.get('inicio_s') or 0), dclip - n / FPS - 0.05))
+        trem = (pl.get('_broll_tremor') or [])[k] if k < len(pl.get('_broll_tremor') or []) else None
+        novo = trecho_estavel(trem, ini, n / FPS, dclip)
+        if novo != ini: print(f'broll: trecho tremido em {ini:.1f} s, usando {novo:.1f} s', arq, flush=True); ini = novo
         if dclip < n / FPS: n = int(dclip * FPS) - 1
         if n < 20: continue
         W, H = sondar(arq)[:2]
@@ -228,11 +290,13 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
             os.replace(chave + '.tmp.mp4', chave)
         usados.append((chave, fa / FPS)); ult_fim = fa / FPS + n / FPS
     if not usados: return base
-    args, fc, ult = ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base], [], '0:v'
+    grande = altura >= 1500                            # 4K: decodificadores e x265 enxutos (cada quadro 10 bits tem ~25 MB)
+    args, fc, ult = ['ffmpeg', '-nostdin', '-v', 'error', '-y'] + (['-threads', '2'] if grande else []) + ['-i', base], [], '0:v'
     for j, (c, t0) in enumerate(usados, 1):
-        args += ['-i', c]
-        fc.append(f'[{j}:v]setpts=PTS-STARTPTS+{t0:.6f}/TB[b{j}];[{ult}][b{j}]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
-    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params])
+        args += (['-threads', '1'] if grande else []) + ['-itsoffset', f'{t0:.6f}', '-i', c]     # cena já no tempo certo: só é lida quando chega a vez
+        fc.append(f'[{ult}][{j}:v]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
+    enx = ':frame-threads=1:pools=4:rc-lookahead=10:lookahead-slices=0' if grande else ''
+    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params + enx])
     with pesado(altura):
         rc, msg, mb = rodar(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:a', 'copy', *cod, *tags,
                                     '-tag:v', 'hvc1', saida], 'b-roll (juntar)')

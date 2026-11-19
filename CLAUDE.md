@@ -11,7 +11,7 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - **Dinamismo:** variar o estilo dos destaques no mesmo vídeo (Poppins pop, serifa itálica creme Merriweather Black Italic, lettering letra a letra)
   e, de vez em quando (2 a 3 por vídeo), uma **palavra solta**: só a palavra-chave, grande, em serifa itálica creme, na posição dos letterings
   (não dentro da legenda).
-- Título (aprovado no diabetes, "T1b"): sem caixa, degradê escuro suave atrás, na altura do peito. Três linhas coladas e com a MESMA largura:
+- Título (aprovado no diabetes, "T1b"): sem caixa e sem degradê ou bloco escuro atrás (regra geral: sombra só nas letras), na altura do peito. Três linhas coladas e com a MESMA largura:
   rótulo espaçado em Poppins Medium creme (ex.: DIA MUNDIAL DO DIABETES) + TEMA em Merriweather Black Italic creme (espaçado até a largura do rótulo)
   + pergunta curta em Poppins SemiBold branco. Sem filetes. Entrada suave (sobe 18 px + fade, em cascata).
 - **NUNCA converter HDR para SDR, nem nos previews.** Todo render (inclusive 480p) sai do .MOV original em HDR (HLG/BT.2020/10 bits):
