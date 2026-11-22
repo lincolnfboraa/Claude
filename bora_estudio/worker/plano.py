@@ -1,12 +1,13 @@
-"""Plano de edição feito pela IA (Claude, via SDK oficial `anthropic`).
+"""Plano de edição feito pela IA (Claude pelo SDK `anthropic`, ou GPT pelo SDK `openai` com BORA_IA=gpt).
 Entrada: transcrição numerada palavra a palavra, DNA ativo do cliente, regras globais, briefing e o histórico de feedback.
 Saída: JSON validado por esquema (structured outputs): segmentos, título, destaques, correções e resumo.
 A IA só escolhe e ordena o que FOI falado; nunca inventa fala. O vídeo em si é montado pelo ffmpeg (montagem.py)."""
 import json, os
-import anthropic
 
 from montagem import TREMOR_ALTO as TREMOR
 MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
+IA = os.environ.get('BORA_IA', 'claude').lower()             # quem monta o storytelling: claude ou gpt
+MODELO_GPT = os.environ.get('BORA_MODELO_GPT', '')               # modelo da OpenAI (obrigatório com BORA_IA=gpt)
 
 ESQUEMA = {
     'type': 'object', 'additionalProperties': False,
@@ -86,7 +87,6 @@ def numerar(palavras, arquivos, papeis=None):
     return '\n'.join(linhas)
 
 def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=()):
-    client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
     pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos, papeis)}"]
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
@@ -97,14 +97,23 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
         pedido.append("Devolva o plano completo revisado.")
     else:
         pedido.append("Monte o plano da primeira versão.")
+    sistema = [SISTEMA, 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False),
+               'DNA do cliente:\n' + dna_txt]
+    conteudo = _conteudo('\n\n'.join(pedido), brolls)
+    plano = _chamar_gpt(sistema, conteudo) if IA == 'gpt' else _chamar_claude(sistema, conteudo)
+    import montagem
+    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
+    return validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
+
+def _chamar_claude(sistema, conteudo):
+    import anthropic
+    client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     with client.beta.messages.stream(
         model=MODELO, max_tokens=32000,
         betas=['server-side-fallback-2026-07-01'], fallbacks='default',     # se o modelo recusar, o servidor tenta outro
         output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': ESQUEMA}},
-        system=[{'type': 'text', 'text': SISTEMA},
-                {'type': 'text', 'text': 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False), 'cache_control': {'type': 'ephemeral'}},
-                {'type': 'text', 'text': 'DNA do cliente:\n' + dna_txt, 'cache_control': {'type': 'ephemeral'}}],
-        messages=[{'role': 'user', 'content': _conteudo('\n\n'.join(pedido), brolls)}],
+        system=[{'type': 'text', 'text': sistema[0]}] + [{'type': 'text', 'text': t, 'cache_control': {'type': 'ephemeral'}} for t in sistema[1:]],
+        messages=[{'role': 'user', 'content': conteudo}],
     ) as st:
         msg = st.get_final_message()
     if msg.stop_reason == 'refusal':
@@ -114,9 +123,31 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
     plano = json.loads(next(b.text for b in msg.content if b.type == 'text'))
     plano['_modelo'] = msg.model
     plano['_uso'] = {'entrada': msg.usage.input_tokens, 'saida': msg.usage.output_tokens}
-    import montagem
-    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
-    return validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
+    return plano
+
+def _chamar_gpt(sistema, conteudo):
+    """Mesmo pedido e mesmo esquema, pela OpenAI (Responses API, JSON estrito). Lê OPENAI_API_KEY do ambiente."""
+    from openai import OpenAI
+    if not MODELO_GPT: raise RuntimeError('defina BORA_MODELO_GPT no bora.env (modelo da OpenAI que monta o storytelling)')
+    blocos = [{'type': 'text', 'text': conteudo}] if isinstance(conteudo, str) else conteudo
+    entrada = []
+    for b in blocos:
+        if b['type'] == 'text': entrada.append({'type': 'input_text', 'text': b['text']})
+        elif b['type'] == 'image':
+            src = b['source']; entrada.append({'type': 'input_image', 'image_url': f"data:{src['media_type']};base64,{src['data']}", 'detail': 'auto'})
+    r = OpenAI(timeout=900).responses.create(
+        model=MODELO_GPT, instructions='\n\n'.join(sistema), input=[{'role': 'user', 'content': entrada}],
+        text={'format': {'type': 'json_schema', 'name': 'plano_bora', 'schema': ESQUEMA, 'strict': True}},
+        max_output_tokens=32000, store=False)
+    if r.status == 'incomplete':
+        raise RuntimeError('o plano do GPT veio incompleto: ' + str(getattr(r.incomplete_details, 'reason', '')))
+    for item in r.output or []:
+        for c in getattr(item, 'content', None) or []:
+            if getattr(c, 'type', '') == 'refusal': raise RuntimeError('o GPT recusou o pedido: ' + c.refusal)
+    plano = json.loads(r.output_text)
+    plano['_modelo'] = r.model
+    plano['_uso'] = {'entrada': r.usage.input_tokens, 'saida': r.usage.output_tokens}
+    return plano
 
 def _conteudo(texto, brolls):
     """Texto do pedido + um quadro de cada vídeo de ambiente, pra IA saber o que tem em cada cena."""
