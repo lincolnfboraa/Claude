@@ -52,7 +52,7 @@ sem = motor._renderizar('p', {**pl, '_anexos': []}, [orig], pal, 854, cores, os.
 import shutil; shutil.copy(sem[0], os.path.join(T, 'base_sem.mp4')); sem = (os.path.join(T, 'base_sem.mp4'),) + tuple(sem[1:])    # as duas montagens gravam o mesmo _base_854.mp4
 com = motor._renderizar('p', pl, [orig], pal, 854, cores, os.path.join(T, 't_com'), pasta=T, vocab=voc)
 dur = lambda f, tipo='v': float(subprocess.run(['ffprobe', '-v', 'error', '-select_streams', tipo + ':0', '-show_entries', 'stream=duration', '-of', 'csv=p=0', f], capture_output=True, text=True).stdout.split()[0])
-ok('com capa: vídeo 2,5 s mais longo e a duração devolvida inclui a capa', abs(dur(com[0]) - dur(sem[0]) - 2.5) < 0.15 and abs(com[2] - sem[2] - 2.5) < 1e-6, f'{dur(sem[0]):.2f} -> {dur(com[0]):.2f} s')
+ok('com capa: vídeo a capa (CAPA_FINAL_S) a mais e a duração devolvida inclui a capa', abs(dur(com[0]) - dur(sem[0]) - motor.CAPA_FINAL_S) < 0.15 and abs(com[2] - sem[2] - motor.CAPA_FINAL_S) < 1e-6, f'{dur(sem[0]):.2f} -> {dur(com[0]):.2f} s')
 ok('com capa: o áudio também cresce (silêncio) e acompanha o vídeo', abs(dur(com[0], 'a') - dur(com[0])) < 0.2, f'áudio {dur(com[0], "a"):.2f} s, vídeo {dur(com[0]):.2f} s')
 ass = open(os.path.join(T, 't_com.ass'), encoding='utf-8').read(); ass0 = open(os.path.join(T, 't_sem.ass'), encoding='utf-8').read()
 ok('legendas e destaque sem nome de produto, com "caneta"', not V.termos_na_tela(ass, voc) and 'caneta' in ass and 'artigo' not in ass, str(V.termos_na_tela(ass, voc)))

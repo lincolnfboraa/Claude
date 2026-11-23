@@ -13,7 +13,7 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   (a IA pula a primeira tentativa). Observação do editor no campo do gancho ('Gostei de...', 'tipo...') é ideia, nunca vai pra caixa; só título curto vai exato.
 - **Termos sensíveis (nomes comerciais de remédios, por cliente em vocabulario.json):** o áudio fica como foi falado, mas na TELA (legenda, destaques, título) o nome vira termo genérico
   com o artigo concordando ('o Mounjaro e o Ozempic' = 'as canetas'). A IA é avisada pra não destacar produto nem usar tom de venda; a verificação da prévia acusa se algum nome sobrou na tela.
-- **Capa final (CRM e RQE):** imagem anexada no ajuste ('Anexar capa final'), colada no fim do vídeo por 2,5 s (BORA_CAPA_FINAL_S) com fade, em HDR com a mesma conversão de cor dos textos,
+- **Capa final (CRM e RQE):** imagem anexada no ajuste ('Anexar capa final'), colada no fim do vídeo por 3,5 s (BORA_CAPA_FINAL_S). Cartão horizontal (proporção > 2:1) vira o cartão animado 9:16 (cartao_animado.py: logo se revela, nome sobe, linha cresce, redes em cascata, textos recortados da própria arte); imagem em pé entra com fade, em HDR com a mesma conversão de cor dos textos,
   áudio estendido em silêncio. Vale pras versões seguintes e pro 4K.
 - **Zonas do Reels (1080x1920):** topo 220 px, base 450 px (y 1470), laterais 35 px. A legenda termina em y 1470 e os destaques em y 1450 (FUNDO_DESTAQUE 1390); margens laterais medidas:
   legenda 174 px, destaque 102 px.

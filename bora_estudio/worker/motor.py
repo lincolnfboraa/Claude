@@ -63,7 +63,7 @@ def crf_4k(meta):
     return CRF_4K.get(q, CRF_4K['alta'])
 
 CRF_INTER = {24: 14, 16: 11, 10: 8}                       # etapas intermediárias do 4K (trechos, B-roll, cards): quase sem perda quando o final pede qualidade
-CAPA_FINAL_S = float(os.environ.get('BORA_CAPA_FINAL_S', '2.5'))               # segundos da capa final (CRM e RQE)
+CAPA_FINAL_S = float(os.environ.get('BORA_CAPA_FINAL_S', '3.5'))               # segundos da capa final (CRM e RQE)
 def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None, crf_i=14, vocab=None):
     pasta = pasta or os.path.join(TRAB, pid)
     pcs, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)

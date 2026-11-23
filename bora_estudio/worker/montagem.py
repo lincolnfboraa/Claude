@@ -370,9 +370,12 @@ def _hlg(E):
     return np.where(E <= 1 / 12, np.sqrt(3 * E), 0.17883277 * np.log(np.maximum(12 * E - 0.28466892, 1e-6)) + 0.55991073)
 
 def capa_clip(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags):
-    """Clipe (sem áudio) com a imagem em tela cheia por dur_s, com fade de entrada. Preenche a tela cortando o excesso. HDR: SDR->HLG como os textos."""
+    """Clipe (sem áudio) da capa final por dur_s. Cartão horizontal (CRM, RQE, redes) vira o cartão animado em 9:16 (cartao_animado);
+    imagem em pé preenche a tela (corta o excesso) com fade de entrada. HDR: SDR->HLG como os textos."""
     from PIL import Image
-    im = Image.open(imagem).convert('RGB'); r = max(OW / im.width, OH / im.height)
+    im = Image.open(imagem)
+    if im.width / im.height > 2: return _capa_animada(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags)
+    im = im.convert('RGB'); r = max(OW / im.width, OH / im.height)
     im = im.resize((max(OW, round(im.width * r)), max(OH, round(im.height * r))), Image.LANCZOS)
     x0, y0 = (im.width - OW) // 2, (im.height - OH) // 2; im = im.crop((x0, y0, x0 + OW, y0 + OH))
     a = np.asarray(im, np.float32) / 255; raw = os.path.splitext(saida)[0] + '.raw'; nq = max(2, round(dur_s * FPS))
@@ -386,6 +389,22 @@ def capa_clip(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags):
             '-frames:v', str(nq), '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, saida])
     finally:
         if os.path.exists(raw): os.remove(raw)
+
+def _capa_animada(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags):
+    import cartao_animado
+    pix, mat = ('rgb48le', 'bt2020') if hdr else ('rgb24', 'bt709'); nq = max(2, round(dur_s * FPS))
+    p = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', pix, '-s', f'{OW}x{OH}', '-framerate', '30000/1001', '-i', '-',
+                          '-vf', f'scale=out_color_matrix={mat}:out_range=tv,format=yuv420p10le,fade=t=in:st=0:d=0.35,setsar=1,fps=30000/1001',
+                          '-frames:v', str(nq), '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, saida],
+                         stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        for a in cartao_animado.quadros(imagem, OW, OH, dur_s, FPS):
+            if hdr: a = (_hlg((a ** 2.4) @ _M_HLG.T * float(os.environ.get('BRILHO_TEXTO', '0.62'))) * 65535).astype('<u2')
+            else: a = (np.clip(a, 0, 1) * 255).astype(np.uint8)
+            p.stdin.write(a.tobytes())
+        p.stdin.close(); err = p.stderr.read().decode(); p.wait()
+    except BrokenPipeError: err = p.stderr.read().decode(); p.wait()
+    if p.returncode: raise RuntimeError('cartão animado: ' + err[-200:])
 
 def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None, capa=None):
     """Monta o vídeo base (sem textos). Cada peça vira um arquivo; depois junta sem recodificar."""
