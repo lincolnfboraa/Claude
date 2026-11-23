@@ -171,6 +171,7 @@ def _iso_seg(iso):
 
 INICIO = time.time()
 IMAGEM_MIN = 1                                         # sobe junto com BORA_IMAGEM do Dockerfile quando muda uma biblioteca do sistema (aí o Acer precisa reinstalar)
+ACER_ERRO = {}
 DESATUALIZADO = {}                                     # worker recusado -> (quando, motivo: 'codigo' | 'imagem' | 'manual')
 _COD = {'quando': 0, 'hash': '', 'pacote': b''}
 
@@ -308,6 +309,7 @@ def _rota_worker(h, metodo, u):
         try: hash_s = codigo_atual()[0]
         except Exception: hash_s = ''                  # sem como medir: não trava
         hash_w = h.headers.get('X-Bora-Worker-Codigo', '')
+        ACER_ERRO[nome_w] = h.headers.get('X-Bora-Worker-Erro', '')[:120]
         try: imagem_w = int(h.headers.get('X-Bora-Worker-Imagem') or 0)
         except ValueError: imagem_w = 0
         if hash_w == '' and hash_s:                    # programa antigo, sem autoatualização: uma última vez pelo zip
@@ -532,7 +534,8 @@ def _ck_acer():
         w, m = velho[0]
         txt = {'codigo': 'está baixando o código novo sozinho (se não resolver em 2 min, rode o zip)', 'imagem': 'precisa reinstalar pelo zip (mudou uma biblioteca do sistema)',
                'manual': 'tem o programa antigo: rode o zip uma última vez e depois ele se atualiza sozinho'}[m]
-        return 'atencao', f'{_nome(w)} ligado, mas {txt}; até lá a VPS faz os vídeos'
+        er = ACER_ERRO.get(w); er = f' (erro dele: {er})' if er else ''
+        return 'atencao', f'{_nome(w)} ligado, mas {txt}{er}; até lá a VPS faz os vídeos'
     if time.time() - INICIO < 120: return 'ok', 'editor acabou de reiniciar: aguardando o sinal do computador de render'
     if VISTO:
         w = max(VISTO, key=VISTO.get); return 'atencao', f'{_nome(w)} desligado há {int((time.time() - VISTO[w]) // 60)} min: a VPS faz os vídeos'

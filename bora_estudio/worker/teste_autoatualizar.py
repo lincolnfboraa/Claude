@@ -37,6 +37,32 @@ with tarfile.open(fileobj=buf, mode='w:gz') as t:
     i = tarfile.TarInfo('../fugiu.py'); d = b'x=1'; i.size = len(d); t.addfile(i, io.BytesIO(d))
 ok('caminho fora da pasta (../): recusa', mantem('f3', buf.getvalue(), 'x'))
 ok('pacote corrompido: recusa e mantém', mantem('f4', b'isso nao e um tar', 'x'))
+# 3b) Docker/overlayfs: renomear PASTA dá EXDEV; a troca não pode depender disso
+import errno
+_rn, _rp = os.rename, os.replace
+def _sem_pasta(a, b, *k, **kw):
+    if os.path.isdir(a): raise OSError(errno.EXDEV, 'Invalid cross-device link')
+    return _rn(a, b, *k, **kw)
+def _sem_pasta2(a, b, *k, **kw):
+    if os.path.isdir(a): raise OSError(errno.EXDEV, 'Invalid cross-device link')
+    return _rp(a, b, *k, **kw)
+os.rename, os.replace = _sem_pasta, _sem_pasta2
+try:
+    ox = copia('exdev'); open(os.path.join(ox, 'montagem.py'), 'a').write('\nIDADE = "velha"\n')
+    ok('EXDEV ao renomear pasta (overlayfs): a troca funciona mesmo assim', A.aplicar(pac, ox, h_novo) is True and A.hash_codigo(ox) == h_novo)
+    # falha no meio: o 3º arquivo não grava, tudo volta como estava
+    oy = copia('meio'); antes = A.hash_codigo(oy); n = {'i': 0}
+    def _quebra(a, b, *k, **kw):
+        n['i'] += 1
+        if n['i'] == 3: raise OSError(errno.EIO, 'disco falhou')
+        return _sem_pasta2(a, b, *k, **kw)
+    os.replace = _quebra
+    try: A.aplicar(pac, oy, h_novo); falhou = False
+    except OSError: falhou = True
+    os.replace = _sem_pasta2
+    ok('falha no meio da troca: desfaz e mantém o código antigo', falhou and A.hash_codigo(oy) == antes and not os.path.exists(oy + '.antigo'))
+finally:
+    os.rename, os.replace = _rn, _rp
 # 4) editor real: rota do código e trava por código
 import servidor
 servidor.WTOKEN = 'tk'; servidor.sb = lambda *a, **k: []

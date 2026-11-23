@@ -8,6 +8,7 @@ Variáveis: BORA_EDITOR (ex.: https://editor.borasolucoesdigitais.com), BORA_WOR
 Uso: python3 render_worker.py            (fica esperando trabalho)
      python3 render_worker.py --uma-vez  (pega no máximo um trabalho e sai)
      python3 render_worker.py --teste    (só mostra os codificadores e o teste do NVENC)"""
+import re
 import json, os, sys, time, traceback, urllib.error, urllib.parse, urllib.request
 
 EDITOR = os.environ.get('BORA_EDITOR', 'https://editor.borasolucoesdigitais.com').rstrip('/')
@@ -17,7 +18,7 @@ RAIZ = os.path.dirname(os.path.abspath(__file__))
 import autoatualizar
 CODIGO = autoatualizar.hash_codigo(RAIZ)         # impressão digital do código deste computador; o editor só dá trabalho a quem roda o mesmo código dele
 IMAGEM = os.environ.get('BORA_IMAGEM', '0')       # versão das bibliotecas do sistema (Dockerfile)
-CAB = {'X-Bora-Worker-Codigo': CODIGO, 'X-Bora-Worker-Imagem': IMAGEM}
+CAB = {'X-Bora-Worker-Codigo': CODIGO, 'X-Bora-Worker-Imagem': IMAGEM, 'X-Bora-Worker-Erro': ''}   # Erro: último motivo da autoatualização ter falhado (o painel mostra)
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
 os.environ.setdefault('BORA_ACELERACAO', 'auto')
 PARTE = 8 << 20
@@ -83,9 +84,10 @@ def atualizar_codigo():
             if r.status == 204: return False
             novo, dados = r.headers.get('X-Bora-Codigo', ''), r.read()
         autoatualizar.aplicar(dados, RAIZ, novo)
-        log(f'código atualizado sozinho ({CODIGO} -> {novo}); reiniciando'); return True
+        log(f'código atualizado sozinho ({CODIGO} -> {novo}); reiniciando'); CAB['X-Bora-Worker-Erro'] = ''; return True
     except Exception as e:
-        log('autoatualização não aconteceu (segue com o código atual):', e); return False
+        log('autoatualização não aconteceu (segue com o código atual):', e)
+        CAB['X-Bora-Worker-Erro'] = re.sub(r'[^A-Za-z0-9 .:,()_/-]+', '?', f'{type(e).__name__}: {e}')[:120]; return False
 
 def sair_pra_reiniciar():
     sys.stdout.flush(); os._exit(0)                  # o Docker (restart: unless-stopped) sobe de novo já com o código novo

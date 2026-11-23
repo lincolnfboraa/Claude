@@ -1,6 +1,6 @@
 """Atualização automática do computador de render (Acer): ele roda o MESMO código do editor (VPS).
 O editor mede o hash do próprio código (só o que roda: .py, .json, fontes; sem testes nem caches) e serve o pacote em /worker/codigo.
-O worker compara com o hash dele; se for diferente, baixa, confere (hash, caminhos e sintaxe) e troca a pasta, sem apagar nada antes de ter certeza.
+O worker compara com o hash dele; se for diferente, baixa, confere (hash, caminhos e sintaxe) e troca os arquivos um a um, com cópia de segurança.
 Qualquer falha mantém o código antigo. O programa sai e o Docker (restart: unless-stopped) reinicia já com o código novo.
 Só biblioteca do sistema nova exige reinstalar (BORA_IMAGEM no Dockerfile)."""
 import hashlib, io, os, shutil, tarfile
@@ -33,7 +33,9 @@ def empacotar(raiz):
     return buf.getvalue()
 
 def aplicar(pacote, raiz, hash_esperado):
-    """Extrai ao lado, confere e troca a pasta `raiz` pela nova. Levanta ValueError (e não mexe em nada) se algo não bater."""
+    """Confere o pacote ao lado e troca os ARQUIVOS da pasta `raiz` um a um (com cópia de segurança, desfeita se algo não bater).
+    Não renomeia a pasta: no Docker (overlayfs) renomear uma pasta que vem da imagem dá 'Invalid cross-device link'.
+    Levanta ValueError (e deixa o código antigo) se algo não bater."""
     base = raiz.rstrip('/\\'); novo, antigo = base + '.novo', base + '.antigo'
     for d in (novo, antigo): shutil.rmtree(d, ignore_errors=True)
     os.makedirs(novo)
@@ -47,11 +49,21 @@ def aplicar(pacote, raiz, hash_esperado):
         if hash_codigo(novo) != hash_esperado: raise ValueError('o pacote não confere com o hash do editor')
         for rel in _lista(novo):
             if rel.endswith('.py'): compile(open(os.path.join(novo, rel), encoding='utf-8').read(), rel, 'exec')      # erro de sintaxe: não troca
-    except Exception:
-        shutil.rmtree(novo, ignore_errors=True); raise
-    os.replace(base, antigo)
-    try: os.replace(novo, base)
-    except Exception:
-        os.replace(antigo, base); raise
-    shutil.rmtree(antigo, ignore_errors=True)
+        velhos, novos = _lista(raiz), _lista(novo)
+        for rel in velhos:                                         # cópia de segurança do que existe hoje
+            os.makedirs(os.path.dirname(os.path.join(antigo, rel)) or antigo, exist_ok=True); shutil.copy2(os.path.join(raiz, rel), os.path.join(antigo, rel))
+        try:
+            for rel in novos:                                      # cada arquivo entra por um temporário na própria pasta e é trocado (rename de arquivo é seguro)
+                dest = os.path.join(raiz, rel); os.makedirs(os.path.dirname(dest), exist_ok=True)
+                shutil.copyfile(os.path.join(novo, rel), dest + '.tmp'); os.replace(dest + '.tmp', dest)
+            for rel in set(velhos) - set(novos): os.remove(os.path.join(raiz, rel))
+            if hash_codigo(raiz) != hash_esperado: raise ValueError('depois da troca o código não confere com o hash do editor')
+        except Exception:
+            for rel in velhos: shutil.copyfile(os.path.join(antigo, rel), os.path.join(raiz, rel))        # volta tudo como estava
+            for rel in set(novos) - set(velhos):
+                try: os.remove(os.path.join(raiz, rel))
+                except OSError: pass
+            raise
+    finally:
+        for d in (novo, antigo): shutil.rmtree(d, ignore_errors=True)
     return True
