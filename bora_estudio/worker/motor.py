@@ -46,14 +46,23 @@ def _transcricoes(pid, arqs, etapa):
     if not any(pal): raise RuntimeError('não encontrei fala nos vídeos enviados')
     return pal
 
-def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None):
+def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None):
     pasta = pasta or os.path.join(TRAB, pid)
     pcs, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)
     if not pcs: raise RuntimeError('o plano não gerou nenhum trecho')
     base = os.path.join(pasta, f'_base_{altura}.mp4')
     a, b = faixa
     prog = (lambda f, txt='Montando o vídeo a partir dos originais': etapa(txt, a + int((b - a) * f))) if etapa else None
-    hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog)
+    ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
+    for d in pl.get('destaques', []): ro.destaque(d)           # antes da montagem: os efeitos sonoros precisam saber quando cada destaque entra
+    lista_sfx = None
+    if sfx:                                                    # efeitos sonoros (opcional por projeto): whoosh nas trocas de história, pop nos destaques
+        lista_sfx = []
+        for t, tipo in montagem.eventos_sfx(pcs, ro.t_destaques, dur):
+            e = sfx.get(tipo)
+            if e and os.path.exists(os.path.join(pasta, e['arquivo'])): lista_sfx.append((max(0.0, t - float(e.get('pico_s') or 0)), os.path.join(pasta, e['arquivo'])))
+        print(f'efeitos sonoros: {len(lista_sfx)} no vídeo', flush=True)
+    hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog, sfx=lista_sfx or None)
     if pl.get('broll') and pl.get('_broll_arquivos'):
         if etapa: etapa('Encaixando as cenas de ambiente (B-roll)', a + int((b - a) * 0.9))
         base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr)
@@ -61,7 +70,6 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
     if pl.get('insercoes') and anexos:
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
         base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb)
-    ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
     g = pl.get('_gancho') or {}; modelo = g.get('template') or 'ia'
     tit = dict(pl.get('titulo') or {})
     if g.get('frase'): tit['frase'] = g['frase']; tit['pergunta'] = g['frase'] if modelo in ('premium', 'ia') else tit.get('pergunta', '')
@@ -70,7 +78,6 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
         s0 = pl['segmentos'][0]; fim1 = [t['e'] for t in tokens if int(s0['palavra_inicio']) <= t['i'] <= int(s0['palavra_fim'])]
         seg1 = max(fim1) if fim1 else 3.0
         ro.titulo(tit, min(max(seg1 + 1.0, 3.0), 5.5), 'premium' if modelo == 'ia' else modelo, cores.get('caixa'))
-    for d in pl.get('destaques', []): ro.destaque(d)
     ro.gravar(saida_base)
     return base, hdr, dur, tokens
 
@@ -180,6 +187,12 @@ def preparar(p, etapa, sb):
     pac['anexos'] = [os.path.basename(a['caminho']) for a in (pl.get('_anexos') or []) if os.path.exists(a.get('caminho', '')) or
                      os.path.exists(os.path.join(pasta, os.path.basename(a.get('caminho', ''))))]
     pac['cores'] = cores
+    if meta.get('sfx'):                                   # efeitos sonoros automáticos ligados no projeto
+        try:
+            import biblioteca
+            pac['sfx'] = biblioteca.preparar_sfx(pasta)
+        except Exception as e:                            # sem Drive ou sem a pasta: o vídeo sai igual, sem os sons
+            print('efeitos sonoros indisponíveis, segue sem eles:', e, flush=True); pac['sfx'] = None; pac['sfx_aviso'] = str(e)[:150]
     json.dump(pac, open(os.path.join(pasta, f"pacote_{pac['tipo']}_v{pac['n']}.json"), 'w'), ensure_ascii=False, indent=1)
     return pac
 
@@ -195,7 +208,7 @@ def renderizar(pac, etapa, pasta=None):
     if pac['tipo'] == 'previa':
         etapa('Cortando pausas e montando', 40)
         saida_txt = os.path.join(pasta, f'textos_v{n}')
-        base, hdr, dur, tokens_v = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72), pasta=pasta)
+        base, hdr, dur, tokens_v = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72), pasta=pasta, sfx=pac.get('sfx'))
         etapa('Textos, título e destaques', 76)
         previa = os.path.join(pasta, f'previa_v{n}.mp4')
         montagem.aplicar_textos(base, saida_txt + '.ass', previa, hdr, 24)
@@ -212,7 +225,7 @@ def renderizar(pac, etapa, pasta=None):
     # pesos medidos (4K): cards e textos levam tempo parecido por quadro
     passes = ([('Encaixando os cards no 4K', 1.0, 40, 70)] if com_ins else []) + [('Aplicando os textos no 4K', 1.0, 70 if com_ins else 40, 99)]
     anda = Andamento(etapa, passes)
-    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None)
+    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None, sfx=pac.get('sfx'))
     k = 1 if com_ins else 0
     leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')    # entrega só a versão legendada (economiza um render 4K)
     montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24, prog=anda.inicio(k, montagem.quadros(base)))

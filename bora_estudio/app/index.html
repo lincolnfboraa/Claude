@@ -339,7 +339,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -449,7 +449,7 @@ const V={
   <div class="secao"><h2>Regras confirmadas</h2><span class="cnt">${c.regras_confirmadas.length}</span></div><div class="lst">${linhas(c.regras_confirmadas)||'<p class="vazio">Ajustes aceitos viram sugestões depois da aprovação e só entram aqui quando você confirma.</p>'}</div>
   <div class="secao"><h2>Referências no Drive</h2><span class="cnt">${r.length}</span></div>
   ${r.length?`<div class="lst">${r.map(x=>`<div class="ln"><span class="tx"><b>${esc(x.titulo)}</b><small>${x.analise==='analisado'?'Analisada':'Ainda não analisada'}${x.tecnico?' · '+esc(x.tecnico):''}</small></span>${x.url?`<a class="lk" href="${x.url}" target="_blank" rel="noopener" aria-label="Abrir no Drive">${SV('<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>')}</a>`:''}</div>`).join('')}</div>`:'<div class="lst"><p class="vazio">Nenhum aprovado deste cliente encontrado no Drive ainda.</p></div>'}`},
- nova(pre){if(S.gAj){S.gAj=null;S.cores=null;S.gancho={template:'ia',frase:''}}if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}if(!S.novaCli)S.novaCli=DB.clientes[0].id;const c=cli(S.novaCli);
+ nova(pre){if(S.gAj){S.gAj=null;S.sfx=false;S.cores=null;S.gancho={template:'ia',frase:''}}if(pre&&pre!==S.novaCli){S.novaCli=pre;S.cores=null}if(!S.novaCli)S.novaCli=DB.clientes[0].id;const c=cli(S.novaCli);
   if(!S.cores)S.cores={leg:c.texto.legenda||'#FFFFFF',dest:c.texto.destaque||'#FFFFFF',caixa:c.texto.caixa||'#1E2A47'};const fs=S.arquivos;
   return `<header class="top">${voltar()}<span class="tt">Novo projeto</span><span style="width:42px"></span></header>
   <h1 class="titulo">Novo projeto</h1><p class="apoio">Envie os vídeos e conte o que precisa. O resto segue o DNA do cliente.</p>
@@ -462,6 +462,7 @@ const V={
   <h3 class="rot">Briefing do projeto</h3>
   <textarea id="briefing" placeholder="Ex.: Reels de Novembro Azul pros homens, gancho com o canudinho, até 60 s.">${esc(S.briefing)}</textarea>
   ${blocoGancho(c)}
+  ${blocoSfx()}
   <h3 class="rot">Cores do texto</h3>
   <button class="dobra" data-cores>${S.coresAbertas?'Legenda e destaques':'Padrão do DNA'}<span class="bolas"><i style="background:${S.cores.leg}"></i><i style="background:${S.cores.dest}"></i></span></button>
   ${S.coresAbertas?`<div class="cores"><div class="amostra"><span style="color:${S.cores.leg}">uma frase da legenda</span><em style="color:${S.cores.dest}">destaque</em></div>
@@ -478,7 +479,7 @@ const V={
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
-    ${S.gAj===id?blocoGancho(c,true):`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título e cores<span class="seta">›</span></button>`}
+    ${S.gAj===id?blocoGancho(c,true)+blocoSfx():`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título, cores e sons<span class="seta">›</span></button>`}
     <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
      <label class="pill sm" style="cursor:pointer">${SV(I.clipe)}Anexar imagens ou vídeos<input type="file" id="anx" data-proj="${id}" accept="image/*,video/*" multiple hidden></label>
      <small style="display:block;opacity:.6;margin-top:6px">B-roll e cards a equipe coloca depois, no CapCut. Anexe só se quiser que o editor encaixe (o 4K fica mais demorado).</small></div>
@@ -502,6 +503,8 @@ function miniTpl(t){const L=S.cores.leg,D=S.cores.dest,C=S.cores.caixa||'#1E2A47
  if(t==='impacto')return `<b style="font-size:9px;color:${L};font-weight:900">FRASE</b><b style="font-size:9px;color:${D};font-weight:900">FORTE</b>`;
  if(t==='nenhum')return `<span style="font-size:5px;color:${L};margin-top:40%">só legenda</span>`;
  return `<b style="font-size:11px;color:${L}">IA</b><span style="font-size:5px;color:${L};opacity:.7">segue o DNA</span>`}
+function blocoSfx(){return `<h3 class="rot">Efeitos sonoros</h3><button class="dobra" data-sfx>${S.sfx?'Ligados: whoosh nas trocas e pop nos destaques':'Desligados'}<span class="bolas"><i style="background:${S.sfx?'#4CAF7D':'#555'}"></i></span></button>
+ <small style="color:var(--sub);display:block;margin-top:6px">Entram numa faixa separada, em volume baixo. A voz não muda.</small>`}
 function blocoGancho(c,todas){const g=S.gancho;
  return `<h3 class="rot">Gancho</h3><textarea id="gfrase" rows="2" placeholder="Frase do título no gancho (opcional). Vazio: a IA cria no DNA do cliente.">${esc(g.frase||'')}</textarea>
   <div class="chips">${GANCHOS.map((x,i)=>`<button class="chip" data-gsug="${i}">${esc(x)}</button>`).join('')}</div>
@@ -594,10 +597,10 @@ async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),fs=S.anexos[id]||[]
   if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id]}
  S.ajTxt='';
  if(S.gAj===id){const {data}=await sb.from('projetos').select('original_meta').eq('id',id).single();const m=(data&&data.original_meta)||{};
-  const fr=(S.gancho.frase||'').trim();m.gancho={template:S.gancho.template,frase:fr||undefined};
+  const fr=(S.gancho.frase||'').trim();m.gancho={template:S.gancho.template,frase:fr||undefined};m.sfx=S.sfx||undefined;
   await q(sb.from('projetos').update({original_meta:m,cores_texto:{...S.cores}}).eq('id',id));
-  t+=`\n[Gancho escolhido no app: template ${S.gancho.template}${fr?`, frase "${fr}"`:''}; cores legenda ${S.cores.leg}, destaque ${S.cores.dest}${S.gancho.template==='caixa'?', caixa '+S.cores.caixa:''}]`;
-  S.gAj=null;S.cores=null;S.gancho={template:'ia',frase:''}}
+  t+=`\n[Gancho escolhido no app: template ${S.gancho.template}${fr?`, frase "${fr}"`:''}; cores legenda ${S.cores.leg}, destaque ${S.cores.dest}${S.gancho.template==='caixa'?', caixa '+S.cores.caixa:''}; efeitos sonoros ${S.sfx?'ligados':'desligados'}]`;
+  S.gAj=null;S.sfx=false;S.cores=null;S.gancho={template:'ia',frase:''}}
  await q(sb.from('versoes').update({feedback:t,status:'ajuste',sugerir_dna:S.sugerir}).eq('id',a.id));
  await q(sb.from('versoes').insert({projeto_id:v.id,numero:a.n+1,status:'editando',resumo:'Ajuste da v'+a.n}));
  await q(sb.from('projetos').update({status:'editando'}).eq('id',v.id));delete S.parecer[id];close();await recarregar();toast('Feedback registrado na v'+a.n+'. A v'+(a.n+1)+' entrou na fila')}
@@ -605,8 +608,9 @@ async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),fs=S.anexos[id]||[]
 document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if(!b||b.disabled)return;const d=b.dataset||{};
  {const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
  if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
+ if('sfx' in d){S.sfx=!S.sfx;return reRender()}
  if(d.gsug){S.gancho.frase=GANCHOS[+d.gsug];reRender();const gf=$('#gfrase');if(gf){gf.focus();const k=gf.value.indexOf('...');if(k>=0)gf.setSelectionRange(k,k+3)}return}
- if(d.gaj){const v=vid(d.gaj),g=(v.media||{}).gancho||{},cc=cli(v.cli),vc=v.cores||{};S.gAj=d.gaj;S.gancho={template:g.template||'ia',frase:g.frase||''};
+ if(d.gaj){const v=vid(d.gaj),g=(v.media||{}).gancho||{},cc=cli(v.cli),vc=v.cores||{};S.gAj=d.gaj;S.sfx=!!(v.media||{}).sfx;S.gancho={template:g.template||'ia',frase:g.frase||''};
   S.cores={leg:vc.leg||cc.texto.legenda||'#FFFFFF',dest:vc.dest||cc.texto.destaque||'#FFFFFF',caixa:vc.caixa||cc.texto.caixa||'#1E2A47'};return reRender()}
  if(b.id==='dim'||'close' in d)return close();
  if(d.tab){S.tab=d.tab;S.stack=[{v:d.tab}];render()}
@@ -635,7 +639,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   const drv=[...dv.fala.map(f=>({...f,papel:'fala'})),...dv.amb.map(f=>({...f,papel:'ambiente'}))],total=fs.length+drv.length;
   const n=(falasCel[0]?falasCel[0].name:dv.fala[0].nome).replace(/\.[^.]+$/,'');
   (async()=>{try{
-   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,gancho:{template:S.gancho.template,frase:(S.gancho.frase||'').trim()||undefined},aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,gancho:{template:S.gancho.template,frase:(S.gancho.frase||'').trim()||undefined},sfx:S.sfx||undefined,aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
    if(fs.length){const w=$('#upwrap');w.classList.remove('rodape');
     w.innerHTML=`<div class="envio" style="margin-top:26px"><span id="upanel">${anel(0,60)}</span><span class="tx"><b>Enviando ${fs.length>1?fs.length+' vídeos':'o vídeo'} do celular</b><small id="upinfo">Preparando…</small></span></div><p class="nota">Deixe o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
     const TOT=fs.reduce((a,x)=>a+x.size,0);let feito=0;
@@ -644,7 +648,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
    const r=drv.length?await fetch(`${EDITOR}/drive/importar/${p.id}`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:drv,locais})})
                      :await fetch(`${EDITOR}/upload/${p.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({arquivos:locais})});
    const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
-   fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.gancho={template:'ia',frase:''};S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
+   fs.forEach(x=>URL.revokeObjectURL(x._url));S.arquivos=[];S.drive=null;S.briefing='';S.sfx=false;S.gancho={template:'ia',frase:''};S.tab='inicio';S.stack=[{v:'inicio'}];await recarregar();
    toast(drv.length?'O servidor está baixando os vídeos do Drive. Pode fechar o app.':(j.aviso?'Enviado, mas sem HDR: veja o aviso no projeto':'Vídeos recebidos. Editando no DNA de '+c.nome))}
   catch(e){toast('Envio parou: '+e.message);const u=$('#upinfo');if(u)u.textContent='Envio interrompido. Toque em Enviar projeto de novo pra retomar.'}})()}
  else if(d.descartar){const v=vid(d.descartar);if(!confirm(`Descartar "${v.tema||v.t}"?\n\nApaga o projeto, as versões e os vídeos do servidor. Não dá pra desfazer. Os originais no Google Drive continuam lá.`))return;

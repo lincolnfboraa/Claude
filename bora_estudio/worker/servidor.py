@@ -158,7 +158,7 @@ def _iso_seg(iso):
     return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
 
 INICIO = time.time()
-WORKER_VERSAO_MIN = 20261120                           # sobe junto com o VERSAO do render_worker.py quando o render muda
+WORKER_VERSAO_MIN = 20261123                           # sobe junto com o VERSAO do render_worker.py quando o render muda
 DESATUALIZADO = {}                                     # worker que chamou com código antigo -> quando
 VISTO = {}                                             # nome do worker -> última vez que pediu trabalho ou deu sinal
 OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume
@@ -265,7 +265,7 @@ def cuidar_da_fila():
                 etapa(j['projeto_id'], 'Computador de render desligado: o VPS vai fazer o 4K', None, andamento_versao=None)
 
 def _permitidos(job):
-    p = job['pacote']; return {n for n in p['arquivos'] + p['transcricoes'] + [p.get('plano')] + (p.get('anexos') or []) if n}
+    p = job['pacote']; return {n for n in p['arquivos'] + p['transcricoes'] + [p.get('plano')] + (p.get('anexos') or []) + [e['arquivo'] for e in (p.get('sfx') or {}).values()] if n}
 
 def _rota_worker(h, metodo, u):
     """Rotas /worker/* : autenticadas pelo BORA_WORKER_TOKEN (cabeçalho X-Bora-Worker); o worker só vê os arquivos do trabalho dele."""

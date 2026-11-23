@@ -58,6 +58,25 @@ def listar(pasta=None):
                'dur': round(int((f.get('videoMediaMetadata') or {}).get('durationMillis') or 0) / 1000)} for f in itens if f['mimeType'].startswith('video/')]
     return {'pasta': pasta, 'pastas': pastas, 'videos': videos}
 
+def achar_pasta(nome, pai=None):
+    """Id da subpasta com esse nome dentro de `pai` (padrão: a raiz). None se não existe."""
+    pai = pai or RAIZ
+    if not dentro_da_raiz(pai): raise PermissionError('pasta fora da raiz do Bora Studio')
+    n = nome.replace("\\", "\\\\").replace("'", "\\'")
+    r = _get('files', q=f"'{pai}' in parents and name = '{n}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false", fields='files(id,name)', pageSize=5)
+    return (r.get('files') or [{}])[0].get('id')
+
+def listar_arquivos(pasta):
+    """Todos os arquivos (qualquer tipo, menos pastas) de uma pasta dentro da raiz: [{id, nome, tamanho, mime}]."""
+    if not dentro_da_raiz(pasta): raise PermissionError('pasta fora da raiz do Bora Studio')
+    itens, pag = [], None
+    while True:
+        r = _get('files', q=f"'{pasta}' in parents and trashed = false and mimeType != 'application/vnd.google-apps.folder'",
+                 fields='nextPageToken,files(id,name,mimeType,size)', orderBy='name', pageSize=200, **({'pageToken': pag} if pag else {}))
+        itens += r.get('files', []); pag = r.get('nextPageToken')
+        if not pag: break
+    return [{'id': f['id'], 'nome': f['name'], 'tamanho': int(f.get('size') or 0), 'mime': f['mimeType']} for f in itens]
+
 def baixar(fid, destino, prog=None):
     """Baixa o arquivo original (bytes exatos, sem conversão), retomando do ponto onde parou se a conexão cair."""
     meta = _get(f'files/{fid}', fields='size,parents')

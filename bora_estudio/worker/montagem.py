@@ -320,7 +320,7 @@ def x265(transf):
     return ('colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited:no-sao=1:no-strong-intra-smoothing=1',
             ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709'])
 
-def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
+def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None):
     """Monta o vídeo base (sem textos). Cada peça vira um arquivo; depois junta sem recodificar."""
     OH = altura; OW = OH * 9 // 16
     tmp = tempfile.mkdtemp(prefix='base_', dir=os.path.dirname(os.path.abspath(saida)))
@@ -383,10 +383,41 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None):
     ganho = -14.0 - float(m['input_i'])                       # ganho fixo: a dinâmica da fala fica igual à gravada
     # limitador só nos picos raros que passariam de -1,5 dBTP (não comprime a voz)
     ln = f"volume={ganho:.2f}dB,alimiter=limit=0.84:attack=5:release=50:level=disabled,aresample=48000"
-    sh(['ffmpeg', '-v', 'error', '-y', '-i', bruto, '-af', ln, '-c:a', 'aac', '-b:a', '256k', aud])
+    if sfx: misturar_sfx(bruto, ganho, sfx, aud)               # efeitos sonoros (opcional): faixa separada, a voz já está no ganho final
+    else: sh(['ffmpeg', '-v', 'error', '-y', '-i', bruto, '-af', ln, '-c:a', 'aac', '-b:a', '256k', aud])
     sh(['ffmpeg', '-v', 'error', '-y', '-i', vid, '-i', aud, '-map', '0:v', '-map', '1:a', '-c', 'copy', '-tag:v', 'hvc1', '-movflags', '+faststart', saida])
     subprocess.run(['rm', '-rf', tmp])
     return transf in ('arib-std-b67', 'smpte2084')
+
+def eventos_sfx(pcs, destaques_t, dur):
+    """Momentos dos efeitos no vídeo montado: [(segundo, 'whoosh'|'pop')].
+    Whoosh só nas trocas de história (outro take, outro enquadramento ou salto de mais de 2 s no bruto), não nos cortes de pausa.
+    Pop no começo de cada destaque. Espaçados (whoosh 2,5 s, pop 0,8 s), longe das bordas do vídeo, no máximo 8 whooshes."""
+    ev, t, ult = [], 0.0, None
+    for ai, fa, fb, quadro in pcs:
+        if ult and (ai != ult[0] or quadro != ult[3] or (fa - ult[2]) / FPS > 2.0): ev.append((round(t, 3), 'whoosh'))
+        t += (fb - fa) / FPS; ult = (ai, fa, fb, quadro)
+    ws, ult_w = [], -99.0
+    for t in sorted(x for x, _ in ev):
+        if 0.3 <= t <= dur - 0.3 and t - ult_w >= 2.5 and len(ws) < 8: ws.append(t); ult_w = t
+    ps, ult_p = [], -99.0
+    for t in sorted(destaques_t):
+        if 0.3 <= t <= dur - 0.3 and t - ult_p >= 0.8 and all(abs(t - w) > 0.35 for w in ws): ps.append(round(t, 3)); ult_p = t
+    return sorted([(w, 'whoosh') for w in ws] + [(p, 'pop') for p in ps])
+
+def misturar_sfx(bruto, ganho, sfx, saida, codec=('-c:a', 'aac', '-b:a', '256k')):
+    """AAC final = voz (ganho fixo, como sempre) + efeitos em tempos marcados. sfx: [(inicio_s, arquivo_wav)].
+    Só soma: a voz não passa por EQ nem compressor; o limitador de picos é o mesmo de antes."""
+    canais = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=channels', '-of', 'csv=p=0', bruto],
+                            capture_output=True, text=True).stdout.strip()
+    lay = 'mono' if canais == '1' else 'stereo'
+    args, fc = ['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', bruto], [f'[0:a]volume={ganho:.2f}dB,aresample=48000[v]']
+    for j, (t0, arq) in enumerate(sfx, 1):
+        args += ['-i', arq]
+        fc.append(f'[{j}:a]aresample=48000,aformat=sample_fmts=fltp:channel_layouts={lay},adelay={max(1, int(round(t0 * 1000)))}:all=1[s{j}]')
+    fc.append('[v]' + ''.join(f'[s{j}]' for j in range(1, len(sfx) + 1)) + f'amix=inputs={len(sfx) + 1}:duration=first:normalize=0:dropout_transition=0[m]')
+    fc.append('[m]alimiter=limit=0.84:attack=5:release=50:level=disabled[o]')
+    sh(args + ['-filter_complex', ';'.join(fc), '-map', '[o]', *codec, saida])
 
 def _textos_em_pedacos(base, ass, saida, crf, partes, here, prog):
     """4K: divide o vídeo em pedaços de quadros, aplica os textos em paralelo (a conversão HDR dos textos usa 1 núcleo por

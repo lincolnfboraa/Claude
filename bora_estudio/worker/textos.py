@@ -54,6 +54,7 @@ class Roteiro:
         self.tokens, self.fim, self.ev = tokens, fim, []
         self.BR, self.DEST = cor_ass(cor_leg), cor_ass(cor_dest, '#FFFFFF')
         self.blocos = self._blocos()
+        self.t_destaques = []                          # quando cada destaque entra (usado pelos efeitos sonoros)
 
     def dlg(self, layer, t0, t1, st, txt): self.ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{st},,0,0,0,,{txt}")
 
@@ -117,6 +118,7 @@ class Roteiro:
         cobre = [b for b in self.blocos if b['i1'] >= i0 and b['i0'] <= i1]
         if not cobre: return
         t0 = cobre[0]['s'] - 0.05
+        self.t_destaques.append(round(t0, 3))
         k = self.blocos.index(cobre[-1])
         t1 = min(self.blocos[k + 1]['s'], cobre[-1]['e'] + 1.2) if k + 1 < len(self.blocos) else self.fim
         for b in cobre: b['oculto'] = True
