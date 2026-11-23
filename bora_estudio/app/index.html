@@ -204,6 +204,10 @@ textarea::placeholder{color:var(--faint)}
 .op.on{box-shadow:0 0 0 2px var(--deep),0 0 0 4px var(--orange)}
 .op.cus{position:relative;overflow:hidden;background:conic-gradient(#f55,#fd5,#5d8,#5bf,#a6f,#f55)}
 .op.cus input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.bsom{display:flex;align-items:center;gap:10px;padding:10px 14px}.bsom .tx{min-width:0;flex:1}.bsom .tx b{font-weight:500;font-size:14px;white-space:normal;word-break:break-word}
+.bplay{width:38px;height:38px;border-radius:50%;background:var(--cell2,rgba(255,255,255,.08));display:flex;align-items:center;justify-content:center;flex:none}
+.bpick{font-size:11px;padding:6px 9px;border-radius:12px;background:var(--cell2,rgba(255,255,255,.08));color:var(--sub)}.bpick.on{background:var(--l,#FF5E16);color:#fff}
+.bfonte img{width:100%;border-radius:12px;margin-top:8px}
 .tpls{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0 6px}
 .tpl{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;color:var(--sub)}
 .tpl .mini{width:100%;aspect-ratio:9/16;border-radius:10px;background:linear-gradient(170deg,#3a4c62,#141e2b);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;overflow:hidden;box-shadow:inset 0 0 0 1.5px rgba(242,234,223,.15);padding:4px;text-align:center;line-height:1.05}
@@ -339,7 +343,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -415,6 +419,7 @@ const V={
   return `<header class="top"><span class="tt">Padrão Bora</span><span></span></header><h1 class="titulo">Padrão Bora</h1>
   <p class="apoio">${esc(g.principio||'DNA Global de edição, aplicado a todos os clientes.')}</p>
   <div class="secao" id="sistemas"><h2>Sistemas</h2><button class="lk" data-saude style="background:none;border:0;color:var(--l,#FF5E16);font-weight:600;font-size:14px;white-space:nowrap;flex-shrink:0;margin-left:auto">Conferir agora</button></div>${cardsSistemas()}
+  <button class="ln" data-biblioteca style="margin-top:8px"><span class="tx"><b>Biblioteca</b><small>Sons e fontes do Drive: ouvir, escolher e ver como ficam</small></span><span class="seta">›</span></button>
   <button class="ln" data-recarga style="margin-top:8px"><span class="tx"><b>Registrar recarga da IA</b><small>Depois de colocar crédito na Anthropic, informe o valor pra acompanhar o saldo estimado</small></span><span class="seta">›</span></button>
   <button class="pill ${S.pushOk?'':'pri'} full" data-push-ativar style="margin-bottom:6px">${SV(I.sino)}${S.pushOk?'Notificações ativadas neste aparelho':'Ativar notificações'}</button>
   <p class="nota" style="margin-top:4px">Avisa quando a prévia fica pronta, quando o 4K termina e se der erro. No iPhone, abra o app pelo ícone da Tela de Início.</p>
@@ -514,6 +519,28 @@ function blocoGancho(c,todas){const g=S.gancho;
 function corOpts(k,c){const atual=S.cores[k]||'#1E2A47',ops=[...new Set(['#FFFFFF',...c.paleta.cores])];
  return `<div class="opts">${ops.map(x=>`<button class="op ${x.toLowerCase()===atual.toLowerCase()?'on':''}" style="background:${x}" data-cor="${k}:${x}" aria-label="Cor ${x}"></button>`).join('')}
  <label class="op cus ${ops.some(x=>x.toLowerCase()===atual.toLowerCase())?'':'on'}" aria-label="Outra cor"><input type="color" data-cc="${k}" value="${atual}"></label></div>`}
+function bibGrupo(n){const x=n.replace(/^ES_/,'ES ').split(/[ ,]/)[0];return x||'Outros'}
+function bibNome(n){return n.replace(/^ES_/,'').replace(/ - Epidemic Sound/,'').replace(/\.(mp3|wav|m4a|ogg|aac|flac)$/i,'')}
+function sheetBiblioteca(){const b=S.bib;const cab=`<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Biblioteca</b><button data-close>OK</button></div>`;
+ if(!b)return cab+`<p class="vazio">Abrindo a biblioteca do Drive…</p>`;if(b.erro)return cab+`<div class="aviso"><b>Não consegui abrir</b>${esc(b.erro)}</div>`;
+ const grupos=['Todos',...[...new Set(b.sons.map(x=>bibGrupo(x.nome)))]];const lista=b.sons.filter(x=>S.bibGrupo==='Todos'||bibGrupo(x.nome)===S.bibGrupo)
+  .sort((a,z)=>((b.escolhidos.whoosh===z.id||b.escolhidos.pop===z.id)-(b.escolhidos.whoosh===a.id||b.escolhidos.pop===a.id))||a.nome.localeCompare(z.nome));
+ return cab+`<h3 class="rot">Efeitos sonoros</h3><p class="nota">Toque no som pra ouvir. <b>Whoosh</b> entra nas trocas de história e <b>Pop</b> no começo dos destaques. A troca vale a partir do próximo vídeo com efeitos ligados.</p>
+  <div class="chips">${grupos.map(g=>`<button class="chip ${S.bibGrupo===g?'on':''}" style="${S.bibGrupo===g?'background:var(--l,#FF5E16);color:#fff':''}" data-bgrupo="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+  <div class="lst">${lista.map(x=>`<div class="ln bsom"><button class="bplay" data-bplay="${x.id}" aria-label="Ouvir">${SV(I.play)}</button><span class="tx"><b>${esc(bibNome(x.nome))}</b></span>
+   <button class="bpick ${b.escolhidos.whoosh===x.id?'on':''}" data-bsom="whoosh:${x.id}">Whoosh</button><button class="bpick ${b.escolhidos.pop===x.id?'on':''}" data-bsom="pop:${x.id}">Pop</button></div>`).join('')||'<p class="vazio">Nenhum som nessa pasta.</p>'}</div>
+  <h3 class="rot">Fontes</h3><p class="nota">Toque na família pra ver a frase do gancho. Fontes variáveis (um arquivo com todos os pesos) não funcionam no motor de texto: use as versões estáticas.</p>
+  <div class="lst">${b.fontes.map(g=>`<div class="ln bfonte" style="display:block"><button data-bfonte="${g.id}" style="width:100%;text-align:left;display:flex;align-items:center;gap:8px"><span class="tx"><b>${esc(g.familia)}</b><small>${g.arquivos} arquivo${g.arquivos>1?'s':''}${g.variavel?' · variável':''}</small></span><span class="seta">›</span></button>${S.bibImg[g.id]?`<img src="${S.bibImg[g.id]}" alt="${esc(g.familia)}">`:''}</div>`).join('')||'<p class="vazio">Nenhuma fonte nessa pasta.</p>'}</div>`}
+function bibSheet(){const sc=$('#sheet').scrollTop;sheet(sheetBiblioteca());$('#sheet').scrollTop=sc}
+async function bibGet(rota,blob){const tok=(await sb.auth.getSession()).data.session.access_token;const r=await fetch(`${EDITOR}${rota}`,{headers:{Authorization:'Bearer '+tok}});
+ if(!r.ok){let m='erro '+r.status;try{m=(await r.json()).erro||m}catch(e){}throw new Error(m)}return blob?r.blob():r.json()}
+async function abrirBiblioteca(){S.bib=null;sheet(sheetBiblioteca());try{S.bib=await bibGet('/biblioteca/lista')}catch(e){S.bib={erro:e.message}}bibSheet()}
+let _aud=null;
+async function tocarSom(id){try{if(_aud){_aud.pause();_aud=null}if(!S.bibAud[id])S.bibAud[id]=URL.createObjectURL(await bibGet('/biblioteca/som?id='+encodeURIComponent(id),true));_aud=new Audio(S.bibAud[id]);await _aud.play()}catch(e){toast('Não consegui tocar: '+e.message)}}
+async function escolherSom(ref){const[tipo,id]=ref.split(':');try{const tok=(await sb.auth.getSession()).data.session.access_token;
+ const r=await fetch(`${EDITOR}/biblioteca/escolher`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({tipo,id})});const j=await r.json();if(!r.ok)throw new Error(j.erro||'erro');
+  S.bib.escolhidos[tipo]=id;bibSheet();toast((tipo==='pop'?'Pop':'Whoosh')+' agora é '+bibNome(j.nome))}catch(e){toast('Não consegui trocar: '+e.message)}}
+async function verFonte(id){if(S.bibImg[id]){delete S.bibImg[id];return bibSheet()}try{S.bibImg[id]=URL.createObjectURL(await bibGet('/biblioteca/fonte?id='+encodeURIComponent(id),true));bibSheet()}catch(e){toast('Não consegui abrir a fonte: '+e.message)}}
 function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div class="sh"><span style="width:40px"></span><b>Em produção</b><button data-close>OK</button></div>
  ${l.length?`<div class="lst">${l.map(v=>`<button class="ln" data-stgo="${v.id}">${anel(pct(v),48)}<span class="tx"><b>${esc(v.tema)} · ${esc(cli(v.cli).nome)}</b><small>${esc(fase(v))}${falta(v)?' · '+esc(falta(v)):''}</small></span><span class="seta">›</span></button>`).join('')}</div>
  <p class="nota">A porcentagem avança a cada etapa: transcrição, cortes, textos e render. O app confere sozinho a cada 8 segundos e atualiza na hora quando você volta pra ele.</p>`:'<div class="lst"><p class="vazio">Nenhum vídeo em produção agora.</p></div>'}`}
@@ -609,6 +636,11 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  {const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
  if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
  if('sfx' in d){S.sfx=!S.sfx;return reRender()}
+ if('biblioteca' in d)return abrirBiblioteca();
+ if(d.bgrupo){S.bibGrupo=d.bgrupo;return bibSheet()}
+ if(d.bplay)return tocarSom(d.bplay);
+ if(d.bsom)return escolherSom(d.bsom);
+ if(d.bfonte)return verFonte(d.bfonte);
  if(d.gsug){S.gancho.frase=GANCHOS[+d.gsug];reRender();const gf=$('#gfrase');if(gf){gf.focus();const k=gf.value.indexOf('...');if(k>=0)gf.setSelectionRange(k,k+3)}return}
  if(d.gaj){const v=vid(d.gaj),g=(v.media||{}).gancho||{},cc=cli(v.cli),vc=v.cores||{};S.gAj=d.gaj;S.sfx=!!(v.media||{}).sfx;S.gancho={template:g.template||'ia',frase:g.frase||''};
   S.cores={leg:vc.leg||cc.texto.legenda||'#FFFFFF',dest:vc.dest||cc.texto.destaque||'#FFFFFF',caixa:vc.caixa||cc.texto.caixa||'#1E2A47'};return reRender()}

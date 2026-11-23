@@ -576,6 +576,20 @@ class H(BaseHTTPRequestHandler):
             try: return self._r(200, drive.listar(urllib.parse.parse_qs(u.query).get('pasta', [None])[0]))
             except PermissionError as e: return self._r(403, {'erro': str(e)})
             except Exception as e: return self._r(502, {'erro': 'Drive: ' + str(e)[:150]})
+        if u.path.startswith('/biblioteca/'):              # aba Biblioteca: lista, som pra ouvir, prévia de fonte
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            import drive, biblioteca
+            if not drive.configurado(): return self._r(503, {'erro': 'o acesso ao Drive ainda não foi configurado no servidor'})
+            fid = urllib.parse.parse_qs(u.query).get('id', [''])[0]
+            try:
+                if u.path == '/biblioteca/lista': return self._r(200, biblioteca.catalogo())
+                if u.path == '/biblioteca/som': dados, mime = biblioteca.som_bytes(fid)
+                elif u.path == '/biblioteca/fonte': dados, mime = biblioteca.fonte_png(fid), 'image/png'
+                else: return self._r(404, {'erro': 'rota'})
+            except PermissionError as e: return self._r(403, {'erro': str(e)})
+            except Exception as e: traceback.print_exc(); return self._r(502, {'erro': 'Biblioteca: ' + str(e)[:150]})
+            self.send_response(200); self.send_header('Content-Type', mime); self.send_header('Cache-Control', 'private, max-age=3600')
+            self.send_header('Content-Length', str(len(dados))); self.end_headers(); self.wfile.write(dados); return
         if u.path == '/push/chave':
             import avisos; return self._r(200, {'chave': avisos.chave_publica()})
         if u.path.startswith('/final/'): return self._final(u)
@@ -630,6 +644,16 @@ class H(BaseHTTPRequestHandler):
             try: descartar_projeto(pid)
             except Exception as e: traceback.print_exc(); return self._r(500, {'erro': str(e)[:150]})
             return self._r(200, {'ok': True})
+        if u.path == '/biblioteca/escolher':               # POST {tipo: whoosh|pop, id}: qual som vale pros próximos vídeos
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            import biblioteca
+            corpo = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))) or b'{}')
+            try:
+                f = biblioteca._achar(str(corpo.get('id', '')), biblioteca.listar('SoundFX'))
+                biblioteca.gravar_escolha(str(corpo.get('tipo', '')), f['id'], f['nome']); biblioteca._cat['quando'] = 0
+            except (PermissionError, ValueError) as e: return self._r(400, {'erro': str(e)})
+            except Exception as e: return self._r(502, {'erro': 'Biblioteca: ' + str(e)[:150]})
+            return self._r(200, {'ok': True, 'nome': f['nome']})
         if u.path.startswith('/drive/importar/'):          # POST /drive/importar/<projeto> {arquivos:[{id,nome,tamanho}]}
             if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
             import drive
