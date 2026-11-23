@@ -43,6 +43,17 @@ def avisar(p, ok, erro=''):
     except Exception as e:
         print('aviso:', e, flush=True)
 
+def esperar_acer(et=None, max_s=150):
+    """O computador de render pode estar só se atualizando (o editor acabou de reiniciar com código novo) ou ter dado sinal há pouco:
+    espera ele voltar em vez de mandar o vídeo pra VPS (que é bem mais lenta). Se faz tempo que ele não aparece, não espera."""
+    if not EXTERNO or acer_ligado(): return
+    agora_ = time.time()
+    recente = agora_ - INICIO < 300 or any(agora_ - t < 600 for t in VISTO.values()) or any(agora_ - t < 600 for t, _ in DESATUALIZADO.values())
+    if not recente: return
+    if et: et('Aguardando o computador de render voltar (atualizando)', 6)
+    fim = time.time() + max_s
+    while time.time() < fim and not acer_ligado(): time.sleep(3)
+
 def processar(p):
     pid = p['projeto_id']
     try:
@@ -51,6 +62,7 @@ def processar(p):
         if EXTERNO:
             espera = 30 - (time.time() - INICIO)       # logo depois de ligar, dá tempo do computador de render dar sinal
             if espera > 0: time.sleep(espera)
+        esperar_acer(et)
         if EXTERNO and acer_ligado():                  # computador de render ligado: transcrição, prévia e 4K vão pra ele
             if p['tipo'] == 'final':
                 fila_enfileirar(motor.preparar(p, et, sb))

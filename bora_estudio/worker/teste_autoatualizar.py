@@ -67,4 +67,19 @@ W.CODIGO = A.hash_codigo(doente); W.CAB['X-Bora-Worker-Codigo'] = W.CODIGO
 ok('já atualizado: não faz nada (False)', W.atualizar_codigo() is False)
 os.environ['BORA_AUTOATUALIZAR'] = '0'; W.CAB['X-Bora-Worker-Codigo'] = 'velho'
 ok('BORA_AUTOATUALIZAR=0 desliga', W.atualizar_codigo() is False)
+# 6) a VPS espera o Acer voltar (código novo) em vez de mandar o vídeo pra ela mesma
+import time
+servidor.EXTERNO = True; servidor.VISTO.clear(); servidor.DESATUALIZADO.clear(); servidor.INICIO = time.time() - 10        # editor acabou de reiniciar
+threading.Timer(1.0, lambda: servidor.VISTO.update({'acer-teste': time.time()})).start()
+t0 = time.time(); servidor.esperar_acer(None, max_s=20)
+ok('editor recém-reiniciado: espera o Acer dar sinal (não manda pra VPS)', servidor.acer_ligado() and 0.8 < time.time() - t0 < 8, f'{time.time() - t0:.1f} s')
+servidor.VISTO.clear(); servidor.INICIO = time.time() - 3600
+t0 = time.time(); servidor.esperar_acer(None, max_s=20)
+ok('Acer sem sinal há muito tempo e editor antigo: não espera (VPS faz na hora)', time.time() - t0 < 0.5 and not servidor.acer_ligado())
+servidor.DESATUALIZADO['acer-teste'] = (time.time() - 30, 'codigo'); servidor.VISTO.clear()
+threading.Timer(1.0, lambda: servidor.VISTO.update({'acer-teste': time.time()})).start()
+t0 = time.time(); servidor.esperar_acer(None, max_s=20)
+ok('Acer recusado há pouco (se atualizando): espera ele voltar', servidor.acer_ligado() and time.time() - t0 < 8, f'{time.time() - t0:.1f} s')
+servidor.EXTERNO = False; t0 = time.time(); servidor.esperar_acer(None, max_s=20)
+ok('render externo desligado: não espera', time.time() - t0 < 0.5)
 print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)
