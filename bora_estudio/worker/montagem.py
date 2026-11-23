@@ -15,6 +15,7 @@ ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}  
 PAUSA = {'limiar_db': -45, 'min_s': float(os.environ.get('BORA_PAUSA_MIN', '0.25')), 'mantem_s': float(os.environ.get('BORA_PAUSA_MANTEM', '0.04')),
          'borda_s': float(os.environ.get('BORA_PAUSA_BORDA', '0.08'))}
 BORDA_PELO_SOM = os.environ.get('BORA_BORDA_SOM', '1') != '0'           # começo e fim de cada trecho achados pelo áudio, não só pela transcrição
+PROTEGE_PELO_SOM = os.environ.get('BORA_PROTEGE_SOM', '1') != '0'     # proteção das palavras pelo som real (0 volta a proteger pelo tempo do Whisper)
 CALMA = 5                                                               # quadros de 20 ms seguidos abaixo do limiar = silêncio de verdade (100 ms)
 _modelo = None
 
@@ -142,11 +143,20 @@ def borda_fim(env, e, hop=0.02):
 def tirar_pausas(a, b, env, palavras, hop=0.02):
     """[a,b] do original -> lista de trechos mantidos, sem pausas longas; protege palavras (+120 ms no fim)."""
     LIM, MIN, KEEP, BORDA = PAUSA['limiar_db'], PAUSA['min_s'], PAUSA['mantem_s'], PAUSA['borda_s']
-    i0, i1 = int(a / hop), int(b / hop); q = env[i0:i1] < LIM
+    i0, i1 = int(a / hop), int(b / hop); quieta = env[i0:i1] < LIM; q = quieta.copy()
+    n_ = len(q)
+    if PROTEGE_PELO_SOM and n_:
+        # Protege pelo SOM REAL: 140 ms depois e 50 ms antes de cada quadro com voz (cauda e começo fracos de palavra). O Whisper costuma esticar o
+        # fim de uma palavra por cima da pausa seguinte; proteger até o fim que ele marcou deixava a pausa inteira intocada (pausas de 0,4 s e mais).
+        c = np.cumsum(~quieta); idx = np.arange(n_)
+        lo, hi = np.clip(idx - int(0.14 / hop), 0, n_ - 1), np.clip(idx + int(0.05 / hop), 0, n_ - 1)
+        voz = (c[hi] - np.where(lo > 0, c[lo - 1], 0)) > 0
+        q &= ~voz
     for w in palavras:                                   # nunca é pausa onde há palavra
         if w['e'] < a or w['s'] > b: continue
         j0, j1 = max(int((w['s'] - 0.04) / hop) - i0, 0), min(int((w['e'] + 0.12) / hop) - i0 + 1, len(q))
-        q[j0:j1] = False
+        if PROTEGE_PELO_SOM and (~quieta[j0:j1]).any(): continue       # há voz na janela da palavra: a proteção pelo som já cobre
+        q[j0:j1] = False                                 # palavra sem nenhuma energia acima do limiar (muito baixa): protege pelo tempo do Whisper, como antes
     cortes, n = [], len(q)
     j = 0
     while j < n and q[j]: j += 1

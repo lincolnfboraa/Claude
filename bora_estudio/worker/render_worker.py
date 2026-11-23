@@ -13,7 +13,7 @@ import json, os, sys, time, traceback, urllib.error, urllib.parse, urllib.reques
 EDITOR = os.environ.get('BORA_EDITOR', 'https://editor.borasolucoesdigitais.com').rstrip('/')
 TOKEN = os.environ.get('BORA_WORKER_TOKEN', '')
 NOME = os.environ.get('BORA_WORKER_NOME', 'worker')[:40]
-VERSAO = 20261125          # sobe junto com mudanças que o render precisa ter (o editor recusa worker mais antigo que o mínimo dele)
+VERSAO = 20261126          # sobe junto com mudanças que o render precisa ter (o editor recusa worker mais antigo que o mínimo dele)
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
 os.environ.setdefault('BORA_ACELERACAO', 'auto')
 PARTE = 8 << 20

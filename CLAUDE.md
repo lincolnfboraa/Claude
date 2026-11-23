@@ -7,6 +7,8 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - Cortar pausas, vícios e erros de fala sem nunca inventar ou montar falas.
   Pausas entre frases ~0,2 s e dentro do trecho ~0,24 s; o começo e o fim de cada trecho são achados pelo som (não só pela transcrição), pra nunca comer palavra.
   Ajuste fino no bora.env: BORA_PAUSA_MIN, BORA_PAUSA_MANTEM, BORA_PAUSA_BORDA, BORA_BORDA_SOM=0 volta ao corte antigo.
+  As palavras são protegidas pelo SOM real (140 ms depois e 50 ms antes de cada quadro com voz), não pelo fim que o Whisper marca: ele costuma esticar a palavra por cima da pausa seguinte.
+  BORA_PROTEGE_SOM=0 volta à proteção pelo tempo do Whisper.
 - **Storytelling:** gancho, contexto (antes da prova), evidência e fechamento; briefing 'manter falas' SOMA ao contexto, não o substitui. Repetições marcadas com ⟲ na transcrição
   (a IA pula a primeira tentativa). Observação do editor no campo do gancho ('Gostei de...', 'tipo...') é ideia, nunca vai pra caixa; só título curto vai exato.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).

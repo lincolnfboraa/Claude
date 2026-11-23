@@ -20,12 +20,22 @@ for ts, te, _ in verd:
     x[int(ts * SR):int(ts * SR) + n] += (rng.normal(0, 0.12, n) * env).astype(np.float32)
 arq = os.path.join(T, 'fala.wav')
 with wave.open(arq, 'wb') as w: w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR); w.writeframes((np.clip(x, -1, 1) * 32767).astype(np.int16).tobytes())
-def pal(erro_ini=0.0, erro_fim=0.0): return [{'w': f'p{i}', 's': round(ts + erro_ini, 3), 'e': round(te + erro_fim, 3)} for i, (ts, te, _) in enumerate(verd)]
+def pausa_entre(ints, te_a, ts_b):
+    """Silêncio que sobra na linha do tempo montada entre o fim da palavra A e o começo da B (a pausa inteira se nenhum corte caiu nela)."""
+    if any(a <= te_a + 0.001 and b >= ts_b - 0.001 for a, b in ints): return ts_b - te_a
+    fim = max(b for a, b in ints if a < te_a and b <= ts_b + 0.001); ini = min(a for a, b in ints if b > ts_b and a >= te_a - 0.001)
+    return (fim - te_a) + (ts_b - ini)
+def pal(erro_ini=0.0, erro_fim=0.0, estica=0.0):
+    out = []
+    for i, (ts, te, _) in enumerate(verd):
+        prox = verd[i + 1][0] if i + 1 < len(verd) else te + 1
+        out.append({'w': f'p{i}', 's': round(ts + erro_ini, 3), 'e': round(min(te + erro_fim + estica, prox - 0.01), 3)})   # fim esticado até a pausa, sem passar do próximo começo
+    return out
 plano = {'segmentos': [{'palavra_inicio': 4 * f, 'palavra_fim': 4 * f + 3, 'quadro': 'medio'} for f in range(3)]}
-def rodar(erro_ini, erro_fim, antigo=False):
-    montagem.BORDA_PELO_SOM = not antigo
+def rodar(erro_ini, erro_fim, antigo=False, estica=0.0):
+    montagem.BORDA_PELO_SOM = not antigo; montagem.PROTEGE_PELO_SOM = not antigo
     montagem.PAUSA.update(min_s=0.30, mantem_s=0.10, borda_s=0.18) if antigo else montagem.PAUSA.update(min_s=0.25, mantem_s=0.04, borda_s=0.08)
-    out, tokens, dur = montagem.pecas(plano, [arq], [pal(erro_ini, erro_fim)], T)
+    out, tokens, dur = montagem.pecas(plano, [arq], [pal(erro_ini, erro_fim, estica)], T)
     ints = [(fa / montagem.FPS, fb / montagem.FPS) for _, fa, fb, _ in out]
     cortadas = []
     for i, (ts, te, _) in enumerate(verd):
@@ -44,8 +54,15 @@ for nome, ei, ef in (('Whisper exato', 0.0, 0.0), ('Whisper marca o começo 120 
     else: ok(f'{nome}: o corte antigo comia palavras (por isso era mais curto)', bool(c0), str(c0))
 _, _, _, ints = rodar(0.0, 0.0)
 p5, p6 = verd[5], verd[6]                                                    # a pausa interna de 0,50 s fica entre essas duas palavras
-fim5 = max(b for a, b in ints if a < p5[1]); ini6 = min(a for a, b in ints if b > p6[0])
-resto = (fim5 - p5[1]) + (p6[0] - ini6)
+resto = pausa_entre(ints, p5[1], p6[0])
 ok('pausa interna de 0,50 s encolhe pra no máximo 0,27 s', resto <= 0.27, f'{resto:.3f} s')
-montagem.BORDA_PELO_SOM = True; montagem.PAUSA.update(min_s=0.25, mantem_s=0.04, borda_s=0.08)
+# Whisper estica o fim de cada palavra 0,30 s por cima da pausa: a pausa interna de 0,50 s tem que encolher mesmo assim
+_, _, _, ints = rodar(0.0, 0.0, estica=0.30)
+esticado = pausa_entre(ints, p5[1], p6[0])
+_, _, _, ints0 = rodar(0.0, 0.0, antigo=True, estica=0.30)
+antigo_esticado = pausa_entre(ints0, p5[1], p6[0])
+ok('Whisper esticando o fim das palavras: a pausa de 0,50 s encolhe (antes ficava inteira)', esticado <= 0.30 and antigo_esticado > 0.40, f'antigo {antigo_esticado:.2f} s -> novo {esticado:.2f} s')
+c_est = rodar(0.0, 0.0, estica=0.30)[1]
+ok('Whisper esticando o fim das palavras: nenhuma palavra cortada', not c_est, str(c_est))
+montagem.BORDA_PELO_SOM = True; montagem.PROTEGE_PELO_SOM = True; montagem.PAUSA.update(min_s=0.25, mantem_s=0.04, borda_s=0.08)
 print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)
