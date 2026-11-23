@@ -2,7 +2,7 @@
 Entrada: transcrição numerada palavra a palavra, DNA ativo do cliente, regras globais, briefing e o histórico de feedback.
 Saída: JSON validado por esquema (structured outputs): segmentos, título, destaques, correções e resumo.
 A IA só escolhe e ordena o que FOI falado; nunca inventa fala. O vídeo em si é montado pelo ffmpeg (montagem.py)."""
-import json, os
+import json, os, re, unicodedata
 
 from montagem import TREMOR_ALTO as TREMOR
 MODELO = os.environ.get('BORA_MODELO', 'claude-opus-5-5')
@@ -55,6 +55,12 @@ Como planejar
 - Escolha e ordene trechos do que FOI falado (por índice de palavra). Nunca invente, monte ou altere falas; reordenar só quando não distorce o sentido.
 - Comece pelo gancho mais forte que existe no material (pergunta curiosa, situação de identificação ou cena com objeto). Nada de "olá", "agora eu vou falar", "hoje eu vou".
 - Corte falsos começos, repetições, gaguejos e frases abandonadas: prefira a última tentativa completa de cada frase.
+- Estrutura (sempre, mesmo em vídeo curto): 1) gancho; 2) contexto: o que é o assunto e por que importa pra quem assiste (quem não sabe nada precisa entender ANTES da prova); 3) desenvolvimento e evidência (dados, estudos, explicação); 4) fechamento com orientação ou chamada. Se o gancho usa uma metáfora ou um objeto (ex.: uma armadura), retome-o no contexto ou no fechamento em vez de abandoná-lo. Dados e estudos só entram DEPOIS de o espectador entender de que se trata.
+- O briefing que pede pra manter falas ou trechos (ex.: 'manter os estudos') vale, mas SOMA ao resto: não autoriza deixar de fora o contexto que explica essas falas. Se o material tem uma introdução que explica o tema, ela entra antes da evidência.
+- Palavras seguidas de ⟲ na transcrição são o PRIMEIRO de um par repetido (gagueira, falso começo ou número dito duas vezes). Quase sempre pule as marcadas e fique com a versão completa: divida em dois segmentos seguidos do mesmo arquivo, deixando as marcadas de fora. Só mantenha uma repetição se ela for proposital (ênfase).
+- Antes de responder, releia o roteiro na ordem dos segmentos, como será ouvido: sem repetição, sem salto de assunto, com o contexto antes da evidência.
+- Observações do editor sobre o gancho NÃO são o texto do título: use como inspiração (crie um título curto e natural), a menos que venham marcadas como texto EXATO.
+- Os templates de título (premium, caixa, impacto, sem título) são desenhados pelo motor: nunca diga que um deles não está disponível.
 - Cada segmento termina numa palavra completa e fecha o pensamento; nunca corte no meio de uma frase.
 - Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência.
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
@@ -70,6 +76,23 @@ Títulos e destaques já saem com sombra só nas letras, sem bloco ou degradê a
 O motor NÃO cria imagens nem vídeos novos: sem anexo ou vídeo de ambiente, não existe B-roll. Também não faz animações, efeitos, transições, zoom animado, música ou mudanças na imagem.
 Se o feedback pedir algo que o motor não faz, aplique o resto e escreva claramente em nao_feito o que ficou de fora. O resumo descreve apenas o que esta versão aplica de verdade; nunca diga que fez algo que não está no plano."""
 
+def _n(t): return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', t.lower()).encode('ascii', 'ignore').decode())
+
+def marcar_repeticoes(pw):
+    """Posições (no arquivo) do PRIMEIRO de um par repetido: gagueira ('eu eu'), falso começo (o mesmo par de palavras dito de novo logo adiante,
+    marca o trecho todo da primeira tentativa) ou número dito duas vezes ('24%, uma redução de 24%'). É só um aviso pra IA, que decide."""
+    n = [_n(w['w']) for w in pw]; m = set()
+    for i in range(len(pw)):
+        if not n[i]: continue
+        if i + 1 < len(pw) and n[i + 1] == n[i] and len(n[i]) <= 12: m.add(i)
+        if i + 1 < len(pw) and n[i + 1] and len(n[i]) + len(n[i + 1]) >= 5:
+            for j in range(i + 2, min(len(pw) - 1, i + 14)):
+                if n[j] == n[i] and n[j + 1] == n[i + 1]: m.update(range(i, j)); break
+        if n[i].isdigit():
+            for j in range(i + 1, min(len(pw), i + 8)):
+                if n[j] == n[i]: m.add(i); break
+    return m
+
 def numerar(palavras, arquivos, papeis=None):
     """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase. Vídeos de ambiente não entram (os índices continuam valendo)."""
     linhas, g = [], 0
@@ -77,9 +100,9 @@ def numerar(palavras, arquivos, papeis=None):
         if papeis and papeis[ai] == 'ambiente':
             linhas.append(f"\n=== Arquivo {ai + 1}: {os.path.basename(arquivos[ai])} (vídeo de ambiente, B-roll; não use como fala) ==="); g += len(pw); continue
         linhas.append(f"\n=== Arquivo {ai + 1}: {os.path.basename(arquivos[ai])} ===")
-        frase = []
+        frase = []; marcas = marcar_repeticoes(pw)
         for k, w in enumerate(pw):
-            frase.append(f"[{g}]{w['w']}")
+            frase.append(f"[{g}]{w['w']}" + ('⟲' if k in marcas else ''))
             fim_frase = w['w'][-1:] in '.?!' or (k + 1 < len(pw) and pw[k + 1]['s'] - w['e'] > 0.8)
             if fim_frase or k == len(pw) - 1:
                 linhas.append(f"({pw[k - len(frase) + 1]['s']:.1f}s) " + ' '.join(frase)); frase = []

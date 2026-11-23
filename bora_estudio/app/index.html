@@ -517,7 +517,7 @@ function listaVerif(t,arr){return `<h3 class="rot">${esc(t)}</h3><div class="lst
 function blocoSfx(){return `<h3 class="rot">Efeitos sonoros</h3><button class="dobra" data-sfx>${S.sfx?'Ligados: whoosh nas trocas e pop nos destaques':'Desligados'}<span class="bolas"><i style="background:${S.sfx?'#4CAF7D':'#555'}"></i></span></button>
  <small style="color:var(--sub);display:block;margin-top:6px">Entram numa faixa separada, em volume baixo. A voz não muda.</small>`}
 function blocoGancho(c,todas){const g=S.gancho;
- return `<h3 class="rot">Gancho</h3><textarea id="gfrase" rows="2" placeholder="Frase do título no gancho (opcional). Vazio: a IA cria no DNA do cliente.">${esc(g.frase||'')}</textarea>
+ return `<h3 class="rot">Gancho</h3><textarea id="gfrase" rows="2" placeholder="Título do gancho, exatamente como deve aparecer (opcional). Vazio: a IA cria. Ideias e observações vão no briefing.">${esc(g.frase||'')}</textarea>
   <div class="chips">${GANCHOS.map((x,i)=>`<button class="chip" data-gsug="${i}">${esc(x)}</button>`).join('')}</div>
   <div class="tpls">${TPLS.map(([k,n])=>`<button class="tpl ${g.template===k?'on':''}" data-gtpl="${k}"><span class="mini">${miniTpl(k)}</span>${n}</button>`).join('')}</div>
   ${todas?`<small style="color:var(--sub)">Legenda</small>${corOpts('leg',c)}<small style="color:var(--sub)">Palavra em destaque</small>${corOpts('dest',c)}`:''}

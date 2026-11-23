@@ -2,7 +2,7 @@
 nova_edicao / ajuste: transcreve os originais, a IA monta o plano no DNA do cliente, ffmpeg monta a prévia 480p (HDR do original),
   os textos entram no padrão aprovado e a prévia vai pro app.
 final: renderiza de novo a partir dos ORIGINAIS na resolução nativa (4K), com e sem legenda + .srt, num .zip (sem compressão)."""
-import glob, json, os, time, urllib.request
+import glob, json, os, re, time, urllib.request
 import insercoes, montagem, textos
 
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
@@ -38,13 +38,23 @@ def _subir(sb, caminho, arq, tipo):
                                headers={'apikey': os.environ['SUPABASE_SECRET'], 'Content-Type': tipo, 'x-upsert': 'true'})
     urllib.request.urlopen(r, timeout=600).read()
 
-def _transcricoes(pid, arqs, etapa):
+def _transcricoes(pid, arqs, etapa, vocab=None):
     pal = []
     for i, a in enumerate(arqs, 1):
         etapa(f'Transcrevendo {"o vídeo" if len(arqs) == 1 else f"o vídeo {i} de {len(arqs)}"}', 8 + int(17 * (i - 1) / len(arqs)))
-        pal.append(montagem.transcrever(a, os.path.join(TRAB, pid, f'transcricao_{i:02d}.json')))
+        pal.append(montagem.transcrever(a, os.path.join(TRAB, pid, f'transcricao_{i:02d}.json'), vocab))
     if not any(pal): raise RuntimeError('não encontrei fala nos vídeos enviados')
     return pal
+
+PREFIXOS_IDEIA = re.compile(r'^\s*(gostei|gosto|tipo|algo como|algo assim|ex\.?\s*:|exemplo|sugest|ideia|pode ser|que tal|quero|manter|mantenha|usar|use|comece|come[çc]ar|abrir com|abra com|inspir)', re.I)
+def gancho_texto(frase):
+    """O que o editor escreveu no campo do gancho: (título EXATO, ideia). Observação ('Gostei do gancho de...', 'tipo...', 'exemplo...') ou texto
+    longo é IDEIA (a IA cria o título a partir dela); só o que parece título de verdade (curto, ou inteiro entre aspas) vai pra caixa sem mudar."""
+    f = (frase or '').strip()
+    if not f: return '', ''
+    if PREFIXOS_IDEIA.match(f) or len(f) > 90: return '', f
+    m = re.fullmatch(r'[“"«](.+)[”"»]', f)
+    return (m.group(1).strip() if m else f), ''
 
 CRF_4K = {'leve': 24, 'alta': 16, 'maxima': 10}          # qualidade do 4K escolhida na aprovação (CRF menor = mais bits = mais fiel)
 def crf_4k(meta):
@@ -94,14 +104,16 @@ def _final_nome(cliente_nome, titulo):
 def pacote_transcricao(p, sb):
     """Pacote só de transcrição (pro computador de render), ou None se as transcrições já existem."""
     pid = p['projeto_id']
-    meta = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta') or [{}])[0].get('original_meta') or {}
+    proj = (sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=cliente_id,original_meta') or [{}])[0]
+    meta = proj.get('original_meta') or {}
     arqs = _arquivos(pid, meta); pasta = os.path.join(TRAB, pid)
     if not arqs: return None
     falta = [i for i in range(1, len(arqs) + 1) if not os.path.exists(os.path.join(pasta, f'transcricao_{i:02d}.json'))]
     if not falta: return None
     v = (sb('GET', f"/rest/v1/versoes?id=eq.{p.get('versao_id')}&select=numero") or [{'numero': p.get('versao', 1)}])[0]
     return {'projeto_id': pid, 'tipo': 'previa', 'etapa': 'transcricao', 'versao_id': p.get('versao_id'), 'n': v['numero'], 'altura': 854,
-            'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [], 'plano': None, 'anexos': []}
+            'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [], 'plano': None, 'anexos': [],
+            'vocabulario': __import__('vocabulario').carregar(proj.get('cliente_id'), (sb('GET', f"/rest/v1/dna_ativo?cliente_id=eq.{proj.get('cliente_id')}&select=dna") or [{}])[0].get('dna'))}
 
 def preparar(p, etapa, sb):
     """Parte leve (fica no VPS): lê o pedido, transcreve (com cache), a IA monta o plano e grava o PACOTE de render.
@@ -122,10 +134,12 @@ def preparar(p, etapa, sb):
              'caixa': (proj.get('cores_texto') or {}).get('caixa') or tx.get('caixa') or '#1E2A47'}
     pasta = os.path.join(TRAB, pid); os.makedirs(pasta, exist_ok=True)
     etapa('Lendo o pedido', 5)
-    pal = _transcricoes(pid, arqs, etapa)
+    import vocabulario
+    vocab = vocabulario.carregar(cli_id, dna)                 # termos do cliente (nomes de remédios, estudos...) pro Whisper
+    pal = _transcricoes(pid, arqs, etapa, vocab)
     montagem.liberar_modelo()                         # memória livre pro render
     pac = {'projeto_id': pid, 'tipo': 'final' if tipo == 'final' else 'previa', 'versao_id': v['id'], 'n': v['numero'], 'cliente_id': cli_id,
-           'cores': cores, 'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [f'transcricao_{i:02d}.json' for i in range(1, len(arqs) + 1)]}
+           'cores': cores, 'vocabulario': vocab, 'arquivos': [os.path.basename(a) for a in arqs], 'transcricoes': [f'transcricao_{i:02d}.json' for i in range(1, len(arqs) + 1)]}
 
     if tipo in ('nova_edicao', 'ajuste'):
         # fala x ambiente: escolha do app (papel_usuario) ou pela quantidade de fala; ambiente vira B-roll pra IA (com um quadro de cada)
@@ -156,15 +170,18 @@ def preparar(p, etapa, sb):
             pl = json.load(open(pronto))
         else:
             import plano as plano_ia                   # só o VPS precisa da IA; o render externo não
-            g = meta.get('gancho') or {}
+            g = meta.get('gancho') or {}; exata, ideia = gancho_texto(g.get('frase'))
+            tpl = g.get('template')
             pedido_gancho = ''
-            if g.get('template') == 'nenhum': pedido_gancho = 'Gancho definido pelo editor: SEM título no gancho (usar_titulo = false).'
-            elif g.get('template') in ('premium', 'caixa', 'impacto') or g.get('frase'):
-                pedido_gancho = (f"Gancho definido pelo editor: título no template {g.get('template') or 'premium'} (o motor desenha)."
-                                 + (f" Frase do título, EXATA, não altere: \"{g['frase']}\". Preencha titulo.tema com a palavra-chave dessa frase e escolha a fala de abertura que combina com ela." if g.get('frase') else ''))
+            if tpl == 'nenhum': pedido_gancho = 'Gancho definido pelo editor: SEM título no gancho (usar_titulo = false).'
+            else:
+                if tpl in ('premium', 'caixa', 'impacto'): pedido_gancho = f'Gancho definido pelo editor: título no template {tpl} (o motor desenha).'
+                if exata: pedido_gancho += f' Texto do título EXATO, não altere: "{exata}". Preencha titulo.tema com a palavra-chave dessa frase e escolha a fala de abertura que combina com ela.'
+                if ideia: pedido_gancho += (f' Ideia do editor para o gancho (inspiração, NÃO é o texto final do título): "{ideia}". Crie um título curto (até 8 palavras), natural e no tom do cliente a partir dela;'
+                                            ' se ela citar uma fala do vídeo, abra com essa fala.')
             pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho) if x), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
-        pl['_gancho'] = meta.get('gancho') or {}                # template e frase escolhidos no app (vale também pros ajustes)
+        pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
         escolhidos = {int(b['video']) for b in pl.get('broll') or []}
         if escolhidos: etapa('Medindo a estabilidade das cenas escolhidas', 30)
@@ -223,7 +240,7 @@ def renderizar(pac, etapa, pasta=None):
         etapa('Conferindo a prévia (áudio, palavras, resolução, anexos)', 88)
         import validacao
         n_dest = len(pl.get('destaques') or []) if any(',K,' in l for l in open(saida_txt + '.ass')) else 0
-        verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest)
+        verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest, vocab=pac.get('vocabulario'))
         return {'arquivos': [os.path.basename(previa)], 'dur': dur, 'verif': verif}
     altura, nome = pac['altura'], pac['nome']
     etapa('Renderizando o final a partir dos originais', 8)

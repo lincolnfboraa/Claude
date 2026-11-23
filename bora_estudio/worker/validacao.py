@@ -4,7 +4,7 @@ import json, re, subprocess, unicodedata
 
 def _n(t): return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', t.lower()).encode('ascii', 'ignore').decode())
 
-def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques):
+def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques, vocab=None):
     itens = []
     pr = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,height,color_transfer:format=duration',
                                     '-of', 'json', arq], capture_output=True, text=True).stdout or '{}')
@@ -27,7 +27,10 @@ def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques):
         from faster_whisper import WhisperModel
         mod = montagem._modelo or WhisperModel('small', device='cpu', compute_type='int8', cpu_threads=8)
         au = np.frombuffer(wave.open(w).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768; os.remove(w)
-        ouvidas = [_n(x.word) for s in mod.transcribe(au, language='pt', word_timestamps=True, beam_size=1, vad_filter=True)[0] for x in s.words]
+        import vocabulario
+        kw = {'hotwords': vocabulario.dica(vocab)} if vocabulario.dica(vocab) else {}
+        ouv = [{'w': x.word.strip(), 's': x.start, 'e': x.end} for s in mod.transcribe(au, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, **kw)[0] for x in s.words]
+        ouvidas = [_n(x['w']) for x in vocabulario.aplicar(ouv, vocab)]       # nomes de remédios etc. com a grafia do cliente, como na legenda
         plano = [_n(t['tok']) for t in tokens if len(_n(t['tok'])) > 2]
         faltam = [p for p in plano if p not in set(ouvidas)]
         tx = len(faltam) / max(len(plano), 1)

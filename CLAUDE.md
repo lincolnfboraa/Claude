@@ -5,6 +5,11 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - **Imagem fiel ao gravado:** entregar em HDR original do iPhone (HEVC 10 bits, HLG), sem filtro, cor, nitidez ou suavização.
   Não converter para SDR na entrega (`render_hdr.py`).
 - Cortar pausas, vícios e erros de fala sem nunca inventar ou montar falas.
+  Pausas entre frases ~0,2 s e dentro do trecho ~0,24 s; o começo e o fim de cada trecho são achados pelo som (não só pela transcrição), pra nunca comer palavra.
+  Ajuste fino no bora.env: BORA_PAUSA_MIN, BORA_PAUSA_MANTEM, BORA_PAUSA_BORDA, BORA_BORDA_SOM=0 volta ao corte antigo.
+- **Storytelling:** gancho, contexto (antes da prova), evidência e fechamento; briefing 'manter falas' SOMA ao contexto, não o substitui. Repetições marcadas com ⟲ na transcrição
+  (a IA pula a primeira tentativa). Observação do editor no campo do gancho ('Gostei de...', 'tipo...') é ideia, nunca vai pra caixa; só título curto vai exato.
+- **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.
 - No máximo 3 ou 4 frases de destaque, com linhas coladas e a palavra principal em creme #C8B9A7.

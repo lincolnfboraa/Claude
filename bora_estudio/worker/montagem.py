@@ -10,7 +10,12 @@ import numpy as np
 
 FPS = 30000 / 1001
 ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}   # zoom, posição do rosto (aprovados na Fabiola)
-PAUSA = {'limiar_db': -45, 'min_s': 0.30, 'mantem_s': 0.10, 'borda_s': 0.18}
+# Pausas: silêncio de verdade (abaixo do limiar) maior que min_s vira 2*mantem_s; nas pontas de cada trecho sobra borda_s.
+# Antes: 0,30 / 0,10 / 0,18 (cada junção carregava uns 0,36 s de silêncio; o motor ainda protege 120 ms depois de cada palavra, e o total da pausa interna fica uns 0,24 s). Ajuste fino por projeto no bora.env (BORA_PAUSA_*).
+PAUSA = {'limiar_db': -45, 'min_s': float(os.environ.get('BORA_PAUSA_MIN', '0.25')), 'mantem_s': float(os.environ.get('BORA_PAUSA_MANTEM', '0.04')),
+         'borda_s': float(os.environ.get('BORA_PAUSA_BORDA', '0.08'))}
+BORDA_PELO_SOM = os.environ.get('BORA_BORDA_SOM', '1') != '0'           # começo e fim de cada trecho achados pelo áudio, não só pela transcrição
+CALMA = 5                                                               # quadros de 20 ms seguidos abaixo do limiar = silêncio de verdade (100 ms)
 _modelo = None
 
 # Memória: um processo de codificação 4K usa ~3,2 GB. Por padrão só 1 roda por vez no servidor inteiro (todos os projetos).
@@ -83,7 +88,7 @@ def liberar_modelo():
     if _modelo is not None:
         _modelo = None; import gc; gc.collect()
 
-def transcrever(video, cache):
+def transcrever(video, cache, vocab=None):
     """Palavras com tempo (segundos do arquivo original)."""
     if os.path.exists(cache): return json.load(open(cache))
     tem_audio = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'a', '-show_entries', 'stream=index', '-of', 'csv=p=0', video],
@@ -96,8 +101,11 @@ def transcrever(video, cache):
         _modelo = WhisperModel(os.environ.get('BORA_WHISPER', 'medium'), device='cpu', compute_type='int8', cpu_threads=8)
     wav = wav16(video, cache.replace('.json', '.wav'))
     a = np.frombuffer(wave.open(wav).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768
-    seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, condition_on_previous_text=False)
+    import vocabulario
+    kw = {'hotwords': vocabulario.dica(vocab)} if vocabulario.dica(vocab) else {}      # termos do cliente como dica em toda janela de áudio
+    seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, condition_on_previous_text=False, **kw)
     pal = [{'w': w.word.strip(), 's': round(w.start, 3), 'e': round(w.end, 3)} for s in seg for w in s.words if w.word.strip()]
+    pal = vocabulario.aplicar(pal, vocab)
     json.dump(pal, open(cache, 'w'), ensure_ascii=False)
     return pal
 
@@ -105,6 +113,31 @@ def envelope(wav, hop=0.02):
     a = np.frombuffer(wave.open(wav).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768
     n = int(hop * 16000); k = len(a) // n
     return 20 * np.log10(np.sqrt((a[:k * n].reshape(k, n) ** 2).mean(1)) + 1e-9)
+
+def borda_inicio(env, s, hop=0.02):
+    """Onde começar um trecho cuja primeira palavra o Whisper marcou em `s`: antes do começo REAL da fala (o Whisper às vezes marca tarde e
+    come o começo da palavra). Procura o último silêncio de verdade até 300 ms antes de `s`; a fala começa logo depois dele."""
+    lim, borda = PAUSA['limiar_db'], PAUSA['borda_s']
+    padrao = max(0.0, s - 0.06)
+    if not BORDA_PELO_SOM: return padrao
+    lo, hi = int(max(s - 0.30, 0) / hop), min(int(s / hop), len(env) - CALMA)
+    for i in range(hi, lo - 1, -1):
+        if (env[i:i + CALMA] < lim).all():
+            onset = (i + CALMA) * hop                      # fim do silêncio = começo da fala
+            return max(0.0, min(padrao, onset - borda - 0.02))
+    return padrao
+
+def borda_fim(env, e, hop=0.02):
+    """Onde terminar um trecho cuja última palavra o Whisper marcou terminando em `e`: no começo do silêncio de verdade que vem depois
+    (até 300 ms além de `e`, caso a palavra tenha terminado mais tarde do que o Whisper disse), nunca antes de `e`."""
+    lim, borda = PAUSA['limiar_db'], PAUSA['borda_s']
+    padrao = e + 0.18
+    if not BORDA_PELO_SOM: return padrao
+    i0, i1 = int(max(e - 0.03, 0) / hop), min(int((e + 0.30) / hop), len(env) - CALMA)
+    for i in range(i0, i1):
+        if (env[i:i + CALMA] < lim).all():
+            return max(i * hop, e) + borda + 0.04          # tirar_pausas deixa só `borda` de silêncio no fim
+    return padrao
 
 def tirar_pausas(a, b, env, palavras, hop=0.02):
     """[a,b] do original -> lista de trechos mantidos, sem pausas longas; protege palavras (+120 ms no fim)."""
@@ -148,8 +181,8 @@ def pecas(plano, arquivos, palavras, pasta):
         g0, g1 = max(0, int(sg['palavra_inicio'])), min(len(G) - 1, int(sg['palavra_fim']))
         if g1 < g0 or G[g0][0] != G[g1][0]: continue          # um segmento fica dentro de um arquivo só
         ai = G[g0][0]; pw = palavras[ai]; k0, k1 = G[g0][1], G[g1][1]
-        a = max(0.0, pw[k0]['s'] - 0.06); b = pw[k1]['e'] + 0.18
         if ai not in envs: envs[ai] = envelope(wav16(arquivos[ai], os.path.join(pasta, f'audio_{ai + 1:02d}.wav')))
+        a = borda_inicio(envs[ai], pw[k0]['s']); b = borda_fim(envs[ai], pw[k1]['e'])
         for x, y in tirar_pausas(a, b, envs[ai], pw[k0:k1 + 1]):
             fa, fb = round(x * FPS), round(y * FPS)
             if fb - fa < 2: continue
