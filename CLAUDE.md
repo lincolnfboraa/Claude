@@ -31,6 +31,9 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   Final 4K: HEVC (libx265, tag hvc1) com a qualidade escolhida na aprovação no app: leve (crf 24, ~4 Mbps), alta (crf 16, padrão) ou máxima (crf 10). Trechos, B-roll e cards intermediários sobem junto (crf 14, 11 e 8).
   O crf 24 em 4K era fraco demais (3,9 Mbps, perdia detalhe e manchava os degradês); BORA_Q4K no bora.env muda o padrão.
 - **Áudio fiel ao gravado** (microfone Hollyland já cancela ruído): sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo (limitador só em picos).
+- **Acer (render externo) se atualiza sozinho:** ele roda o MESMO código do editor (VPS), baixa o pacote em /worker/codigo (1,8 MB), confere hash, caminhos e sintaxe e só então troca a pasta;
+  qualquer falha mantém o código antigo. Só o editor (VPS) é atualizado pelo cron do GitHub; o Acer acompanha em até 5 min (ou na hora, ao ser recusado).
+  Só biblioteca do sistema nova pede reinstalar pelo zip: sobe BORA_IMAGEM no Dockerfile e IMAGEM_MIN no servidor.py. BORA_AUTOATUALIZAR=0 desliga.
 - **Efeitos sonoros (opcional por projeto, desligado por padrão):** whoosh nas trocas de história e pop no começo dos destaques, numa faixa separada (picos de -18 e -15 dBFS),
   somada DEPOIS do ganho da voz. A voz continua sem EQ nem compressor. Os sons vêm do Drive (Bora Claude/Biblioteca/SoundFX); trocar por BORA_SFX_WHOOSH e BORA_SFX_POP no bora.env.
 - Respostas em português, linguagem natural, sem travessões.

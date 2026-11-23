@@ -13,7 +13,11 @@ import json, os, sys, time, traceback, urllib.error, urllib.parse, urllib.reques
 EDITOR = os.environ.get('BORA_EDITOR', 'https://editor.borasolucoesdigitais.com').rstrip('/')
 TOKEN = os.environ.get('BORA_WORKER_TOKEN', '')
 NOME = os.environ.get('BORA_WORKER_NOME', 'worker')[:40]
-VERSAO = 20261126          # sobe junto com mudanças que o render precisa ter (o editor recusa worker mais antigo que o mínimo dele)
+RAIZ = os.path.dirname(os.path.abspath(__file__))
+import autoatualizar
+CODIGO = autoatualizar.hash_codigo(RAIZ)         # impressão digital do código deste computador; o editor só dá trabalho a quem roda o mesmo código dele
+IMAGEM = os.environ.get('BORA_IMAGEM', '0')       # versão das bibliotecas do sistema (Dockerfile)
+CAB = {'X-Bora-Worker-Codigo': CODIGO, 'X-Bora-Worker-Imagem': IMAGEM}
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
 os.environ.setdefault('BORA_ACELERACAO', 'auto')
 PARTE = 8 << 20
@@ -24,7 +28,7 @@ def chamar(metodo, rota, corpo=None, dados=None, extra=None, tentativas=5):
     """HTTP com o token do worker; repete em falhas de rede (não em recusas do editor)."""
     for t in range(tentativas):
         try:
-            h = {'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, 'X-Bora-Worker-Versao': str(VERSAO), **(extra or {})}
+            h = {'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, **CAB, **(extra or {})}
             if corpo is not None: dados = json.dumps(corpo).encode(); h['Content-Type'] = 'application/json'
             r = urllib.request.urlopen(urllib.request.Request(EDITOR + rota, data=dados, method=metodo, headers=h), timeout=600)
             txt = r.read(); return r.status, (json.loads(txt) if txt else {})
@@ -46,7 +50,7 @@ def baixar(job, nome, tamanho, pasta):
         if ini >= tamanho: break
         try:
             req = urllib.request.Request(f'{EDITOR}/worker/arquivo/{job}/{urllib.parse.quote(nome)}',
-                                         headers={'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, 'X-Bora-Worker-Versao': str(VERSAO), 'Range': f'bytes={ini}-'})
+                                         headers={'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, **CAB, 'Range': f'bytes={ini}-'})
             with urllib.request.urlopen(req, timeout=600) as r, open(parcial, 'ab' if ini and r.status == 206 else 'wb') as f:
                 while True:
                     b = r.read(1 << 20)
@@ -70,12 +74,31 @@ def enviar(job, caminho, rel):
             off = r['recebido']
     return total
 
+def atualizar_codigo():
+    """Pede ao editor o código que ele roda; se for diferente do daqui, confere e troca a pasta. True = trocou (o programa deve sair pra reiniciar)."""
+    if os.environ.get('BORA_AUTOATUALIZAR', '1') == '0': return False
+    try:
+        req = urllib.request.Request(EDITOR + '/worker/codigo', headers={'X-Bora-Worker': TOKEN, 'X-Bora-Worker-Nome': NOME, **CAB})
+        with urllib.request.urlopen(req, timeout=120) as r:
+            if r.status == 204: return False
+            novo, dados = r.headers.get('X-Bora-Codigo', ''), r.read()
+        autoatualizar.aplicar(dados, RAIZ, novo)
+        log(f'código atualizado sozinho ({CODIGO} -> {novo}); reiniciando'); return True
+    except Exception as e:
+        log('autoatualização não aconteceu (segue com o código atual):', e); return False
+
+def sair_pra_reiniciar():
+    sys.stdout.flush(); os._exit(0)                  # o Docker (restart: unless-stopped) sobe de novo já com o código novo
+
 def um_trabalho():
     import codificadores
     cod = codificadores.escolher(); os.environ['BORA_INTERMEDIARIO'] = cod
     st, r = chamar('POST', '/worker/pegar', {'codificador': cod})
     if st == 204: return False
-    if st == 426: log('código desatualizado:', r.get('erro')); time.sleep(55); return False
+    if st == 426:
+        log('o editor pediu:', r.get('erro'))
+        if r.get('atualizar') and atualizar_codigo(): sair_pra_reiniciar()
+        time.sleep(30); return False
     if st != 200: raise RuntimeError(f'editor recusou ({st}): {r}')
     job, pac = r['job'], r['pacote']; pasta = os.path.join(TRAB, pac['projeto_id']); os.makedirs(pasta, exist_ok=True)
     t0 = time.time(); log(f"trabalho {job[:8]}: {pac['tipo']} v{pac['n']} {pac['altura']}p, intermediários em {cod}")
@@ -126,7 +149,12 @@ if __name__ == '__main__':
     log('codificadores:', json.dumps(codificadores.relatorio(), ensure_ascii=False))
     if '--teste' in sys.argv: sys.exit(0)
     if not TOKEN: sys.exit('defina BORA_WORKER_TOKEN')
+    if atualizar_codigo(): sair_pra_reiniciar()
+    ult_check = time.time()
     while True:
+        if time.time() - ult_check > 300:            # parado: de 5 em 5 min confere se o editor tem código novo (também confere ao receber 426)
+            ult_check = time.time()
+            if atualizar_codigo(): sair_pra_reiniciar()
         try:
             pegou = um_trabalho()
         except Exception as e:

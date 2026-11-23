@@ -19,6 +19,10 @@
   - A entrega final é sempre x265, em HLG, BT.2020 e 10 bits.
   - O NVENC só entra nos arquivos intermediários, e só se passar no teste automático.
 
+## Atualização do Acer (automática)
+O Acer roda o mesmo código do editor (VPS) e **se atualiza sozinho**: parado, ele confere de 5 em 5 minutos, e ao ser recusado pelo editor confere na hora.
+O zip + `instalar_worker.ps1` só é necessário na instalação e quando muda uma biblioteca do sistema (o painel Sistemas avisa).
+
 ## 1. Supabase (uma vez)
 SQL Editor > colar e rodar `bora_estudio/supabase/06_render_externo.sql`. Cria só a tabela nova, sem mexer nas existentes.
 

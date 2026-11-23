@@ -6,5 +6,6 @@ RUN python3 -c "from rembg import new_session; new_session('u2net_human_seg')"
 WORKDIR /app
 COPY . /app
 ENV PYTHONUNBUFFERED=1
+ENV BORA_IMAGEM=1
 EXPOSE 8787
 CMD ["python3", "bora_estudio/worker/servidor.py"]

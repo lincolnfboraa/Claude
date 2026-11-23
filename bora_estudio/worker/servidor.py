@@ -158,8 +158,18 @@ def _iso_seg(iso):
     return calendar.timegm(time.strptime(iso[:19], '%Y-%m-%dT%H:%M:%S')) if iso else 0
 
 INICIO = time.time()
-WORKER_VERSAO_MIN = 20261126                           # sobe junto com o VERSAO do render_worker.py quando o render muda
-DESATUALIZADO = {}                                     # worker que chamou com código antigo -> quando
+IMAGEM_MIN = 1                                         # sobe junto com BORA_IMAGEM do Dockerfile quando muda uma biblioteca do sistema (aí o Acer precisa reinstalar)
+DESATUALIZADO = {}                                     # worker recusado -> (quando, motivo: 'codigo' | 'imagem' | 'manual')
+_COD = {'quando': 0, 'hash': '', 'pacote': b''}
+
+def codigo_atual():
+    """(hash, tar.gz) do código do worker que ESTE editor roda. O Acer roda o mesmo e se atualiza sozinho. Cache de 30 s."""
+    if time.time() - _COD['quando'] > 30:
+        import autoatualizar
+        raiz = os.path.dirname(os.path.abspath(__file__)); h = autoatualizar.hash_codigo(raiz)
+        if h != _COD['hash']: _COD['pacote'] = autoatualizar.empacotar(raiz)
+        _COD.update(quando=time.time(), hash=h)
+    return _COD['hash'], _COD['pacote']
 VISTO = {}                                             # nome do worker -> última vez que pediu trabalho ou deu sinal
 OFFLINE_MIN = int(os.environ.get('BORA_OFFLINE_MIN', '10'))     # 4K pendente sem computador ligado por N min: o VPS assume
 
@@ -271,17 +281,33 @@ def _rota_worker(h, metodo, u):
     """Rotas /worker/* : autenticadas pelo BORA_WORKER_TOKEN (cabeçalho X-Bora-Worker); o worker só vê os arquivos do trabalho dele."""
     if not WTOKEN or not hmac.compare_digest(h.headers.get('X-Bora-Worker', ''), WTOKEN): return h._r(401, {'erro': 'token do worker'})
     nome_w = (h.headers.get('X-Bora-Worker-Nome') or 'worker')[:40]
-    try: versao = int(h.headers.get('X-Bora-Worker-Versao') or 0)
-    except ValueError: versao = 0
-    if versao < WORKER_VERSAO_MIN:                     # código antigo monta diferente: não pega trabalho e não conta como ligado (a VPS faz)
-        DESATUALIZADO[nome_w] = time.time()
-        return h._r(426, {'erro': f'atualize o computador de render (versão {versao}, mínimo {WORKER_VERSAO_MIN})'})
-    DESATUALIZADO.pop(nome_w, None)
-    VISTO[nome_w] = time.time()
     partes = [urllib.parse.unquote(x) for x in u.path.split('/')[2:]]
     acao = partes[0] if partes else ''
+    if acao == 'codigo' and metodo == 'GET':           # o worker pede o código que o editor roda (204 se já é igual)
+        try: hash_s, pacote = codigo_atual()
+        except Exception as e: traceback.print_exc(); return h._r(500, {'erro': 'código: ' + str(e)[:100]})
+        if h.headers.get('X-Bora-Worker-Codigo', '') == hash_s: h.send_response(204); h.end_headers(); return
+        h.send_response(200); h.send_header('Content-Type', 'application/gzip'); h.send_header('X-Bora-Codigo', hash_s)
+        h.send_header('Content-Length', str(len(pacote))); h.end_headers(); h.wfile.write(pacote); return
     corpo = json.loads(h.rfile.read(int(h.headers.get('Content-Length', 0))) or b'{}') if metodo == 'POST' else {}
+    if acao != 'pegar': VISTO[nome_w] = time.time()     # progresso e envio de resultado também são sinal de vida
     if acao == 'pegar' and metodo == 'POST':
+        # só pega trabalho novo quem roda o mesmo código do editor (o render monta igual) e tem a mesma biblioteca do sistema; senão a VPS faz
+        try: hash_s = codigo_atual()[0]
+        except Exception: hash_s = ''                  # sem como medir: não trava
+        hash_w = h.headers.get('X-Bora-Worker-Codigo', '')
+        try: imagem_w = int(h.headers.get('X-Bora-Worker-Imagem') or 0)
+        except ValueError: imagem_w = 0
+        if hash_w == '' and hash_s:                    # programa antigo, sem autoatualização: uma última vez pelo zip
+            DESATUALIZADO[nome_w] = (time.time(), 'manual')
+            return h._r(426, {'erro': 'programa do computador de render antigo: rode o instalador pelo zip uma última vez', 'atualizar': False})
+        if imagem_w < IMAGEM_MIN:
+            DESATUALIZADO[nome_w] = (time.time(), 'imagem')
+            return h._r(426, {'erro': 'mudou uma biblioteca do sistema: reinstale o computador de render pelo zip', 'atualizar': False})
+        if hash_s and hash_w != hash_s:
+            DESATUALIZADO[nome_w] = (time.time(), 'codigo')
+            return h._r(426, {'erro': 'código diferente do editor: o computador de render se atualiza sozinho', 'atualizar': True})
+        DESATUALIZADO.pop(nome_w, None); VISTO[nome_w] = time.time()
         for j in sb('GET', '/rest/v1/render_trabalhos?status=eq.pendente&order=criado_em&limit=3&select=*'):
             ok = fila_patch(j['id'], {'status': 'renderizando', 'worker': nome_w, 'codificador': corpo.get('codificador', 'x265'),
                                       'pego_em': agora(), 'batida': agora(), 'tentativas': j['tentativas'] + 1}, '&status=eq.pendente')
@@ -489,8 +515,12 @@ def _ck_acer():
     if not EXTERNO: return 'info', 'render externo desligado: tudo na VPS'
     if acer_ligado():
         w = max(VISTO, key=VISTO.get); return 'ok', f'{_nome(w)} online (sinal há {int(time.time() - VISTO[w])} s)'
-    velho = [w for w, t in DESATUALIZADO.items() if time.time() - t < 120]
-    if velho: return 'atencao', f'{_nome(velho[0])} ligado com código antigo: atualize pelo zip (até lá a VPS faz os vídeos)'
+    velho = [(w, m) for w, (t, m) in DESATUALIZADO.items() if time.time() - t < 120]
+    if velho:
+        w, m = velho[0]
+        txt = {'codigo': 'está baixando o código novo sozinho (se não resolver em 2 min, rode o zip)', 'imagem': 'precisa reinstalar pelo zip (mudou uma biblioteca do sistema)',
+               'manual': 'tem o programa antigo: rode o zip uma última vez e depois ele se atualiza sozinho'}[m]
+        return 'atencao', f'{_nome(w)} ligado, mas {txt}; até lá a VPS faz os vídeos'
     if time.time() - INICIO < 120: return 'ok', 'editor acabou de reiniciar: aguardando o sinal do computador de render'
     if VISTO:
         w = max(VISTO, key=VISTO.get); return 'atencao', f'{_nome(w)} desligado há {int((time.time() - VISTO[w]) // 60)} min: a VPS faz os vídeos'
