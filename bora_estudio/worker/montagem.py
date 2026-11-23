@@ -363,7 +363,31 @@ def x265(transf):
     return ('colorprim=bt709:transfer=bt709:colormatrix=bt709:range=limited:no-sao=1:no-strong-intra-smoothing=1',
             ['-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709'])
 
-def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None):
+# SDR (BT.709) -> HLG (BT.2020), o mesmo caminho dos textos (hdr_texto.py): a capa final tem a mesma cor e o mesmo branco forte (BRILHO_TEXTO)
+_M_HLG = np.array([[0.6274, 0.3293, 0.0433], [0.0691, 0.9195, 0.0114], [0.0164, 0.0880, 0.8956]], np.float32)
+def _hlg(E):
+    E = np.clip(E, 0, 1)
+    return np.where(E <= 1 / 12, np.sqrt(3 * E), 0.17883277 * np.log(np.maximum(12 * E - 0.28466892, 1e-6)) + 0.55991073)
+
+def capa_clip(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags):
+    """Clipe (sem áudio) com a imagem em tela cheia por dur_s, com fade de entrada. Preenche a tela cortando o excesso. HDR: SDR->HLG como os textos."""
+    from PIL import Image
+    im = Image.open(imagem).convert('RGB'); r = max(OW / im.width, OH / im.height)
+    im = im.resize((max(OW, round(im.width * r)), max(OH, round(im.height * r))), Image.LANCZOS)
+    x0, y0 = (im.width - OW) // 2, (im.height - OH) // 2; im = im.crop((x0, y0, x0 + OW, y0 + OH))
+    a = np.asarray(im, np.float32) / 255; raw = os.path.splitext(saida)[0] + '.raw'; nq = max(2, round(dur_s * FPS))
+    if hdr:
+        sig = _hlg((a ** 2.4) @ _M_HLG.T * float(os.environ.get('BRILHO_TEXTO', '0.62'))); open(raw, 'wb').write((sig * 65535).astype('<u2').tobytes()); pix, mat = 'rgb48le', 'bt2020'
+    else:
+        open(raw, 'wb').write((a * 255).astype(np.uint8).tobytes()); pix, mat = 'rgb24', 'bt709'
+    try:
+        sh(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', pix, '-s', f'{OW}x{OH}', '-framerate', '30000/1001', '-i', raw,
+            '-vf', f'loop=loop={nq - 1}:size=1:start=0,scale=out_color_matrix={mat}:out_range=tv,format=yuv420p10le,fade=t=in:st=0:d=0.35,setsar=1,fps=30000/1001',
+            '-frames:v', str(nq), '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, saida])
+    finally:
+        if os.path.exists(raw): os.remove(raw)
+
+def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None, capa=None):
     """Monta o vídeo base (sem textos). Cada peça vira um arquivo; depois junta sem recodificar."""
     OH = altura; OW = OH * 9 // 16
     tmp = tempfile.mkdtemp(prefix='base_', dir=os.path.dirname(os.path.abspath(saida)))
@@ -411,14 +435,21 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=No
             if oom(rc): raise SemMemoria(f'memória insuficiente no trecho {k} ({mb} MB, código {rc})')
             raise RuntimeError('falha ao codificar um trecho: ' + (msg or f'código {rc}')[:120])
         os.replace(chave + '.tmp.mp4', chave)
-    open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file '{c}'\n" for c, _ in jobs))
+    partes = [c for c, _ in jobs]
+    if capa:                                           # capa final (ex.: CRM e RQE): imagem em tela cheia depois do último trecho
+        import hashlib
+        cartao = os.path.join(cache, f"capa_{hashlib.md5(open(capa['imagem'], 'rb').read()).hexdigest()[:8]}_{int(capa['dur'] * 10)}_{crf}.mp4")
+        if not os.path.exists(cartao):
+            capa_clip(capa['imagem'], cartao + '.tmp.mp4', OW, OH, capa['dur'], transf in ('arib-std-b67', 'smpte2084'), crf, params, tags); os.replace(cartao + '.tmp.mp4', cartao)
+        partes.append(cartao)
+    open(os.path.join(tmp, 'lista.txt'), 'w').write(''.join(f"file '{c}'\n" for c in partes))
     vid, aud = os.path.join(tmp, 'video.mp4'), os.path.join(tmp, 'audio.m4a')
     sh(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', os.path.join(tmp, 'lista.txt'), '-c', 'copy', vid])
     n = len(jobs)
     # Áudio fiel ao gravado (o microfone já limpa o ruído): sem redução de ruído, EQ ou compressor.
     # Só junta os trechos, tira o que está abaixo de 60 Hz e acerta o volume em -14 LUFS com ganho FIXO (medido antes).
     bruto = os.path.join(tmp, 'audio.wav')
-    afc = ';'.join(a_fc) + ';' + ''.join(f'[a{i}]' for i in range(n)) + f'concat=n={n}:v=0:a=1,highpass=f=60[ao]'
+    afc = ';'.join(a_fc) + ';' + ''.join(f'[a{i}]' for i in range(n)) + f'concat=n={n}:v=0:a=1,highpass=f=60' + (f",apad=pad_dur={capa['dur']:.3f}" if capa else '') + '[ao]'
     sh(['ffmpeg', '-v', 'error', '-y'] + a_in + ['-filter_complex', afc, '-map', '[ao]', '-c:a', 'pcm_s24le', bruto])
     med = subprocess.run(['ffmpeg', '-nostdin', '-i', bruto, '-af', 'loudnorm=I=-14:TP=-1.5:print_format=json', '-f', 'null', '-'],
                          capture_output=True, text=True).stderr

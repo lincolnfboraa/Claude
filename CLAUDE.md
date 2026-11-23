@@ -11,6 +11,12 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   BORA_PROTEGE_SOM=0 volta à proteção pelo tempo do Whisper.
 - **Storytelling:** gancho, contexto (antes da prova), evidência e fechamento; briefing 'manter falas' SOMA ao contexto, não o substitui. Repetições marcadas com ⟲ na transcrição
   (a IA pula a primeira tentativa). Observação do editor no campo do gancho ('Gostei de...', 'tipo...') é ideia, nunca vai pra caixa; só título curto vai exato.
+- **Termos sensíveis (nomes comerciais de remédios, por cliente em vocabulario.json):** o áudio fica como foi falado, mas na TELA (legenda, destaques, título) o nome vira termo genérico
+  com o artigo concordando ('o Mounjaro e o Ozempic' = 'as canetas'). A IA é avisada pra não destacar produto nem usar tom de venda; a verificação da prévia acusa se algum nome sobrou na tela.
+- **Capa final (CRM e RQE):** imagem anexada no ajuste ('Anexar capa final'), colada no fim do vídeo por 2,5 s (BORA_CAPA_FINAL_S) com fade, em HDR com a mesma conversão de cor dos textos,
+  áudio estendido em silêncio. Vale pras versões seguintes e pro 4K.
+- **Zonas do Reels (1080x1920):** topo 220 px, base 450 px (y 1470), laterais 35 px. A legenda termina em y 1470 e os destaques em y 1450 (FUNDO_DESTAQUE 1390); margens laterais medidas:
+  legenda 174 px, destaque 102 px.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

@@ -34,7 +34,7 @@ def ts_srt(t):
 SOMBRA = '\\bord3\\3c&H000000&\\3a&H9A&\\blur7\\shad6\\4c&H000000&\\4a&H48&'
 SH_LEG = '\\bord1\\3a&HFF&\\shad3\\4c&H000000&\\4a&H70&\\blur4'
 Y_LEG = 1920 - 345            # linha de base da legenda (zona segura do Reels)
-FUNDO_DESTAQUE = 1478         # base dos destaques, logo acima da legenda
+FUNDO_DESTAQUE = 1390         # base dos destaques: o corpo da letra e a sombra ficam acima da zona morta de baixo do Reels (y 1470); era 1478, descia até 1533
 BAIXA = set('acemnorsuvwxz .,?!:;-–'); DESC = set('gjpqyç'); ACENTO_MAI = set('ÃÕÁÉÍÓÚÂÊÔÀ')
 LIMPA = str.maketrans('', '', '.')
 
@@ -68,8 +68,8 @@ class Roteiro:
             quebra = (prox is None or t['tok'][-1:] in '.?!,;:' or (prox['s'] - t['e']) > 0.35
                       or len(cur) >= 4 or len(txt) >= 22 or (prox and len(txt) + 1 + len(prox['tok']) > 26))
             if quebra and (len(cur) >= 2 or prox is None or t['tok'][-1:] in '.?!' or (prox and prox['s'] - t['e'] > 0.35)):
-                bl.append({'txt': txt, 's': cur[0]['s'], 'e': cur[-1]['e'], 'i0': cur[0]['i'], 'i1': cur[-1]['i']}); cur = []
-        if cur: bl.append({'txt': ' '.join(x['tok'] for x in cur), 's': cur[0]['s'], 'e': cur[-1]['e'], 'i0': cur[0]['i'], 'i1': cur[-1]['i']})
+                bl.append({'txt': txt, 's': cur[0]['s'], 'e': cur[-1]['e'], 'i0': cur[0]['i'], 'i1': cur[-1].get('i2', cur[-1]['i'])}); cur = []
+        if cur: bl.append({'txt': ' '.join(x['tok'] for x in cur), 's': cur[0]['s'], 'e': cur[-1]['e'], 'i0': cur[0]['i'], 'i1': cur[-1].get('i2', cur[-1]['i'])})
         for i, b in enumerate(bl):
             nxt = bl[i + 1]['s'] if i + 1 < len(bl) else b['e'] + 0.6
             b['e'] = min(max(b['e'], b['s'] + 0.35), nxt if nxt - b['e'] < 0.5 else b['e'] + 0.3)

@@ -729,7 +729,7 @@ class H(BaseHTTPRequestHandler):
                 tipo = 'video' if ext in ('.mp4', '.mov', '.m4v', '.webm') else 'imagem'
                 if tipo == 'imagem' and ext in ('.heic', '.heif'):
                     subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', final, final + '.png']); final += '.png'
-                lista.append({'nome': a.get('nome'), 'caminho': final, 'tipo': tipo, 'versao': corpo.get('versao')})
+                lista.append({'nome': a.get('nome'), 'caminho': final, 'tipo': tipo, 'versao': corpo.get('versao'), **({'capa_final': True} if a.get('capa_final') and tipo == 'imagem' else {})})
             m['anexos'] = lista; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
             return self._r(200, {'ok': True, 'anexos': len(lista)})
         if u.path.startswith('/upload/') and u.path.endswith('/fim'):

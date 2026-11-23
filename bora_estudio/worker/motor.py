@@ -63,13 +63,21 @@ def crf_4k(meta):
     return CRF_4K.get(q, CRF_4K['alta'])
 
 CRF_INTER = {24: 14, 16: 11, 10: 8}                       # etapas intermediárias do 4K (trechos, B-roll, cards): quase sem perda quando o final pede qualidade
-def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None, crf_i=14):
+CAPA_FINAL_S = float(os.environ.get('BORA_CAPA_FINAL_S', '2.5'))               # segundos da capa final (CRM e RQE)
+def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None, crf_i=14, vocab=None):
     pasta = pasta or os.path.join(TRAB, pid)
     pcs, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)
     if not pcs: raise RuntimeError('o plano não gerou nenhum trecho')
     base = os.path.join(pasta, f'_base_{altura}.mp4')
     a, b = faixa
     prog = (lambda f, txt='Montando o vídeo a partir dos originais': etapa(txt, a + int((b - a) * f))) if etapa else None
+    tokens_orig = tokens                                       # a verificação compara com o que foi FALADO; a tela usa os termos trocados
+    if (vocab or {}).get('sensiveis'):                         # nomes comerciais: na tela viram 'a caneta', 'as canetas' (o áudio não muda)
+        import vocabulario
+        tokens = vocabulario.mascarar_tokens(tokens, vocab)
+        pl = {**pl, 'destaques': [{**d, 'linhas': [{**l, 'texto': vocabulario.mascarar_texto(l.get('texto', ''), vocab)} for l in d.get('linhas', [])]} for d in pl.get('destaques', [])]}
+        if pl.get('titulo'): pl['titulo'] = {k: (vocabulario.mascarar_texto(v, vocab) if isinstance(v, str) else v) for k, v in pl['titulo'].items()}
+        if (pl.get('_gancho') or {}).get('frase'): pl['_gancho'] = {**pl['_gancho'], 'frase': vocabulario.mascarar_texto(pl['_gancho']['frase'], vocab)}
     ro = textos.Roteiro(tokens, dur, cores.get('leg'), cores.get('dest'))
     for d in pl.get('destaques', []): ro.destaque(d)           # antes da montagem: os efeitos sonoros precisam saber quando cada destaque entra
     lista_sfx = None
@@ -79,11 +87,12 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
             e = sfx.get(tipo)
             if e and os.path.exists(os.path.join(pasta, e['arquivo'])): lista_sfx.append((max(0.0, t - float(e.get('pico_s') or 0)), os.path.join(pasta, e['arquivo'])))
         print(f'efeitos sonoros: {len(lista_sfx)} no vídeo', flush=True)
-    hdr = montagem.render_base(pcs, arqs, base, altura, crf_i, prog, sfx=lista_sfx or None)
+    capa = next((x for x in pl.get('_anexos', []) if x.get('capa_final') and os.path.exists(x.get('caminho', ''))), None)      # capa final anexada no app
+    hdr = montagem.render_base(pcs, arqs, base, altura, crf_i, prog, sfx=lista_sfx or None, capa={'imagem': capa['caminho'], 'dur': CAPA_FINAL_S} if capa else None)
     if pl.get('broll') and pl.get('_broll_arquivos'):
         if etapa: etapa('Encaixando as cenas de ambiente (B-roll)', a + int((b - a) * 0.9))
         base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr, crf=crf_i)
-    anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', ''))]
+    anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', '')) and not x.get('capa_final')]     # a capa final não entra nas inserções da IA
     if pl.get('insercoes') and anexos:
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
         base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb, crf=crf_i)
@@ -96,7 +105,7 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
         seg1 = max(fim1) if fim1 else 3.0
         ro.titulo(tit, min(max(seg1 + 1.0, 3.0), 5.5), 'premium' if modelo == 'ia' else modelo, cores.get('caixa'))
     ro.gravar(saida_base)
-    return base, hdr, dur, tokens
+    return base, hdr, dur + (CAPA_FINAL_S if capa else 0), tokens_orig
 
 def _final_nome(cliente_nome, titulo):
     return ''.join(c for c in f"{cliente_nome}_{titulo}".replace(' ', '_') if c.isalnum() or c in '_-')[:60]
@@ -179,7 +188,13 @@ def preparar(p, etapa, sb):
                 if exata: pedido_gancho += f' Texto do título EXATO, não altere: "{exata}". Preencha titulo.tema com a palavra-chave dessa frase e escolha a fala de abertura que combina com ela.'
                 if ideia: pedido_gancho += (f' Ideia do editor para o gancho (inspiração, NÃO é o texto final do título): "{ideia}". Crie um título curto (até 8 palavras), natural e no tom do cliente a partir dela;'
                                             ' se ela citar uma fala do vídeo, abra com essa fala.')
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho) if x), anterior, feedbacks, meta.get('anexos') or [], papeis, brolls)
+            sens = (vocab or {}).get('sensiveis') or {}; pedido_sens = ''
+            if sens.get('termos'):
+                pedido_sens = ('Termos sensíveis (nomes comerciais de medicamentos: ' + ', '.join(sens['termos'][:8]) + '): NÃO use em título, destaque nem palavra solta, e prefira não escolher trechos que só '
+                               'citem marca; a legenda troca por termos genéricos. Prefira trechos que falem das medicações como classe e do cuidado com o rim, sem promessa de efeito nem tom de venda.')
+            anexos_ia = [a for a in (meta.get('anexos') or []) if not a.get('capa_final')]
+            if any(a.get('capa_final') for a in (meta.get('anexos') or [])): pedido_sens += ' Uma capa final (CRM e RQE) será acrescentada depois do último trecho: o fechamento da fala não precisa citar o CRM.'
+            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls)
         pl['_anexos'] = meta.get('anexos') or []
         pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
@@ -233,7 +248,7 @@ def renderizar(pac, etapa, pasta=None):
     if pac['tipo'] == 'previa':
         etapa('Cortando pausas e montando', 40)
         saida_txt = os.path.join(pasta, f'textos_v{n}')
-        base, hdr, dur, tokens_v = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72), pasta=pasta, sfx=pac.get('sfx'))
+        base, hdr, dur, tokens_v = _renderizar(pid, pl, arqs, pal, 854, cores, saida_txt, etapa, (42, 72), pasta=pasta, sfx=pac.get('sfx'), vocab=pac.get('vocabulario'))
         etapa('Textos, título e destaques', 76)
         previa = os.path.join(pasta, f'previa_v{n}.mp4')
         montagem.aplicar_textos(base, saida_txt + '.ass', previa, hdr, 24)
@@ -241,6 +256,9 @@ def renderizar(pac, etapa, pasta=None):
         import validacao
         n_dest = len(pl.get('destaques') or []) if any(',K,' in l for l in open(saida_txt + '.ass')) else 0
         verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest, vocab=pac.get('vocabulario'))
+        if (pac.get('vocabulario') or {}).get('sensiveis'):
+            sobra = validacao.termos_na_tela(open(saida_txt + '.ass', encoding='utf-8').read(), pac['vocabulario'])
+            verif.insert(-2, {'item': 'Sem nome de produto no texto', 'ok': not sobra, 'detalhe': 'legendas, destaques e título com termos genéricos' if not sobra else 'sobrou na tela: ' + ', '.join(sobra)})
         return {'arquivos': [os.path.basename(previa)], 'dur': dur, 'verif': verif}
     altura, nome = pac['altura'], pac['nome']
     etapa('Renderizando o final a partir dos originais', 8)
@@ -250,7 +268,7 @@ def renderizar(pac, etapa, pasta=None):
     # pesos medidos (4K): cards e textos levam tempo parecido por quadro
     passes = ([('Encaixando os cards no 4K', 1.0, 40, 70)] if com_ins else []) + [('Aplicando os textos no 4K', 1.0, 70 if com_ins else 40, 99)]
     anda = Andamento(etapa, passes)
-    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None, sfx=pac.get('sfx'), crf_i=CRF_INTER.get(int(pac.get('crf_final') or 24), 14))
+    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None, sfx=pac.get('sfx'), vocab=pac.get('vocabulario'), crf_i=CRF_INTER.get(int(pac.get('crf_final') or 24), 14))
     k = 1 if com_ins else 0
     leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')    # entrega só a versão legendada (economiza um render 4K)
     montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, int(pac.get('crf_final') or 24), prog=anda.inicio(k, montagem.quadros(base)))

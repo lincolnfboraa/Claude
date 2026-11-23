@@ -343,7 +343,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,q4k:'alta',bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,capaF:{},q4k:'alta',bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -487,6 +487,9 @@ const V={
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
     ${S.gAj===id?blocoGancho(c,true)+blocoSfx():`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título, cores e sons<span class="seta">›</span></button>`}
     <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
+     ${S.capaF[id]?`<span class="anxi">${SV(I.clipe)}<b>Capa final: ${esc(S.capaF[id].name)}</b><button data-rmcapa="${id}" aria-label="Remover">✕</button></span>`
+       :(m.anexos||[]).some(x=>x.capa_final)?`<span class="anxi">${SV(I.ok)}<b>Capa final já anexada neste projeto</b></span>`:''}
+     <label class="pill sm" style="cursor:pointer">${SV(I.clipe)}${(m.anexos||[]).some(x=>x.capa_final)||S.capaF[id]?'Trocar a capa final':'Anexar capa final (CRM e RQE)'}<input type="file" id="capaf" data-proj="${id}" accept="image/*" hidden></label>
      <label class="pill sm" style="cursor:pointer">${SV(I.clipe)}Anexar imagens ou vídeos<input type="file" id="anx" data-proj="${id}" accept="image/*,video/*" multiple hidden></label>
      <small style="display:block;opacity:.6;margin-top:6px">B-roll e cards a equipe coloca depois, no CapCut. Anexe só se quiser que o editor encaixe (o 4K fica mais demorado).</small></div>
     <div class="chips">${['Cortar um trecho','Trocar o gancho','Legenda mais branca','Mais destaques','Mudar o título'].map(x=>`<button class="chip" data-chip="${x}">${x}</button>`).join('')}</div>
@@ -622,12 +625,12 @@ function decidirGlobal(ref){const[id,i]=ref.split(':'),c=cli(id),sg=c.sugestoes[
 function decidir(ref,ok){const[id,i]=ref.split(':'),c=cli(id),sg=c.sugestoes[+i];if(!sg)return;
  (async()=>{await q(sb.rpc('confirmar_sugestao',{p_sugestao:sg.id,p_confirmar:ok}));await recarregar();const n=cli(id);
   if($('#sheet').classList.contains('on')){if(n.sugestoes.length)$('#sheet').innerHTML=sheetSug(n);else close()}toast(ok?'Regra adicionada ao DNA':'Sugestão ignorada')})()}
-async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),fs=S.anexos[id]||[];
+async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),capa=S.capaF[id],fs=[...(S.anexos[id]||[]),...(capa?[capa]:[])];
  if(fs.length){toast('Enviando '+fs.length+(fs.length>1?' anexos…':' anexo…'));
   for(let i=0;i<fs.length;i++)await enviarOriginal(v.id,fs[i],i+1,()=>{},'anexo');
   const tok=(await sb.auth.getSession()).data.session.access_token;
-  const r=await fetch(`${EDITOR}/anexo/${v.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({versao:a.n,arquivos:fs.map(x=>({nome:x.name,tamanho:x.size}))})});
-  if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id]}
+  const r=await fetch(`${EDITOR}/anexo/${v.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({versao:a.n,arquivos:fs.map(x=>({nome:x.name,tamanho:x.size,...(x===capa?{capa_final:true}:{})}))})});
+  if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id];delete S.capaF[id]}
  S.ajTxt='';
  if(S.gAj===id){const {data}=await sb.from('projetos').select('original_meta').eq('id',id).single();const m=(data&&data.original_meta)||{};
   const fr=(S.gancho.frase||'').trim();m.gancho={template:S.gancho.template,frase:fr||undefined};m.sfx=S.sfx||undefined;
@@ -642,6 +645,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  {const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
  if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
  if('sfx' in d){S.sfx=!S.sfx;return reRender()}
+ if(d.rmcapa){delete S.capaF[d.rmcapa];return reRender()}
  if(d.q4k){S.q4k=d.q4k;return reRender()}
  if('biblioteca' in d)return abrirBiblioteca();
  if(d.bgrupo){S.bibGrupo=d.bgrupo;return bibSheet()}
@@ -740,6 +744,7 @@ async function enviarOriginal(pid,f,n,prog,tipo){const qt=tipo?'&tipo='+tipo:'';
    const j=await r.json();if(r.ok||r.status===409){off=j.recebido;ok=true}else throw new Error(j.erro)}catch(e){await new Promise(z=>setTimeout(z,1500*(t+1)))}}
   if(!ok)throw new Error('sem conexão com o editor');prog(off)}}
 document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='capaf'&&t.files.length){S.ajTxt=($('#aj')||{}).value||'';S.capaF[t.dataset.proj]=t.files[0];t.value='';reRender();return}
  if(t.id==='anx'&&t.files.length){const id=t.dataset.proj;S.ajTxt=($('#aj')||{}).value||'';(S.anexos[id]=S.anexos[id]||[]).push(...t.files);t.value='';reRender();return}
  if(t.id.startsWith('arq_')&&t.files.length){S.briefing=($('#briefing')||{}).value||S.briefing;const papel=t.id.slice(4);[...t.files].forEach(f=>{f._url=URL.createObjectURL(f);f._papel=papel;S.arquivos.push(f)});t.value='';reRender()}
  else if(t.id==='selcli'){S.novaCli=t.value;S.cores=null;S.briefing=($('#briefing')||{}).value||S.briefing;reRender()}

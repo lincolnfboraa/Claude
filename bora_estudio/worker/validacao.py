@@ -66,3 +66,9 @@ def verificar_final(arq, dur, altura, hdr_origem, crf):
     piso = PISO_MBPS.get(crf, 0.0)
     itens.append(('Taxa de bits do vídeo', mbps >= piso, f'{mbps:.1f} Mbps · {tam / 1048576:.0f} MB' + ('' if mbps >= piso else f' (abaixo de {piso:g} Mbps: se a imagem parecer mole, peça de novo em Máxima)')))
     return [{'item': x, 'ok': bool(y), 'detalhe': z} for x, y, z in itens]
+
+
+def termos_na_tela(texto, vocab):
+    """Nomes sensíveis que sobraram num texto (ex.: o .ass com as legendas, destaques e título): [] se está limpo."""
+    import vocabulario
+    return vocabulario.termos_na_tela(texto, vocab)

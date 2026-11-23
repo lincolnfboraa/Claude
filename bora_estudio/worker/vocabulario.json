@@ -1,12 +1,57 @@
 {
- "global": {"termos": [], "corrigir": {}},
+ "global": {
+  "termos": [],
+  "corrigir": {}
+ },
  "clientes": {
   "fabiola": {
-   "termos": ["nefrologia", "nefroproteção", "Mounjaro", "Ozempic", "semaglutida", "tirzepatida", "estudo FLOW", "insuficiência renal", "proteinúria", "albuminúria",
-              "creatinina", "hemodiálise", "doença renal crônica", "Dra. Fabiola Pedron"],
-   "corrigir": {"monjaro": "Mounjaro", "mounjaro": "Mounjaro", "mongaro": "Mounjaro", "zempique": "Ozempic", "ozempique": "Ozempic", "ozempic": "Ozempic",
-                "zempic": "Ozempic", "semaglutida": "semaglutida", "semaglutide": "semaglutida", "tiresepatida": "tirzepatida", "tirzepatida": "tirzepatida",
-                "tirzepatide": "tirzepatida", "nefroproteção": "nefroproteção", "nefroprotecao": "nefroproteção"}
+   "termos": [
+    "nefrologia",
+    "nefroproteção",
+    "Mounjaro",
+    "Ozempic",
+    "semaglutida",
+    "tirzepatida",
+    "estudo FLOW",
+    "insuficiência renal",
+    "proteinúria",
+    "albuminúria",
+    "creatinina",
+    "hemodiálise",
+    "doença renal crônica",
+    "Dra. Fabiola Pedron"
+   ],
+   "corrigir": {
+    "monjaro": "Mounjaro",
+    "mounjaro": "Mounjaro",
+    "mongaro": "Mounjaro",
+    "zempique": "Ozempic",
+    "ozempique": "Ozempic",
+    "ozempic": "Ozempic",
+    "zempic": "Ozempic",
+    "semaglutida": "semaglutida",
+    "semaglutide": "semaglutida",
+    "tiresepatida": "tirzepatida",
+    "tirzepatida": "tirzepatida",
+    "tirzepatide": "tirzepatida",
+    "nefroproteção": "nefroproteção",
+    "nefroprotecao": "nefroproteção"
+   },
+   "sensiveis": {
+    "termos": [
+     "Mounjaro",
+     "Ozempic",
+     "Wegovy",
+     "Saxenda",
+     "Victoza",
+     "Rybelsus",
+     "Zepbound",
+     "Trulicity"
+    ],
+    "singular": "caneta",
+    "plural": "canetas",
+    "genero": "f"
+   }
   }
  }
 }
