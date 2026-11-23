@@ -40,3 +40,26 @@ def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques):
     itens.append(('Rosto livre e textos legíveis', None, 'precisa olhar na prévia'))
     itens.append(('Imagem sem filtros', True, 'o motor não aplica filtros nem suavização'))
     return [{'item': a, 'ok': b, 'detalhe': c} for a, b, c in itens]
+
+
+PISO_MBPS = {24: 0.0, 16: 4.0, 10: 6.0}       # abaixo disso, com 'alta' ou 'máxima', algo ficou comprimido demais (vídeo muito simples pode dar alarme falso)
+
+def verificar_final(arq, dur, altura, hdr_origem, crf):
+    """Confere o 4K gerado (antes de entregar): tamanho, codec, 10 bits, HDR, duração, áudio e taxa de bits real.
+    Mesmo formato da verificação da prévia: [{item, ok (True/False/None), detalhe}]."""
+    pr = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,codec_name,width,height,pix_fmt,color_transfer,color_primaries:format=duration,size',
+                                    '-of', 'json', arq], capture_output=True, text=True).stdout or '{}')
+    v = next((x for x in pr.get('streams', []) if x.get('codec_type') == 'video'), {})
+    a = any(x.get('codec_type') == 'audio' for x in pr.get('streams', []))
+    f = pr.get('format') or {}; d = float(f.get('duration', 0) or 0); tam = int(f.get('size', 0) or 0)
+    w, h = v.get('width'), v.get('height'); ow = altura * 9 // 16
+    itens = [('Resolução 4K', w == ow and h == altura, f'{w}×{h} (esperado {ow}×{altura})'),
+             ('HEVC 10 bits', v.get('codec_name') == 'hevc' and v.get('pix_fmt') == 'yuv420p10le', f"{v.get('codec_name')} {v.get('pix_fmt')}")]
+    hdr = v.get('color_transfer') == 'arib-std-b67' and v.get('color_primaries') == 'bt2020'
+    itens.append(('Cor HDR (HLG, BT.2020)', hdr == hdr_origem, 'HDR mantido' if hdr else ('SDR como o original' if not hdr_origem else 'HDR perdido')))
+    itens.append(('Duração', abs(d - dur) < 0.5, f'{d:.1f} s'))
+    itens.append(('Áudio presente', a, 'ok' if a else 'sem áudio'))
+    mbps = max(tam * 8 / d / 1e6 - 0.26, 0) if d > 0 else 0          # tira o áudio (AAC 256 kbps)
+    piso = PISO_MBPS.get(crf, 0.0)
+    itens.append(('Taxa de bits do vídeo', mbps >= piso, f'{mbps:.1f} Mbps · {tam / 1048576:.0f} MB' + ('' if mbps >= piso else f' (abaixo de {piso:g} Mbps: se a imagem parecer mole, peça de novo em Máxima)')))
+    return [{'item': x, 'ok': bool(y), 'detalhe': z} for x, y, z in itens]

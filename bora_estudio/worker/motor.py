@@ -238,6 +238,12 @@ def renderizar(pac, etapa, pasta=None):
     leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')    # entrega só a versão legendada (economiza um render 4K)
     montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, int(pac.get('crf_final') or 24), prog=anda.inicio(k, montagem.quadros(base)))
     if os.path.exists(saida_txt + '.srt'): os.remove(saida_txt + '.srt')
+    etapa('Conferindo o 4K (resolução, HDR e taxa de bits)', 99)
+    try:
+        import validacao
+        verif = validacao.verificar_final(leg, dur, altura, hdr, int(pac.get('crf_final') or 24))
+    except Exception as e:
+        verif = [{'item': 'Verificação do 4K', 'ok': None, 'detalhe': 'não verificado: ' + str(e)[:80]}]
     zipf = os.path.join(fim, nome + '_final.zip')
     if os.path.exists(zipf): os.remove(zipf)
     import zipfile                                     # sem compressão (zip -0), funciona igual no Windows
@@ -245,7 +251,7 @@ def renderizar(pac, etapa, pasta=None):
         z.write(leg, os.path.basename(leg))
     for x in (base, saida_txt + '.ass'):
         if os.path.exists(x): os.remove(x)
-    return {'arquivos': [os.path.relpath(zipf, pasta)], 'dur': dur}
+    return {'arquivos': [os.path.relpath(zipf, pasta)], 'dur': dur, 'verif': verif}
 
 def concluir(pac, res, sb, pasta=None):
     """Grava o resultado no banco e no Storage (sempre no VPS). Mesmo efeito de antes da separação."""
@@ -265,7 +271,7 @@ def concluir(pac, res, sb, pasta=None):
     m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
     m.update({'andamento': None, 'progresso': None, 'final_pronto': True, 'final_zip': zipf, 'final_nome': os.path.basename(zipf),
               'final_mb': round(os.path.getsize(zipf) / 1048576),
-              'final_crf': pac.get('crf_final')})
+              'final_crf': pac.get('crf_final'), 'validacao_final': res.get('verif')})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
 
 def executar(p, etapa, sb):
