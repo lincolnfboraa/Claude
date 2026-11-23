@@ -46,7 +46,14 @@ def _transcricoes(pid, arqs, etapa):
     if not any(pal): raise RuntimeError('não encontrei fala nos vídeos enviados')
     return pal
 
-def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None):
+CRF_4K = {'leve': 24, 'alta': 16, 'maxima': 10}          # qualidade do 4K escolhida na aprovação (CRF menor = mais bits = mais fiel)
+def crf_4k(meta):
+    """CRF do final 4K: o escolhido no app ('qualidade_4k'); sem escolha, BORA_Q4K do bora.env; sem ele, 'alta' (CRF 16)."""
+    q = (meta or {}).get('qualidade_4k') or os.environ.get('BORA_Q4K', 'alta')
+    return CRF_4K.get(q, CRF_4K['alta'])
+
+CRF_INTER = {24: 14, 16: 11, 10: 8}                       # etapas intermediárias do 4K (trechos, B-roll, cards): quase sem perda quando o final pede qualidade
+def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa=(45, 80), crf_final=24, pasta=None, anda=None, sfx=None, crf_i=14):
     pasta = pasta or os.path.join(TRAB, pid)
     pcs, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)
     if not pcs: raise RuntimeError('o plano não gerou nenhum trecho')
@@ -62,14 +69,14 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
             e = sfx.get(tipo)
             if e and os.path.exists(os.path.join(pasta, e['arquivo'])): lista_sfx.append((max(0.0, t - float(e.get('pico_s') or 0)), os.path.join(pasta, e['arquivo'])))
         print(f'efeitos sonoros: {len(lista_sfx)} no vídeo', flush=True)
-    hdr = montagem.render_base(pcs, arqs, base, altura, 14, prog, sfx=lista_sfx or None)
+    hdr = montagem.render_base(pcs, arqs, base, altura, crf_i, prog, sfx=lista_sfx or None)
     if pl.get('broll') and pl.get('_broll_arquivos'):
         if etapa: etapa('Encaixando as cenas de ambiente (B-roll)', a + int((b - a) * 0.9))
-        base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr)
+        base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr, crf=crf_i)
     anexos = [x for x in pl.get('_anexos', []) if os.path.exists(x.get('caminho', ''))]
     if pl.get('insercoes') and anexos:
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
-        base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb)
+        base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb, crf=crf_i)
     g = pl.get('_gancho') or {}; modelo = g.get('template') or 'ia'
     tit = dict(pl.get('titulo') or {})
     if g.get('frase'): tit['frase'] = g['frase']; tit['pergunta'] = g['frase'] if modelo in ('premium', 'ia') else tit.get('pergunta', '')
@@ -182,6 +189,7 @@ def preparar(p, etapa, sb):
         w, h = montagem.sondar(arqs[0])[:2]
         altura = min(max(w, h), 3840); altura -= altura % 2
         pac.update({'plano': os.path.basename(planos[-1]), 'altura': altura, 'nome': _final_nome(cliente['nome'], proj['titulo'])})
+        pac['crf_final'] = crf_4k(meta)                  # o Acer só obedece: quem decide a qualidade é o servidor
     else:
         raise RuntimeError('tipo de pedido desconhecido: ' + tipo)
     pac['anexos'] = [os.path.basename(a['caminho']) for a in (pl.get('_anexos') or []) if os.path.exists(a.get('caminho', '')) or
@@ -225,10 +233,10 @@ def renderizar(pac, etapa, pasta=None):
     # pesos medidos (4K): cards e textos levam tempo parecido por quadro
     passes = ([('Encaixando os cards no 4K', 1.0, 40, 70)] if com_ins else []) + [('Aplicando os textos no 4K', 1.0, 70 if com_ins else 40, 99)]
     anda = Andamento(etapa, passes)
-    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None, sfx=pac.get('sfx'))
+    base, hdr, dur, _ = _renderizar(pid, pl, arqs, pal, altura, cores, saida_txt, etapa, (10, 40), pasta=pasta, anda=anda if com_ins else None, sfx=pac.get('sfx'), crf_i=CRF_INTER.get(int(pac.get('crf_final') or 24), 14))
     k = 1 if com_ins else 0
     leg = os.path.join(fim, nome + f'_{altura}p_legendado.mp4')    # entrega só a versão legendada (economiza um render 4K)
-    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, 24, prog=anda.inicio(k, montagem.quadros(base)))
+    montagem.aplicar_textos(base, saida_txt + '.ass', leg, hdr, int(pac.get('crf_final') or 24), prog=anda.inicio(k, montagem.quadros(base)))
     if os.path.exists(saida_txt + '.srt'): os.remove(saida_txt + '.srt')
     zipf = os.path.join(fim, nome + '_final.zip')
     if os.path.exists(zipf): os.remove(zipf)
@@ -256,7 +264,8 @@ def concluir(pac, res, sb, pasta=None):
     zipf = os.path.join(pasta, res['arquivos'][0])
     m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
     m.update({'andamento': None, 'progresso': None, 'final_pronto': True, 'final_zip': zipf, 'final_nome': os.path.basename(zipf),
-              'final_mb': round(os.path.getsize(zipf) / 1048576)})
+              'final_mb': round(os.path.getsize(zipf) / 1048576),
+              'final_crf': pac.get('crf_final')})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
 
 def executar(p, etapa, sb):

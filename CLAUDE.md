@@ -21,7 +21,8 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - Roteiro e ganchos: seguir `fabiola_reels_energeticos/ANALISE_REFERENCIAS.md` e `GUIA_ROTEIRO_GRAVACAO.md`.
 - **Entrega de vídeo:** validações (480p) vão como .mp4 normal no chat (`display: render`), pra reproduzir direto.
   Só a **versão final 4K** vai dentro de um .zip (zip -0), com `display: attach`, pra baixar no celular.
-  Final leve pro celular: HEVC (libx265, crf 24, tag hvc1).
+  Final 4K: HEVC (libx265, tag hvc1) com a qualidade escolhida na aprovação no app: leve (crf 24, ~4 Mbps), alta (crf 16, padrão) ou máxima (crf 10). Trechos, B-roll e cards intermediários sobem junto (crf 14, 11 e 8).
+  O crf 24 em 4K era fraco demais (3,9 Mbps, perdia detalhe e manchava os degradês); BORA_Q4K no bora.env muda o padrão.
 - **Áudio fiel ao gravado** (microfone Hollyland já cancela ruído): sem redução de ruído, EQ ou compressor; só passa-alta 60 Hz e volume em -14 LUFS com ganho fixo (limitador só em picos).
 - **Efeitos sonoros (opcional por projeto, desligado por padrão):** whoosh nas trocas de história e pop no começo dos destaques, numa faixa separada (picos de -18 e -15 dBFS),
   somada DEPOIS do ganho da voz. A voz continua sem EQ nem compressor. Os sons vêm do Drive (Bora Claude/Biblioteca/SoundFX); trocar por BORA_SFX_WHOOSH e BORA_SFX_POP no bora.env.

@@ -343,7 +343,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,q4k:'alta',bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -483,6 +483,7 @@ const V={
   ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?(esc(detalhe(v))||'O app atualiza sozinho'):'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="pill full" style="margin-top:12px" data-tentar="${v.id}">${SV(I.refaz)}Tentar de novo</button>`:''}`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
+   ${p==='ok'?blocoQ4k():''}
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
     ${S.gAj===id?blocoGancho(c,true)+blocoSfx():`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título, cores e sons<span class="seta">›</span></button>`}
     <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
@@ -508,6 +509,9 @@ function miniTpl(t){const L=S.cores.leg,D=S.cores.dest,C=S.cores.caixa||'#1E2A47
  if(t==='impacto')return `<b style="font-size:9px;color:${L};font-weight:900">FRASE</b><b style="font-size:9px;color:${D};font-weight:900">FORTE</b>`;
  if(t==='nenhum')return `<span style="font-size:5px;color:${L};margin-top:40%">só legenda</span>`;
  return `<b style="font-size:11px;color:${L}">IA</b><span style="font-size:5px;color:${L};opacity:.7">segue o DNA</span>`}
+const Q4K=[['leve','Leve','uns 4 Mbps (era o padrão antigo, perde detalhe)'],['alta','Alta (recomendada)','uns 8 a 12 Mbps, bom pra postar'],['maxima','Máxima','uns 15 a 25 Mbps, melhor pra editar depois']];
+function blocoQ4k(){return `<h3 class="rot">Qualidade do 4K</h3><div class="lst">${Q4K.map(([k,n,d])=>`<button class="ln" data-q4k="${k}"><span class="tx"><b>${n}</b><small>${d}</small></span><span class="dot ${S.q4k===k?'ok':''}" style="${S.q4k===k?'background:var(--l,#FF5E16)':'opacity:.35'}"></span></button>`).join('')}</div>
+ <p class="nota">Os valores são estimativas e variam com o vídeo; o tamanho real aparece quando o 4K fica pronto.</p>`}
 function blocoSfx(){return `<h3 class="rot">Efeitos sonoros</h3><button class="dobra" data-sfx>${S.sfx?'Ligados: whoosh nas trocas e pop nos destaques':'Desligados'}<span class="bolas"><i style="background:${S.sfx?'#4CAF7D':'#555'}"></i></span></button>
  <small style="color:var(--sub);display:block;margin-top:6px">Entram numa faixa separada, em volume baixo. A voz não muda.</small>`}
 function blocoGancho(c,todas){const g=S.gancho;
@@ -636,6 +640,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  {const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
  if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
  if('sfx' in d){S.sfx=!S.sfx;return reRender()}
+ if(d.q4k){S.q4k=d.q4k;return reRender()}
  if('biblioteca' in d)return abrirBiblioteca();
  if(d.bgrupo){S.bibGrupo=d.bgrupo;return bibSheet()}
  if(d.bplay)return tocarSom(d.bplay);
@@ -692,7 +697,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
  else if('sw' in d){S.sugerir=!S.sugerir;b.querySelector('.sw').classList.toggle('off',!S.sugerir)}
  else if(d.retorno){const id=d.retorno,p=S.parecer[id],v=vid(id);
-  if(p==='ok')(async()=>{await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));delete S.parecer[id];await recarregar();toast('Aprovado. O 4K sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})();
+  if(p==='ok')(async()=>{const {data:pj}=await sb.from('projetos').select('original_meta').eq('id',v.id).single();const mq=(pj&&pj.original_meta)||{};mq.qualidade_4k=S.q4k;await q(sb.from('projetos').update({original_meta:mq}).eq('id',v.id));await q(sb.rpc('aprovar_projeto',{p_projeto:v.id}));delete S.parecer[id];await recarregar();toast('Aprovado. O 4K sai dos originais');const c=cli(v.cli);if(c.sugestoes.length)setTimeout(()=>sheet(sheetSug(c)),500)})();
   else if(p==='ajuste'){const t=($('#aj')||{}).value.trim()||(S.gAj===id?'Manter o resto do plano, só trocar o gancho, o título e as cores.':'');if(!t)return toast('Escreva o que precisa mudar');b.disabled=true;pedirAjuste(id,t).catch(e=>{b.disabled=false;toast('Não enviou: '+e.message)})}}
  else if(d.reabrir)sheet(sheetReabrir(d.reabrir))
  else if(d.enviar){const t=$('#aj').value.trim()||(S.gAj===d.enviar?'Manter o resto do plano, só trocar o gancho, o título e as cores.':'');if(!t)return toast('Escreva o que precisa mudar');pedirAjuste(d.enviar,t)}

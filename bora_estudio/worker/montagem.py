@@ -241,7 +241,7 @@ def quadro_jpg(video, saida, largura=512):
     return None
 
 BROLL_APLICADOS = 0
-def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
+def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr, crf=14):
     """Cenas de ambiente cobrindo a imagem durante a locução (a voz continua). Tudo em HDR do original:
     recorte vertical + escala como os takes, sobreposto direto em 10 bits (sem conversão de cor, sem filtro)."""
     global BROLL_APLICADOS
@@ -275,12 +275,12 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
         if W / H > 9 / 16: cw, ch = round(H * 9 / 16 / 2) * 2, H
         else: cw, ch = W, round(W * 16 / 9 / 2) * 2
         x, y = (W - cw) // 2, max(0, (H - ch) // 2)
-        chave = os.path.join(cache, f'broll{amb[k]}_{ini:.2f}_{n}_{"n" if nv else "r"}.mp4')
+        chave = os.path.join(cache, f'broll{amb[k]}_{ini:.2f}_{n}_{crf}{"n" if nv else "r"}.mp4')
         if not os.path.exists(chave):
             if nv:
                 import codificadores; cod = codificadores.args_nvenc()
             else:
-                cod = ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params]
+                cod = ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params]
             with pesado(altura):
                 rc, msg, mb = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{ini:.3f}', '-i', arq, '-an',
                                      '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(n),
@@ -296,7 +296,7 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr):
         args += (['-threads', '1'] if grande else []) + ['-itsoffset', f'{t0:.6f}', '-i', c]     # cena já no tempo certo: só é lida quando chega a vez
         fc.append(f'[{ult}][{j}:v]overlay=eof_action=pass:format=yuv420p10[v{j}]'); ult = f'v{j}'
     enx = ':frame-threads=1:pools=4:rc-lookahead=10:lookahead-slices=0' if grande else ''
-    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', '14', '-pix_fmt', 'yuv420p10le', '-x265-params', params + enx])
+    cod = (__import__('codificadores').args_nvenc() if nv else ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params + enx])
     with pesado(altura):
         rc, msg, mb = rodar(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:a', 'copy', *cod, *tags,
                                     '-tag:v', 'hvc1', saida], 'b-roll (juntar)')

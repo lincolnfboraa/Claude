@@ -102,7 +102,7 @@ def camada(ins, anexo, t0, t1, W, H, pasta, lado, base=None, hdr=True):
     if video: shutil.rmtree(pasta + '_v', ignore_errors=True)
     return pasta
 
-def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
+def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirname(os.path.abspath(__file__)), prog=None, crf=14):
     """Devolve o vídeo com as inserções; se não houver nenhuma válida, devolve a base."""
     W, H = map(int, subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height',
                                     '-of', 'csv=p=0:s=x', base], capture_output=True, text=True).stdout.strip().split('\n')[0].strip(',').split('x')[:2])
@@ -132,7 +132,7 @@ def aplicar(base, saida, pl, tokens, dur, anexos, pasta, hdr, here=os.path.dirna
         for j, (p, t0) in enumerate(cams, 1):
             args += ['-framerate', '30000/1001', '-i', os.path.join(p, 'l%04d.png')]
             fc.append(f'[{j}:v]setpts=PTS+{t0}/TB[c{j}];[{ult}][c{j}]overlay=eof_action=pass[o{j}]'); ult = f'o{j}'
-        subprocess.run(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:v', 'libx265', '-crf', '14',
+        subprocess.run(args + ['-filter_complex', ';'.join(fc), '-map', f'[{ult}]', '-map', '0:a', '-c:v', 'libx265', '-crf', str(crf),
                                '-pix_fmt', 'yuv420p10le', '-tag:v', 'hvc1', '-c:a', 'copy', saida], check=True)
     for p, _ in cams: shutil.rmtree(p, ignore_errors=True)
     return saida
