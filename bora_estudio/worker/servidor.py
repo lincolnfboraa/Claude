@@ -43,9 +43,9 @@ def avisar(p, ok, erro=''):
     except Exception as e:
         print('aviso:', e, flush=True)
 
-def esperar_acer(et=None, max_s=150):
+def esperar_acer(et=None, max_s=300):
     """O computador de render pode estar só se atualizando (o editor acabou de reiniciar com código novo) ou ter dado sinal há pouco:
-    espera ele voltar em vez de mandar o vídeo pra VPS (que é bem mais lenta). Se faz tempo que ele não aparece, não espera."""
+    espera ele voltar (até 5 min: baixar o código, reiniciar e dar sinal leva 1 a 3 min) em vez de mandar o vídeo pra VPS (que é bem mais lenta). Se faz tempo que ele não aparece, não espera."""
     if not EXTERNO or acer_ligado(): return
     agora_ = time.time()
     recente = agora_ - INICIO < 300 or any(agora_ - t < 600 for t in VISTO.values()) or any(agora_ - t < 600 for t, _ in DESATUALIZADO.values())
