@@ -12,6 +12,8 @@ FONTES = {  # nome ASS -> (arquivo, fator libass, topo das maiúsculas, linha de
     'Poppins Bold': ('Poppins-Bold.ttf', 0.557, 0.24, 0.628),
     'Poppins Black': ('Poppins-Black.ttf', 0.5565, 0.24, 0.628),
     'Merriweather Black Italic': ('Merriweather-BlackItalic.ttf', 0.573, 0.28, 0.71),
+    'Anton': ('Anton-Regular.ttf', 0.5697, 0.315, 0.805),
+    'Sacramento': ('Sacramento-Regular.ttf', 0.6754, 0.155, 0.67),
     'Inter': ('Inter-Regular.otf', 0.8116, 0.185, 0.775),
     'Inter Bold': ('Inter-Bold.otf', 0.8108, 0.185, 0.775),
 }
@@ -178,22 +180,27 @@ class Roteiro:
                                  f"m {x0:.0f} {y - 6:.0f} l {x1:.0f} {y - 11:.0f} l {x1:.0f} {y + 3:.0f} l {x0:.0f} {y + 8:.0f}{{\\p0}}")
 
     def selo(self, d, t0, t1):
-        """Selo de oferta no meio da tela (ex.: BLACK / FRIDAY / até 50%): fundo escurece e desfoca (o vídeo é desfocado no render),
-        o selo entra com zoom rápido. Linha 'grande' na cor de destaque; a última em serifa itálica."""
-        ls = [x for x in d['linhas'] if x['texto'].strip()]
+        """Selo de campanha no estilo 'BLACK FRIDAY Sale': as duas primeiras linhas em letra condensada pesada, inclinada, coladas e alinhadas à esquerda
+        (a 2ª maior, na cor de destaque); a última em letra cursiva, inclinada, sobreposta embaixo à direita. Fundo escurece e desfoca; entra com zoom rápido."""
+        ls = [x['texto'].strip().translate(LIMPA) for x in d['linhas'] if x['texto'].strip()]
         if not ls: return
         self.desfoque.append((t0, t1))
         self.dlg(1, t0, t1, 'K', "{\\an7\\pos(0,0)\\c&H000000&\\1a&HFF&\\t(0,160,\\1a&H80&)\\fad(0,200)\\bord0\\shad0\\p1}m 0 0 l 1080 0 l 1080 1920 l 0 1920{\\p0}")
-        y = 760; zoom = "\\fscx25\\fscy25\\t(0,130,\\fscx112\\fscy112)\\t(130,220,\\fscx100\\fscy100)\\fad(60,200)"
-        for j, ln in enumerate(ls):
-            txt = ln['texto'].strip().translate(LIMPA); ult = j == len(ls) - 1 and len(ls) > 2
-            f = 'Merriweather Black Italic' if ult else 'Poppins Black'; sp = -2 if ult else -6
-            fs = ajusta_fs(txt, f, 560 if ult else 780, sp, 150 if ult else 230)
-            cor = self.DEST if ln.get('papel') == 'grande' else self.BR
-            cap = FONTES[f][3] * fs; y += cap / 2
-            fn = '\\fnPoppins\\b1' if f == 'Poppins Black' else f'\\fn{f}\\b0'
-            self.dlg(3, t0 + 0.06 * j, t1, 'K', f"{{\\an5\\pos(540,{y:.0f}){zoom}{fn}\\fs{fs}\\fsp{sp}\\c{cor}\\bord4\\3c&H101010&\\shad8\\4a&H60&}}{txt}")
-            y += cap / 2 + 18
+        topo_txt, meio, script = (ls[0], ls[1], ls[2] if len(ls) > 2 else '') if len(ls) > 1 else ('', ls[0], '')
+        fM = ajusta_fs(meio, 'Anton', 720, 2, 330); wM = largura(meio, 'Anton', fM, 2)
+        fT = ajusta_fs(topo_txt, 'Anton', wM * 0.86, 2, fM * 0.8) if topo_txt else 0
+        esq = 540 - wM / 2 - 20; cy = 840                                   # centro do bloco (meio da tela, acima das legendas)
+        capT, capM = (FONTES['Anton'][2] and 0.49 * fT), 0.49 * fM          # altura das maiúsculas da Anton ~0,49 fs
+        yT = cy - (capT + capM) / 2; yM = yT + capT + fM * 0.05             # topo de cada linha (coladas)
+        zoom = "\\fscx25\\fscy25\\t(0,130,\\fscx112\\fscy112)\\t(130,220,\\fscx100\\fscy100)\\fad(60,200)"
+        org = f"\\org(540,{cy:.0f})"
+        def linha(t, txt, fs, cor, x, ytopo, sp=2):
+            self.dlg(3, t, t1, 'K', f"{{\\an7\\pos({x:.0f},{ytopo - FONTES['Anton'][2] * fs:.0f}){org}{zoom}\\fnAnton\\b0\\fs{fs:.0f}\\fsp{sp}\\fax-0.16\\c{cor}\\bord3\\3c&H101010&\\shad7\\4a&H60&}}{txt}")
+        if topo_txt: linha(t0, topo_txt, fT, self.BR, esq + 8, yT)
+        linha(t0 + 0.05, meio, fM, self.DEST, esq, yM)
+        if script:
+            fS = ajusta_fs(script, 'Sacramento', wM * 0.8, 0, 190)
+            self.dlg(4, t0 + 0.12, t1, 'K', f"{{\\an5\\pos({540 + wM * 0.12:.0f},{yM + capM + fS * 0.12:.0f}){zoom}\\fnSacramento\\b0\\fs{fS:.0f}\\frz8\\c{self.BR}\\bord2\\3c&H101010&\\shad6\\4a&H60&}}{script}")
 
     @staticmethod
     def _quebra(txt, f, fs, W, sp=0):
