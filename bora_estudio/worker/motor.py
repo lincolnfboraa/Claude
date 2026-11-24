@@ -374,6 +374,8 @@ def concluir(pac, res, sb, pasta=None):
         m.update({'andamento': None, 'progresso': None, 'dur': f"{round(res['dur'])} s", f'validacao_v{n}': res.get('verif')})
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+        import threading                                  # nota da IA em segundo plano: a prévia já foi entregue
+        threading.Thread(target=_nota_ia, args=(pac, previa, pl, pasta, res.get('verif'), sb), daemon=True).start()
         return
     zipf = os.path.join(pasta, res['arquivos'][0])
     m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
@@ -381,6 +383,23 @@ def concluir(pac, res, sb, pasta=None):
               'final_mb': round(os.path.getsize(zipf) / 1048576),
               'final_crf': pac.get('crf_final'), 'validacao_final': res.get('verif')})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+
+def _nota_ia(pac, previa, pl, pasta, verif, sb):
+    """Nota de 0 a 10 da IA pra prévia (critérios e problemas com o segundo). Falha não afeta nada."""
+    if os.environ.get('BORA_NOTA_IA', '1') == '0': return
+    try:
+        import avaliacao
+        pid, n = pac['projeto_id'], pac['n']
+        pal = [json.load(open(os.path.join(pasta, t))) for t in pac['transcricoes']]
+        ant = sb('GET', f'/rest/v1/versoes?projeto_id=eq.{pid}&numero=eq.{n - 1}&select=feedback') if n > 1 else []
+        meta0 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        pedido = ' '.join(x for x in ((ant[0].get('feedback') if ant else '') or '', meta0.get('briefing') or '') if x).strip()
+        nota = avaliacao.avaliar(previa, pl, pal, pedido, verif, pasta)
+        if not nota: return
+        m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        m[f'nota_ia_v{n}'] = nota; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+    except Exception as e:
+        print('nota da IA:', str(e)[:150], flush=True)
 
 def executar(p, etapa, sb):
     """Tudo no próprio VPS (o caminho de sempre)."""

@@ -496,6 +496,7 @@ const V={
     <button class="ln" data-sw style="padding:16px 2px"><span class="tx"><b>Sugerir pro DNA</b><small>Depois da aprovação vira sugestão no DNA de ${esc(c.nome)}. Só vira regra se você confirmar.</small></span><span class="sw ${S.sugerir?'':'off'}"></span></button>`:''}`:''}
   ${semFinal?`<button class="pill full" style="margin-top:16px" data-reabrir="${id}">${SV(I.refaz)}Pedir ajuste antes do 4K</button>`:''}
   ${m['validacao_v'+a.n]?listaVerif('Verificação da v'+a.n,m['validacao_v'+a.n]):''}
+  ${a.previa?blocoNotas(id,a.n,m):''}
   ${v.st==='ok'&&m.validacao_final?listaVerif('Verificação do 4K',m.validacao_final):''}
   <div class="lst" style="margin-top:18px"><button class="ln" data-info="${id}">${SV(I.clipe)}<span class="tx"><b>Arquivos do projeto</b><small>${esc(m.arq||'Original')}${m.res?' · '+esc(m.res.replace(' × ','×'))+' · '+esc(m.cor||''):''}</small></span><span class="seta">›</span></button>
    <button class="ln" data-versoes="${id}">${SV(I.historico)}<span class="tx"><b>Versões</b><small>${v.versoes.length} ${v.versoes.length>1?'versões':'versão'} · feedback registrado em cada uma</small></span><span class="seta">›</span></button>
@@ -516,6 +517,17 @@ function miniTpl(t){const L=S.cores.leg,D=S.cores.dest,C=S.cores.caixa||'#1E2A47
 const Q4K=[['leve','Leve','uns 4 Mbps (era o padrão antigo, perde detalhe)'],['alta','Alta (recomendada)','uns 8 a 12 Mbps, bom pra postar'],['maxima','Máxima','uns 15 a 25 Mbps, melhor pra editar depois']];
 function blocoQ4k(){return `<h3 class="rot">Qualidade do 4K</h3><div class="lst">${Q4K.map(([k,n,d])=>`<button class="ln" data-q4k="${k}"><span class="tx"><b>${n}</b><small>${d}</small></span><span class="dot ${S.q4k===k?'ok':''}" style="${S.q4k===k?'background:var(--l,#FF5E16)':'opacity:.35'}"></span></button>`).join('')}</div>
  <p class="nota">Os valores são estimativas e variam com o vídeo; o tamanho real aparece quando o 4K fica pronto.</p>`}
+function blocoNotas(id,n,m){const ia=m['nota_ia_v'+n],ed=m['nota_editor_v'+n],f=x=>String(x).replace('.',',');
+ const nm={storytelling:'História',cortes:'Cortes',enquadramento:'Enquadramento',broll:'B-roll',textos:'Textos'};
+ return `<h3 class="rot">Notas da v${n}</h3><div class="lst">
+ <div class="ln"><span class="tx"><b>Nota da IA: ${ia?f(ia.nota)+' de 10':'ainda não saiu'}</b><small style="white-space:normal">${ia?esc(ia.resumo):'Sai uns segundos depois da prévia. Versões antigas não têm.'}</small>
+ ${ia?`<small style="white-space:normal">${Object.entries(ia.criterios||{}).map(([k,v])=>(nm[k]||k)+' '+f(v)).join(' · ')}</small>${(ia.problemas||[]).map(p=>`<small style="white-space:normal">${Math.round(p.segundo)} s: ${esc(p.problema)}</small>`).join('')}`:''}</span></div>
+ <div class="ln" style="display:block"><span class="tx"><b>Sua nota${ed?': '+f(ed.nota)+' de 10':''}</b>${ia&&ed?`<small>Diferença pra IA: ${f(Math.abs(ia.nota-ed.nota).toFixed(1))}</small>`:'<small>De 0 a 10: o quanto essa versão ficou pronta pra postar</small>'}</span>
+ <div class="chips">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<button class="chip" ${ed&&ed.nota===k?'style="background:var(--beige);color:#072740;font-weight:700"':''} data-nota="${id}:${n}:${k}">${k}</button>`).join('')}</div></div></div>
+ ${assertividade()}`}
+function assertividade(){const pares=[],eds=[];todos().forEach(v=>{const m=v.media||{};Object.keys(m).forEach(k=>{const r=/^nota_editor_v(\d+)$/.exec(k);if(!r)return;eds.push(m[k].nota);const ia=m['nota_ia_v'+r[1]];if(ia)pares.push(Math.abs(ia.nota-m[k].nota))})});
+ if(!eds.length)return '';const med=a=>(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1).replace('.',',');
+ return `<small style="display:block;opacity:.7;margin-top:8px">Média das suas notas: ${med(eds)} (${eds.length} versões)${pares.length?` · a IA erra em média ${med(pares)} ponto(s) em relação a você`:''}</small>`}
 function listaVerif(t,arr){return `<h3 class="rot">${esc(t)}</h3><div class="lst">${arr.map(x=>`<div class="ln"><span style="width:22px;text-align:center;font-weight:700;color:${x.ok===true?'var(--ok)':x.ok===false?'var(--warn)':'var(--faint)'}">${x.ok===true?'✓':x.ok===false?'!':'·'}</span><span class="tx"><b style="font-size:14px">${esc(x.item)}</b><small>${esc(x.detalhe)}</small></span></div>`).join('')}</div>`}
 function blocoSfx(){return `<h3 class="rot">Efeitos sonoros</h3><button class="dobra" data-sfx>${S.sfx?'Ligados: whoosh nas trocas e pop nos destaques':'Desligados'}<span class="bolas"><i style="background:${S.sfx?'#4CAF7D':'#555'}"></i></span></button>
  <small style="color:var(--sub);display:block;margin-top:6px">Entram numa faixa separada, em volume baixo. A voz não muda.</small>`}
@@ -698,6 +710,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/projeto/${d.descartar}/descartar`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
    S.stack=[{v:S.tab}];await recarregar();toast('Vídeo descartado')}catch(e){toast('Não consegui descartar: '+e.message)}})()}
+ else if(d.nota){const[id,n,k]=d.nota.split(':');(async()=>{try{const {data:pj}=await sb.from('projetos').select('original_meta').eq('id',id).single();const mq=(pj&&pj.original_meta)||{};mq['nota_editor_v'+n]={nota:+k,quando:new Date().toISOString()};await q(sb.from('projetos').update({original_meta:mq}).eq('id',id));const v=vid(id);if(v)v.media=mq;reRender();toast('Nota '+k+' registrada na v'+n)}catch(e){toast('Não consegui salvar a nota: '+e.message)}})()}
  else if(d.parecer){const[id,k]=d.parecer.split(':');S.parecer[id]=k;reRender()}
  else if(d.rmanx){const[id,i]=d.rmanx.split(':');S.ajTxt=($('#aj')||{}).value||'';S.anexos[id].splice(+i,1);reRender()}
  else if(d.chip){const t=$('#aj');t.value=(t.value?t.value+'. ':'')+d.chip;t.focus()}
