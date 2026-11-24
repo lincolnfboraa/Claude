@@ -141,6 +141,9 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
         cb = anda.inicio(0, montagem.quadros(base)) if anda else (etapa('Encaixando imagens e vídeos anexados', b) if etapa else None)
         base = insercoes.aplicar(base, os.path.join(pasta, f'_ins_{altura}.mp4'), pl, tokens, dur, anexos, pasta, hdr, prog=cb, crf=crf_i)
     if ro.desfoque: base = montagem.desfocar(base, os.path.join(pasta, f'_selo_{altura}.mp4'), ro.desfoque, crf_i)
+    logo = os.path.join(pasta, pl.get('_logo_selo') or 'logo_cliente.png')    # logo do cliente embaixo do selo de campanha (se existir na pasta do projeto)
+    if ro.selos and os.path.exists(logo):
+        t0s, t1s = ro.selos[0]; base = montagem.sobrepor_imagem(base, os.path.join(pasta, f'_logo_{altura}.mp4'), logo, t0s + 0.15, t1s, 0.5, 0.635, 0.6, hdr, crf_i)
     g = pl.get('_gancho') or {}; modelo = g.get('template') or 'ia'
     tit = dict(pl.get('titulo') or {})
     if g.get('frase'): tit['frase'] = g['frase']; tit['pergunta'] = g['frase'] if modelo in ('premium', 'ia') else tit.get('pergunta', '')

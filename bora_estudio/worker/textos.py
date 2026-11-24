@@ -56,7 +56,7 @@ class Roteiro:
         self.tokens, self.fim, self.ev = tokens, fim, []
         self.BR, self.DEST = cor_ass(cor_leg), cor_ass(cor_dest, '#FFFFFF')
         self.blocos = self._blocos()
-        self.desfoque = []                             # janelas (t0, t1) em que o vídeo atrás fica escuro e desfocado (selo de oferta)
+        self.desfoque = []; self.selos = []                             # janelas (t0, t1) em que o vídeo atrás fica escuro e desfocado (selo de oferta)
         self.t_destaques = []                          # quando cada destaque entra (usado pelos efeitos sonoros)
 
     def dlg(self, layer, t0, t1, st, txt): self.ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{st},,0,0,0,,{txt}")
@@ -184,8 +184,7 @@ class Roteiro:
         (a 2ª maior, na cor de destaque); a última em letra cursiva, inclinada, sobreposta embaixo à direita. Fundo escurece e desfoca; entra com zoom rápido."""
         ls = [x['texto'].strip().translate(LIMPA) for x in d['linhas'] if x['texto'].strip()]
         if not ls: return
-        self.desfoque.append((t0, t1))
-        self.dlg(1, t0, t1, 'K', "{\\an7\\pos(0,0)\\c&H000000&\\1a&HFF&\\t(0,160,\\1a&H80&)\\fad(0,200)\\bord0\\shad0\\p1}m 0 0 l 1080 0 l 1080 1920 l 0 1920{\\p0}")
+        self.desfoque.append((t0, t1)); self.selos.append((t0, t1))      # fundo escuro e desfocado vem do render (desfocar), por baixo do logo e do texto
         topo_txt, meio, script = (ls[0], ls[1], ls[2] if len(ls) > 2 else '') if len(ls) > 1 else ('', ls[0], '')
         fM = ajusta_fs(meio, 'Anton', 720, 2, 330); wM = largura(meio, 'Anton', fM, 2)
         fT = ajusta_fs(topo_txt, 'Anton', wM * 0.86, 2, fM * 0.8) if topo_txt else 0

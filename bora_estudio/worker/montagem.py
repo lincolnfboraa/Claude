@@ -557,8 +557,30 @@ def desfocar(base, saida, janelas, crf=14):
     """Desfoca o vídeo só nas janelas (t0, t1) do selo de oferta; o resto e o áudio ficam iguais (mesma cor, HDR mantido)."""
     if not janelas: return base
     params, tags = x265(sondar(base)[2]); en = '+'.join(f'between(t,{a:.3f},{b:.3f})' for a, b in janelas)
-    rc, msg, _ = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-vf', f"boxblur=12:2:enable='{en}'", '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf),
+    rc, msg, _ = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-vf', f"boxblur=12:2:enable='{en}',eq=brightness=-0.13:contrast=0.85:enable='{en}'", '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf),
                         '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, '-c:a', 'copy', saida], 'desfoque do selo')
+    return saida if rc == 0 else base
+
+def sobrepor_imagem(base, saida, png, t0, t1, cx, cy, larg, hdr, crf=14):
+    """Imagem com transparência (ex.: logo do cliente) por cima do vídeo entre t0 e t1, centrada em (cx, cy) em fração da tela, com larg (fração da largura).
+    HDR: as cores da imagem passam pela mesma conversão SDR->HLG dos textos. Entra e sai com fade."""
+    from PIL import Image
+    W, H = sondar(base)[:2]; im = Image.open(png).convert('RGBA'); w = round(W * larg / 2) * 2; h = round(w * im.height / im.width / 2) * 2
+    im = im.resize((w, h), Image.LANCZOS); a = np.asarray(im, np.float32) / 255
+    tmp = os.path.splitext(saida)[0] + '_img.png'
+    if hdr:
+        rgb = _hlg((a[..., :3] ** 2.4) @ _M_HLG.T * float(os.environ.get('BRILHO_TEXTO', '0.62')))
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba64le', '-s', f'{w}x{h}', '-i', '-', tmp],
+                           input=(np.dstack([rgb, a[..., 3:]]) * 65535).astype('<u2').tobytes(), check=True)
+        mat = 'bt2020'
+    else:
+        im.save(tmp); mat = 'bt709'
+    params, tags = x265(sondar(base)[2]); x, y = int(W * cx - w / 2), int(H * cy - h / 2)
+    fc = (f"[1:v]format=rgba64le,fade=in:st={t0:.3f}:d=0.18:alpha=1,fade=out:st={max(t0, t1 - 0.2):.3f}:d=0.2:alpha=1,"
+          f"scale=out_color_matrix={mat}:out_range=tv,format=yuva444p10le[l];[0:v][l]overlay={x}:{y}:enable='between(t,{t0:.3f},{t1:.3f})':format=yuv444p10,format=yuv420p10le[o]")
+    rc, msg, _ = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-loop', '1', '-i', tmp, '-filter_complex', fc, '-map', '[o]', '-map', '0:a?', '-shortest',
+                        '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, '-c:a', 'copy', saida], 'imagem sobre o vídeo')
+    if rc: print('imagem sobre o vídeo falhou:', msg[-200:], flush=True)
     return saida if rc == 0 else base
 
 def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
