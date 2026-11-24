@@ -5,28 +5,39 @@ Nunca derruba a edição: sem OpenCV, sem quadros ou qualquer erro, devolve None
 import json, os, subprocess, sys, tempfile
 import numpy as np
 
+ULTIMO_ERRO = ['']
 LIB = os.path.join(os.environ.get('BORA_TRABALHO', '/trabalho'), '_pylib')
 N_QUADROS = 6
 
 def _cv2():
+    """OpenCV que funciona de verdade (com CascadeClassifier). Um 'cv2' quebrado no caminho (pasta solta, instalação pela metade) é ignorado
+    e o OpenCV é instalado de novo no volume de trabalho."""
+    import importlib, shutil as _sh
+    def bom():
+        sys.modules.pop('cv2', None); importlib.invalidate_caches()
+        try:
+            import cv2
+            if hasattr(cv2, 'CascadeClassifier') and hasattr(cv2, 'data'): return cv2
+            ULTIMO_ERRO[0] = 'cv2 sem CascadeClassifier em ' + str(getattr(cv2, '__file__', None) or list(getattr(cv2, '__path__', [])))[:120]
+        except Exception as e: ULTIMO_ERRO[0] = 'cv2: ' + str(e)[:120]
+        return None
+    c = bom()
+    if c: return c
+    if LIB in sys.path: sys.path.remove(LIB)
+    sys.path.insert(0, LIB); c = bom()
+    if c: return c
     try:
-        import cv2; return cv2
-    except Exception: pass
-    try:                                                    # uma vez só: instala no volume de trabalho (persiste entre reinícios)
-        if LIB not in sys.path: sys.path.insert(0, LIB)
-        import cv2; return cv2
-    except Exception: pass
-    try:
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-cache-dir', '--target', LIB, 'opencv-python-headless==4.10.0.84'], capture_output=True, timeout=300, check=True)
-        if LIB not in sys.path: sys.path.insert(0, LIB)
-        import cv2; return cv2
+        _sh.rmtree(os.path.join(LIB, 'cv2'), ignore_errors=True)
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-cache-dir', '--upgrade', '--target', LIB, 'opencv-python-headless==4.10.0.84'], capture_output=True, timeout=600, check=True)
     except Exception as e:
-        print('enquadramento: sem OpenCV:', str(e)[:100], flush=True); return None
+        ULTIMO_ERRO[0] = 'instalação do OpenCV falhou: ' + str(e)[:100]; print('enquadramento:', ULTIMO_ERRO[0], flush=True); return None
+    c = bom()
+    if not c: print('enquadramento: OpenCV continua sem funcionar:', ULTIMO_ERRO[0], flush=True)
+    return c
 
 def _duracao(v):
     return float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', v], capture_output=True, text=True).stdout.strip() or 0)
 
-ULTIMO_ERRO = ['']
 
 def _ler_png(cv2, arq):
     img = cv2.imread(arq) if os.path.exists(arq) else None
