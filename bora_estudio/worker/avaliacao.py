@@ -3,23 +3,28 @@ Roda no VPS depois que a prévia sobe, em segundo plano (não atrasa a entrega).
 import base64, json, os, subprocess
 import plano
 
-CRITERIOS = ['storytelling', 'cortes', 'enquadramento', 'broll', 'textos']
-ESQ = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'criterios', 'problemas', 'resumo'],
+CRITERIOS = ['gancho', 'storytelling', 'cortes', 'enquadramento', 'complemento']
+NOMES = {'gancho': 'Gancho', 'storytelling': 'Storytelling', 'cortes': 'Cortes', 'enquadramento': 'Enquadramento', 'complemento': 'Complemento'}
+_CRIT = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'motivo'],
+         'properties': {'nota': {'type': 'number'}, 'motivo': {'type': 'string', 'description': 'por que essa nota, citando o que viu (frase, segundo, cena)'}}}
+ESQ = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'motivo', 'criterios', 'problemas', 'resumo'],
        'properties': {'nota': {'type': 'number', 'description': '0 a 10, uma casa decimal'},
-                      'criterios': {'type': 'object', 'additionalProperties': False, 'required': CRITERIOS, 'properties': {c: {'type': 'number'} for c in CRITERIOS}},
+                      'motivo': {'type': 'string', 'description': 'por que essa nota final, olhando o vídeo como um todo (2 a 4 frases)'},
+                      'criterios': {'type': 'object', 'additionalProperties': False, 'required': CRITERIOS, 'properties': {c: _CRIT for c in CRITERIOS}},
                       'problemas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['segundo', 'problema'],
                                                                'properties': {'segundo': {'type': 'number'}, 'problema': {'type': 'string'}}}},
-                      'resumo': {'type': 'string', 'description': 'uma ou duas frases, em português simples'}}}
+                      'resumo': {'type': 'string', 'description': 'uma frase, em português simples'}}}
 
-RUBRICA = """Você é um editor sênior de Reels avaliando uma prévia antes de mostrar ao cliente. Seja exigente e honesto: a nota serve pra medir se a edição acerta de primeira.
+RUBRICA = """Você é um editor sênior de Reels avaliando uma prévia antes de mostrar ao cliente. Avalie o vídeo como um TODO, no contexto do cliente, do objetivo do vídeo e do pedido do editor.
+Seja exigente e honesto: a nota mede se a edição acerta de primeira. Cada nota vem com o MOTIVO, citando o que você viu (a frase, o segundo, a cena).
 Escala: 10 = pronto pra postar, nada a mudar; 8 a 9 = detalhe pequeno; 6 a 7 = precisa de um ajuste claro; 4 a 5 = vários problemas ou um grave; 0 a 3 = refazer.
-Critérios (0 a 10 cada):
-- storytelling: gancho forte no começo, história com começo, meio e fim, nada repetido, todas as partes pedidas pelo editor presentes e completas (lista de ofertas inteira etc.).
-- cortes: sem frase cortada no meio, sem repetição, sem pausa longa, sem trecho em que outra pessoa entra no quadro ou alguém troca produto na frente de quem fala.
-- enquadramento: ninguém cortado na lateral, respiro acima da cabeça, zoom coerente (sem pular de escala sem motivo).
-- broll: cenas de apoio no momento em que a fala cita aquilo, firmes, sem cobrir o rosto em momento importante (se não houver B-roll e não fizer falta, nota 8).
-- textos: legenda legível e sem erro (valores, nomes), destaques poucos e bem colocados, nada cobrindo rosto, título bom.
-A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro) puxa a nota pra 6 ou menos.
+Critérios (0 a 10 cada, com motivo):
+- gancho: os primeiros 3 segundos prendem? Frase forte, curiosidade ou oferta clara logo de cara, título (se houver) bom e legível.
+- storytelling: a história faz sentido do começo ao fim (gancho, contexto, desenvolvimento, fechamento/chamada), sem repetição, sem fala solta, todas as partes pedidas pelo editor presentes e completas (lista de ofertas inteira, take pedido), fechamento com chamada clara.
+- cortes: cortes assertivos: sem frase cortada no meio, sem palavra comida, sem repetição, sem pausa longa, ritmo bom, sem trecho em que outra pessoa entra no quadro ou alguém troca produto na frente de quem fala.
+- enquadramento: ninguém cortado na lateral, respiro acima da cabeça, zoom coerente (sem pular de escala sem motivo), câmera firme.
+- complemento: o conjunto que apoia a fala: B-roll no momento certo e firme, legenda legível e sem erro (valores, nomes), destaques poucos e bem colocados (nada em cima do rosto), cores e identidade do cliente.
+A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro, gancho fraco) puxa a nota pra 6 ou menos.
 Em problemas, cite o segundo do vídeo (dos quadros) e o que está errado, curto. Responda só o JSON."""
 
 def _folha(previa, saida, passo=2.0):
@@ -31,7 +36,7 @@ def _folha(previa, saida, passo=2.0):
         if r.returncode == 0 and os.path.exists(saida): return saida, [round(i * passo, 1) for i in range(n)], dur
     return None, [], dur
 
-def avaliar(previa, pl, pal, pedido, verif, pasta):
+def avaliar(previa, pl, pal, pedido, verif, pasta, contexto=''):
     """Devolve {nota, criterios, problemas, resumo, modelo} ou None."""
     import montagem
     jpg, tempos, dur = _folha(previa, os.path.join(pasta, 'avaliacao_folha.jpg'))
@@ -42,9 +47,9 @@ def avaliar(previa, pl, pal, pedido, verif, pasta):
         fala.append(f"{k + 1}. ({sg.get('quadro')}) " + ' '.join(pal[G[i][0]][G[i][1]]['w'] for i in range(a, b + 1) if i < len(G)))
     br = [f"B-roll {b.get('video')} nas palavras {b.get('palavra_inicio')} a {b.get('palavra_fim')}: {b.get('motivo', '')}" for b in pl.get('broll') or []]
     tit = pl.get('titulo') or {}
-    texto = (f"Prévia de {dur:.1f} s. Quadros na folha (da esquerda pra direita, linha por linha) nos segundos: {', '.join(f'{t:g}' for t in tempos)}.\n\n"
+    texto = ((f"Contexto do cliente e do vídeo: {contexto}\n\n" if contexto else '') + f"Prévia de {dur:.1f} s. Quadros na folha (da esquerda pra direita, linha por linha) nos segundos: {', '.join(f'{t:g}' for t in tempos)}.\n\n"
              f"Pedido do editor pra esta versão: {pedido or '(primeira versão, sem pedido de ajuste)'}\n\n"
-             f"Falas usadas, na ordem:\n" + '\n'.join(fala) + '\n\n' + ('B-roll:\n' + '\n'.join(br) + '\n\n' if br else '') +
+             f"Falas usadas, na ordem (a 1ª é o gancho):\n" + '\n'.join(fala) + '\n\n' + ('B-roll:\n' + '\n'.join(br) + '\n\n' if br else '') +
              (f"Título: {tit.get('rotulo', '')} / {tit.get('tema', '')} / {tit.get('pergunta', '')}\n" if pl.get('usar_titulo') else '') +
              'Destaques: ' + ', '.join(str(d.get('texto') or '') for d in pl.get('destaques') or []) + '\n\n'
              'Verificação automática: ' + '; '.join(f"{x['item']}: {x['detalhe']}" for x in verif or []))
@@ -62,6 +67,6 @@ def avaliar(previa, pl, pal, pedido, verif, pasta):
             messages=[{'role': 'user', 'content': [{'type': 'text', 'text': texto}, {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': img}}]}])
         out, modelo = json.loads(next(b.text for b in msg.content if b.type == 'text')), msg.model
     lim = lambda x: round(min(10.0, max(0.0, float(x))), 1)
-    out['nota'] = lim(out['nota']); out['criterios'] = {c: lim(v) for c, v in out['criterios'].items()}
+    out['nota'] = lim(out['nota']); out['criterios'] = {c: {'nota': lim(v['nota']), 'motivo': v['motivo']} for c, v in out['criterios'].items()}
     out['problemas'] = out['problemas'][:8]; out['modelo'] = modelo
     return out

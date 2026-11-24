@@ -394,7 +394,10 @@ def _nota_ia(pac, previa, pl, pasta, verif, sb):
         ant = sb('GET', f'/rest/v1/versoes?projeto_id=eq.{pid}&numero=eq.{n - 1}&select=feedback') if n > 1 else []
         meta0 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         pedido = ' '.join(x for x in ((ant[0].get('feedback') if ant else '') or '', meta0.get('briefing') or '') if x).strip()
-        nota = avaliacao.avaliar(previa, pl, pal, pedido, verif, pasta)
+        cli = (sb('GET', f"/rest/v1/clientes?id=eq.{pac['cliente_id']}&select=nome,segmento") or [{}])[0]
+        dna = (sb('GET', f"/rest/v1/dna_ativo?cliente_id=eq.{pac['cliente_id']}&select=dna") or [{}])[0].get('dna') or {}
+        contexto = f"cliente {cli.get('nome')} ({cli.get('segmento') or 'segmento não informado'}). DNA do cliente: " + json.dumps(dna, ensure_ascii=False)[:1800]
+        nota = avaliacao.avaliar(previa, pl, pal, pedido, verif, pasta, contexto)
         if not nota: return
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m[f'nota_ia_v{n}'] = nota; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})

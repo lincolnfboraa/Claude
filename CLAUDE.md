@@ -21,7 +21,7 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   No render, o zoom do trecho cai até caber todo mundo com folga dos lados e respiro de 12% acima da cabeça (BORA_RESPIRO), e o recorte centra no grupo; sem rosto, o recorte de sempre.
   BORA_ENQUADRAMENTO=0 desliga. A IA também vê uma folha de quadros de cada take de fala e evita trecho com gente entrando, produto sendo trocado ou câmera mexendo.
 - **Aprendizados dos ajustes** ficam no DNA Global (regras_globais.aprendizados, no Supabase) e valem pra todos os clientes: a IA lê em todo plano.
-- **Notas (assertividade):** cada prévia ganha uma nota da IA de 0 a 10 (avaliacao.py: quadros a cada 2 s + falas + pedido do editor; critérios história, cortes, enquadramento, B-roll, textos)
+- **Notas (assertividade):** cada prévia ganha uma nota da IA de 0 a 10 (avaliacao.py: quadros a cada 2 s + falas + pedido do editor; critérios gancho, storytelling, cortes, enquadramento e complemento, cada um com o motivo; contexto do cliente e do DNA)
   em original_meta.nota_ia_vN, em segundo plano no VPS (BORA_NOTA_IA=0 desliga). O editor dá a dele no app (nota_editor_vN); o app mostra a diferença e a média.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.

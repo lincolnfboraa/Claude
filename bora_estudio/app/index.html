@@ -518,10 +518,14 @@ const Q4K=[['leve','Leve','uns 4 Mbps (era o padrão antigo, perde detalhe)'],['
 function blocoQ4k(){return `<h3 class="rot">Qualidade do 4K</h3><div class="lst">${Q4K.map(([k,n,d])=>`<button class="ln" data-q4k="${k}"><span class="tx"><b>${n}</b><small>${d}</small></span><span class="dot ${S.q4k===k?'ok':''}" style="${S.q4k===k?'background:var(--l,#FF5E16)':'opacity:.35'}"></span></button>`).join('')}</div>
  <p class="nota">Os valores são estimativas e variam com o vídeo; o tamanho real aparece quando o 4K fica pronto.</p>`}
 function blocoNotas(id,n,m){const ia=m['nota_ia_v'+n],ed=m['nota_editor_v'+n],f=x=>String(x).replace('.',',');
- const nm={storytelling:'História',cortes:'Cortes',enquadramento:'Enquadramento',broll:'B-roll',textos:'Textos'};
+ const nm={gancho:'Gancho',storytelling:'Storytelling',cortes:'Cortes',enquadramento:'Enquadramento',complemento:'Complemento',broll:'B-roll',textos:'Textos'};
+ const cor=x=>x>=8?'var(--ok)':x>=6?'var(--beige)':'var(--warn)';
+ const crit=ia?Object.entries(ia.criterios||{}).map(([k,v])=>{const o=typeof v==='object'?v:{nota:v,motivo:''};
+  return `<div class="ln"><span style="width:34px;text-align:center;font-weight:700;color:${cor(o.nota)}">${f(o.nota)}</span><span class="tx"><b style="font-size:14px">${nm[k]||k}</b>${o.motivo?`<small style="white-space:normal">${esc(o.motivo)}</small>`:''}</span></div>`}).join(''):'';
  return `<h3 class="rot">Notas da v${n}</h3><div class="lst">
- <div class="ln"><span class="tx"><b>Nota da IA: ${ia?f(ia.nota)+' de 10':'ainda não saiu'}</b><small style="white-space:normal">${ia?esc(ia.resumo):'Sai uns segundos depois da prévia. Versões antigas não têm.'}</small>
- ${ia?`<small style="white-space:normal">${Object.entries(ia.criterios||{}).map(([k,v])=>(nm[k]||k)+' '+f(v)).join(' · ')}</small>${(ia.problemas||[]).map(p=>`<small style="white-space:normal">${Math.round(p.segundo)} s: ${esc(p.problema)}</small>`).join('')}`:''}</span></div>
+ <div class="ln"><span style="width:34px;text-align:center;font-weight:800;font-size:18px;color:${ia?cor(ia.nota):'var(--faint)'}">${ia?f(ia.nota):'·'}</span><span class="tx"><b>Nota da IA${ia?' · '+f(ia.nota)+' de 10':': ainda não saiu'}</b><small style="white-space:normal">${ia?esc(ia.motivo||ia.resumo):'Sai uns segundos depois da prévia. Versões antigas não têm.'}</small></span></div>
+ ${crit}
+ ${ia&&(ia.problemas||[]).length?`<div class="ln"><span class="tx"><b style="font-size:14px">Problemas apontados</b>${ia.problemas.map(p=>`<small style="white-space:normal">${Math.round(p.segundo)} s: ${esc(p.problema)}</small>`).join('')}</span></div>`:''}
  <div class="ln" style="display:block"><span class="tx"><b>Sua nota${ed?': '+f(ed.nota)+' de 10':''}</b>${ia&&ed?`<small>Diferença pra IA: ${f(Math.abs(ia.nota-ed.nota).toFixed(1))}</small>`:'<small>De 0 a 10: o quanto essa versão ficou pronta pra postar</small>'}</span>
  <div class="chips">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<button class="chip" ${ed&&ed.nota===k?'style="background:var(--beige);color:#072740;font-weight:700"':''} data-nota="${id}:${n}:${k}">${k}</button>`).join('')}</div></div></div>
  ${assertividade()}`}
