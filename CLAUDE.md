@@ -26,6 +26,7 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - **Revisão interna antes de entregar:** a prévia só chega ao editor com nota da IA >= 7,5 e nenhum critério abaixo de 6 (BORA_NOTA_MIN). Abaixo disso o plano é refeito com os problemas
   apontados e a prévia renderizada de novo, até 2 vezes (BORA_REVISOES); entrega a melhor rodada (plano e vídeo dela). Pessoa cortada na borda: o plano usa o quadro 'total' (sem zoom).
   O que o enquadramento mediu fica em original_meta.enquadramento_vN (quadros lidos, com rosto e o erro, se houver).
+- **Ajuste usa a nota:** ao pedir ajuste, o plano novo recebe a avaliação da versão anterior (nota e motivo por categoria, problemas, nota do editor) e melhora o que ficou abaixo de 8, sem contrariar o pedido do editor.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

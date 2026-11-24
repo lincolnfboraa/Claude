@@ -32,5 +32,8 @@ ok('nota guarda o histórico das rodadas', [r['nota'] for r in ent['nota']['roda
 ped, ent = cenario([None])
 ok('sem avaliação (IA fora): entrega normal, sem travar', not ped and ent['nota'] is False)
 ok('critério abaixo de 6 reprova mesmo com nota alta', not motor.passou(nota(8.0, 5)) and motor.passou(nota(7.5)))
+m = {'nota_ia_v6': {'nota': 5.5, 'motivo': 'gente cortada', 'criterios': {'enquadramento': {'nota': 4, 'motivo': 'homem cortado aos 14 s'}}, 'problemas': [{'segundo': 14.5, 'problema': 'homem cortado'}]}, 'nota_editor_v6': {'nota': 5}}
+t = motor.avaliacao_anterior(m, 7)
+ok('ajuste usa a avaliação da versão anterior por categoria, com a nota do editor', 'enquadramento 4' in t and 'o editor deu 5' in t and '14 s' in t and motor.avaliacao_anterior({}, 7) == '')
 shutil.rmtree(T)
 print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)

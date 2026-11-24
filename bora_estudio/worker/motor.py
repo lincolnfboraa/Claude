@@ -261,6 +261,7 @@ def preparar(p, etapa, sb, correcao=None):
                 pedido_sens = ('Termos sensíveis (nomes comerciais de medicamentos: ' + ', '.join(sens['termos'][:8]) + '): NÃO use em título, destaque nem palavra solta, e prefira não escolher trechos que só '
                                'citem marca; a legenda troca por termos genéricos. Prefira trechos que falem das medicações como classe e do cuidado com o rim, sem promessa de efeito nem tom de venda.')
             anexos_ia = [a for a in (meta.get('anexos') or []) if not a.get('capa_final') and a not in casados]       # o mesmo take de novo não é inserção: é pedido de uso
+            pedido_sens += (' ' + avaliacao_anterior(meta, n)) if n > 1 and not correcao else ''
             if exigidos: pedido_sens += ' O editor pediu que ' + ', '.join(f'o Arquivo {i + 1} ({nomes[i]})' for i in sorted(exigidos)) + ' ENTRE no storytelling, com falas dele (não como inserção em tela cheia).'
             if any(a.get('capa_final') for a in (meta.get('anexos') or [])): pedido_sens += ' Uma capa final (CRM e RQE) será acrescentada depois do último trecho: o fechamento da fala não precisa citar o CRM.'
             falas = []                                  # quadros dos takes de fala: a IA evita trecho com gente entrando, produto sendo trocado etc.
@@ -416,6 +417,16 @@ def avaliar_previa(pac, res, sb, pasta=None):
         return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto)
     except Exception as e:
         print('nota da IA:', str(e)[:150], flush=True); return None
+
+def avaliacao_anterior(meta, n):
+    """Avaliação da versão anterior (nota da IA por categoria, com motivo e problemas, e a nota do editor) como pedido de melhoria pro ajuste."""
+    ia, ed = (meta or {}).get(f'nota_ia_v{n - 1}'), (meta or {}).get(f'nota_editor_v{n - 1}')
+    if not ia: return ''
+    cats = ' | '.join(f"{k} {c['nota']}: {c['motivo']}" for k, c in (ia.get('criterios') or {}).items() if isinstance(c, dict))
+    probs = ' | '.join(f"{round(p['segundo'])} s: {p['problema']}" for p in ia.get('problemas') or [])
+    return (f"Avaliação da v{n - 1} por um editor sênior (nota {ia['nota']} de 10" + (f"; o editor deu {ed['nota']}" if ed else '') + f"): {ia.get('motivo', '')} "
+            f"Por categoria: {cats}. Problemas: {probs or 'nenhum'}. Neste ajuste, além do pedido do editor (que manda), melhore cada categoria que ficou abaixo de 8, "
+            "sem desfazer o que estava bom. Pessoa cortada na borda: quadro 'total'.")
 
 def passou(nota):
     return nota is None or (nota['nota'] >= NOTA_MIN and all(c['nota'] >= 6 for c in nota['criterios'].values()))
