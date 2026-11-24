@@ -2,7 +2,7 @@
 nova_edicao / ajuste: transcreve os originais, a IA monta o plano no DNA do cliente, ffmpeg monta a prévia 480p (HDR do original),
   os textos entram no padrão aprovado e a prévia vai pro app.
 final: renderiza de novo a partir dos ORIGINAIS na resolução nativa (4K), com e sem legenda + .srt, num .zip (sem compressão)."""
-import glob, json, os, re, shutil, time, urllib.request
+import glob, json, os, re, shutil, subprocess, time, urllib.request
 import insercoes, montagem, textos
 
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
@@ -275,7 +275,23 @@ def preparar(p, etapa, sb, correcao=None):
                     d_ = montagem.duracao(a); jpg, tempos = montagem.folha_take(a, os.path.join(pasta, f'fala_{i + 1:02d}_folha.jpg'), largura=200, k=min(16, max(6, int(d_ / 2))))
                     if jpg: falas.append({'n': i + 1, 'nome': nomes[i], 'dur': d_, 'jpg': jpg, 'tempos': tempos})
                 except Exception as e: print('folha da fala:', str(e)[:100], flush=True)
-            pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
+            pl = None
+            if anterior and os.environ.get('BORA_AJUSTE_PONTUAL', '1') != '0' and not any(a.get('versao') == n - 1 for a in anexos_ia):      # ajuste PONTUAL: só muda o que o pedido cita, o resto fica travado
+                pedido_aj = correcao or (feedbacks[-1][1] if feedbacks else '')
+                sel = selecoes_texto(meta, n, anterior, pal, arqs, pasta)
+                if sel: pedido_aj = (pedido_aj + '\n' if pedido_aj else '') + sel
+                if pedido_aj.strip():
+                    etapa('A IA está ajustando só os trechos pedidos', 28)
+                    try:
+                        pl = plano_ia.ajustar(pal, nomes, cliente, dna, regras, anterior, pedido_aj, brolls, falas, papeis,
+                                              '\n'.join(x for x in (pedido_gancho, pedido_sens.strip()) if x))
+                    except Exception as e:
+                        print('ajuste pontual falhou, refazendo o plano:', str(e)[:150], flush=True); pl = None
+                    if pl is not None and exigidos:
+                        G_ = montagem.indice_global(pal)
+                        if set(exigidos) - {G_[int(sg['palavra_inicio'])][0] for sg in pl['segmentos']}: pl = None
+            if pl is None:
+                pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
         pl['_anexos'] = [a for a in (meta.get('anexos') or []) if a not in casados]; pl['_exigidos'] = [nomes[i] for i in sorted(exigidos)]; pl['_exigidos_i'] = sorted(exigidos)
         pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
@@ -385,10 +401,15 @@ def concluir(pac, res, sb, pasta=None, nota=None):
         pl = json.load(open(os.path.join(pasta, pac['plano'])))
         previa = os.path.join(pasta, res['arquivos'][0])
         caminho = f'{cli_id}/{pid}/v{n}.mp4'; _subir(sb, caminho, previa, 'video/mp4')
+        tl = _timeline(previa, pasta, n)                    # faixa com 1 quadro por segundo (timeline do app, pra marcar trechos no ajuste)
+        if tl:
+            try: _subir(sb, f'{cli_id}/{pid}/v{n}_timeline.jpg', tl['arq'], 'image/jpeg'); tl = {'path': f'{cli_id}/{pid}/v{n}_timeline.jpg', 'n': tl['n'], 'w': tl['w'], 'h': tl['h']}
+            except Exception as e: print('timeline:', str(e)[:100], flush=True); tl = None
         sb('PATCH', f"/rest/v1/versoes?id=eq.{pac['versao_id']}", {'status': 'revisao', 'previa_path': caminho, 'resumo': (pl.get('resumo') or f'Versão {n}') + (f" Ainda não aplicado (o motor não faz ainda): {pl['nao_feito']}" if (pl.get('nao_feito') or '').strip() else '')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'status': 'revisao'})
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m.update({'andamento': None, 'progresso': None, 'dur': f"{round(res['dur'])} s", f'validacao_v{n}': res.get('verif')})
+        if tl: m[f'timeline_v{n}'] = tl
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
         if nota:                                          # nota da revisão interna (a que foi entregue)
@@ -421,6 +442,39 @@ def avaliar_previa(pac, res, sb, pasta=None):
         return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto)
     except Exception as e:
         print('nota da IA:', str(e)[:150], flush=True); return None
+
+def _timeline(previa, pasta, n, w=96):
+    """Uma imagem com 1 quadro por segundo lado a lado (SDR só pra mostrar no app)."""
+    try:
+        dur = montagem.duracao(previa); k = max(1, min(120, int(dur))); h = round(w * 16 / 9 / 2) * 2
+        arq = os.path.join(pasta, f'timeline_v{n}.jpg')
+        tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,'
+        for t_ in (tm, ''):
+            r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', previa, '-vf', f'fps=1,{t_}scale={w}:{h},tile={k}x1', '-frames:v', '1', '-q:v', '5', arq], capture_output=True)
+            if r.returncode == 0 and os.path.exists(arq): return {'arq': arq, 'n': k, 'w': w, 'h': h}
+    except Exception as e: print('timeline:', str(e)[:100], flush=True)
+    return None
+
+def selecoes_texto(meta, n, anterior, pal, arqs, pasta):
+    """Trechos que o editor marcou na timeline da versão anterior ([{t0, t1, texto}] em original_meta.selecoes_v{n-1}), já ligados às palavras e itens do plano."""
+    sels = (meta or {}).get(f'selecoes_v{n - 1}') or []
+    if not sels or not anterior: return ''
+    try:
+        _, tokens, _ = montagem.pecas(anterior, arqs, pal, pasta)
+    except Exception as e:
+        print('seleções:', str(e)[:100], flush=True); tokens = []
+    out = []
+    for k, x in enumerate(sels, 1):
+        t0, t1 = float(x.get('t0', 0)), float(x.get('t1', 0)); dentro = [t for t in tokens if t['e'] > t0 and t['s'] < t1]
+        if dentro:
+            a, b = min(t['i'] for t in dentro), max(t['i'] for t in dentro)
+            segs = [i for i, sg in enumerate(anterior.get('segmentos') or []) if int(sg['palavra_inicio']) <= b and int(sg['palavra_fim']) >= a]
+            brs = [i for i, br in enumerate(anterior.get('broll') or []) if int(br['palavra_inicio']) <= b and int(br['palavra_fim']) >= a]
+            dst = [i for i, d in enumerate(anterior.get('destaques') or []) if int(d['palavra_inicio']) <= b and int(d['palavra_fim']) >= a]
+            onde = f"palavras {a}-{b} (\"{' '.join(t['tok'] for t in dentro)}\"); segmento(s) {segs}" + (f'; B-roll {brs}' if brs else '') + (f'; destaque(s) {dst}' if dst else '')
+        else: onde = 'sem fala nesse intervalo'
+        out.append(f"Trecho marcado {k} ({t0:.1f} s a {t1:.1f} s do vídeo): {onde}. Pedido: {x.get('texto', '').strip() or '(ver pedido geral)'}")
+    return 'Trechos que o editor marcou na timeline (mexa só nesses):\n' + '\n'.join(out)
 
 def avaliacao_anterior(meta, n):
     """Avaliação da versão anterior (nota da IA por categoria, com motivo e problemas, e a nota do editor) como pedido de melhoria pro ajuste."""

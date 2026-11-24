@@ -141,13 +141,13 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
                       ', e o editor pediu que ele entre no storytelling. Refaça o plano com pelo menos um trecho de fala de cada um desses arquivos, no ponto da história em que fizer mais sentido.')
     return plano
 
-def _chamar_claude(sistema, conteudo):
+def _chamar_claude(sistema, conteudo, esquema=None):
     import anthropic
     client = anthropic.Anthropic()                      # lê ANTHROPIC_API_KEY do ambiente
     with client.beta.messages.stream(
         model=MODELO, max_tokens=32000,
         betas=['server-side-fallback-2026-07-01'], fallbacks='default',     # se o modelo recusar, o servidor tenta outro
-        output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': ESQUEMA}},
+        output_config={'effort': 'high', 'format': {'type': 'json_schema', 'schema': esquema or ESQUEMA}},
         system=[{'type': 'text', 'text': sistema[0]}] + [{'type': 'text', 'text': t, 'cache_control': {'type': 'ephemeral'}} for t in sistema[1:]],
         messages=[{'role': 'user', 'content': conteudo}],
     ) as st:
@@ -161,7 +161,7 @@ def _chamar_claude(sistema, conteudo):
     plano['_uso'] = {'entrada': msg.usage.input_tokens, 'saida': msg.usage.output_tokens}
     return plano
 
-def _chamar_gpt(sistema, conteudo):
+def _chamar_gpt(sistema, conteudo, esquema=None):
     """Mesmo pedido e mesmo esquema, pela OpenAI (Responses API, JSON estrito). Lê OPENAI_API_KEY do ambiente."""
     from openai import OpenAI
     if not MODELO_GPT: raise RuntimeError('defina BORA_MODELO_GPT no bora.env (modelo da OpenAI que monta o storytelling)')
@@ -173,7 +173,7 @@ def _chamar_gpt(sistema, conteudo):
             src = b['source']; entrada.append({'type': 'input_image', 'image_url': f"data:{src['media_type']};base64,{src['data']}", 'detail': 'auto'})
     r = OpenAI(timeout=900).responses.create(
         model=MODELO_GPT, instructions='\n\n'.join(sistema), input=[{'role': 'user', 'content': entrada}],
-        text={'format': {'type': 'json_schema', 'name': 'plano_bora', 'schema': ESQUEMA, 'strict': True}},
+        text={'format': {'type': 'json_schema', 'name': 'plano_bora', 'schema': esquema or ESQUEMA, 'strict': True}},
         max_output_tokens=32000, store=False)
     if r.status == 'incomplete':
         raise RuntimeError('o plano do GPT veio incompleto: ' + str(getattr(r.incomplete_details, 'reason', '')))
@@ -208,6 +208,76 @@ def _conteudo(texto, brolls, falas=()):
         blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.1f} s. Quadros em: {qs}. Tremor por segundo: {tr or 'ainda não medido (o motor mede depois da escolha e desloca a cena se estiver tremida); escolha pela imagem dos quadros'}"})
         blocos.append(img(b['jpg']))
     return blocos
+
+ESQ_AJUSTE = {'type': 'object', 'additionalProperties': False, 'required': ['refazer_tudo', 'mudancas', 'resumo'],
+    'properties': {'refazer_tudo': {'type': 'boolean', 'description': 'true só se o pedido muda a história inteira (outra estrutura, outro gancho e outra ordem de tudo)'},
+                   'mudancas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['tipo', 'acao', 'indice', 'item', 'motivo'],
+                       'properties': {'tipo': {'type': 'string', 'enum': ['segmento', 'broll', 'destaque', 'correcao', 'titulo']},
+                                      'acao': {'type': 'string', 'enum': ['trocar', 'remover', 'adicionar']},
+                                      'indice': {'type': 'integer', 'description': 'posição na lista do plano atual (0, 1, ...); em adicionar, a posição onde entra (-1 = no fim)'},
+                                      'item': {'type': 'string', 'description': 'o item NOVO completo, em JSON, no mesmo formato do plano (vazio em remover)'},
+                                      'motivo': {'type': 'string'}}}},
+                   'resumo': {'type': 'string', 'description': 'o que mudou, em uma frase pro editor'}}}
+
+def listar_plano(plano, palavras):
+    """Plano atual com índices e o texto de cada trecho, pro ajuste pontual."""
+    import montagem
+    G = montagem.indice_global(palavras); fala = lambda a, b: ' '.join(palavras[G[i][0]][G[i][1]]['w'] for i in range(int(a), int(b) + 1) if i < len(G))
+    L = ['SEGMENTOS:'] + [f"[{k}] palavras {s['palavra_inicio']}-{s['palavra_fim']} ({s.get('quadro')}): {fala(s['palavra_inicio'], s['palavra_fim'])}" for k, s in enumerate(plano.get('segmentos') or [])]
+    L += ['B-ROLL:'] + [f"[{k}] " + json.dumps(b, ensure_ascii=False) for k, b in enumerate(plano.get('broll') or [])]
+    L += ['DESTAQUES:'] + [f"[{k}] " + json.dumps(d, ensure_ascii=False) for k, d in enumerate(plano.get('destaques') or [])]
+    L += ['CORREÇÕES:'] + [f"[{k}] " + json.dumps(c, ensure_ascii=False) for k, c in enumerate(plano.get('correcoes') or [])]
+    L += ['TÍTULO: ' + json.dumps({'usar_titulo': plano.get('usar_titulo'), **(plano.get('titulo') or {})}, ensure_ascii=False)]
+    return '\n'.join(L)
+
+def aplicar_mudancas(plano, mudancas):
+    """Aplica as mudanças pontuais num cópia do plano; o que não foi citado fica igual. Índices sempre do plano ATUAL."""
+    import copy
+    novo = copy.deepcopy(plano); listas = {'segmento': 'segmentos', 'broll': 'broll', 'destaque': 'destaques', 'correcao': 'correcoes'}
+    trocas, remocoes, adicoes = [], set(), []
+    for m in mudancas:
+        try: item = json.loads(m['item']) if m.get('item', '').strip() else None
+        except Exception: continue
+        if m['tipo'] == 'titulo':
+            if isinstance(item, dict):
+                if 'usar_titulo' in item: novo['usar_titulo'] = bool(item.pop('usar_titulo'))
+                novo['titulo'] = {**(novo.get('titulo') or {}), **{k: v for k, v in item.items() if k in ('rotulo', 'tema', 'pergunta')}}
+            continue
+        nome = listas.get(m['tipo'])
+        if not nome: continue
+        lst = novo.setdefault(nome, []); k = int(m['indice'])
+        if m['acao'] == 'trocar' and 0 <= k < len(lst) and isinstance(item, dict): trocas.append((nome, k, item))
+        elif m['acao'] == 'remover' and 0 <= k < len(lst): remocoes.add((nome, k))
+        elif m['acao'] == 'adicionar' and isinstance(item, dict): adicoes.append((nome, k, item))
+    for nome, k, item in trocas: novo[nome][k] = {**novo[nome][k], **item}
+    for nome in listas.values():
+        if nome not in novo: continue
+        base = [(k, x) for k, x in enumerate(novo[nome]) if (nome, k) not in remocoes]
+        extra = sorted([(k, x) for n, k, x in adicoes if n == nome], key=lambda a: (a[0] < 0, a[0]))
+        out = []
+        for k, x in base:
+            out += [y for kk, y in extra if 0 <= kk == k]; out.append(x)
+        out += [y for kk, y in extra if kk < 0 or kk >= len(novo[nome])]
+        novo[nome] = out
+    return novo
+
+def ajustar(palavras, arquivos, cliente, dna, regras, atual, pedido, brolls=(), falas=(), papeis=None, extra=''):
+    """Ajuste PONTUAL: a IA devolve só as mudanças dos itens citados no pedido (o resto do plano fica travado). None = pedido muda a história inteira (use gerar)."""
+    dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), **(dna or {})}, ensure_ascii=False)
+    sistema = [SISTEMA + '\n\nMODO AJUSTE PONTUAL: o plano atual já foi aprovado em tudo que o pedido NÃO cita. Mude só os itens ligados ao pedido (o trecho, o B-roll, o destaque, a frase), '
+               'com o menor número de mudanças possível. Cada item novo vai completo, em JSON, no formato do plano. Índices sempre do plano atual.',
+               'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False), 'DNA do cliente:\n' + dna_txt]
+    texto = (f"Transcrição numerada:\n{numerar(palavras, arquivos, papeis)}\n\nPlano atual (com índices):\n{listar_plano(atual, palavras)}\n\n"
+             f"Pedido de ajuste:\n{pedido}" + (f"\n\n{extra}" if extra else ''))
+    conteudo = _conteudo(texto, brolls, falas)
+    r = _chamar_gpt(sistema, conteudo, ESQ_AJUSTE) if IA == 'gpt' else _chamar_claude(sistema, conteudo, ESQ_AJUSTE)
+    if r.get('refazer_tudo'): return None
+    import montagem
+    novo = aplicar_mudancas({k: v for k, v in atual.items() if not k.startswith('_')}, r.get('mudancas') or [])
+    novo['resumo'] = r.get('resumo') or atual.get('resumo', ''); novo['nao_feito'] = ''
+    novo['_mudancas'] = r.get('mudancas') or []; novo['_modelo'] = r.get('_modelo'); novo['_uso'] = r.get('_uso')
+    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
+    return validar(novo, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
 
 def validar(plano, total, ambiente=None, n_broll=0, G=None):
     """Garante índices dentro da transcrição e ordem certa (a IA não consegue apontar pra fala que não existe)."""

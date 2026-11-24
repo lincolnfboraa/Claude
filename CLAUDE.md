@@ -27,6 +27,13 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   apontados e a prévia renderizada de novo, até 2 vezes (BORA_REVISOES); entrega a melhor rodada (plano e vídeo dela). Pessoa cortada na borda: o plano usa o quadro 'total' (sem zoom).
   O que o enquadramento mediu fica em original_meta.enquadramento_vN (quadros lidos, com rosto e o erro, se houver).
 - **Ajuste usa a nota:** ao pedir ajuste, o plano novo recebe a avaliação da versão anterior (nota e motivo por categoria, problemas, nota do editor) e melhora o que ficou abaixo de 8, sem contrariar o pedido do editor.
+- **Ajuste pontual:** com plano anterior, a IA devolve só MUDANÇAS (plano.ajustar: trocar/remover/adicionar segmento, B-roll, destaque, correção, título) e o resto fica travado;
+  'refazer_tudo' só quando o pedido muda a história inteira (aí plano.gerar). Vale pro ajuste do editor e pra revisão interna. Anexo novo na versão: refaz o plano. BORA_AJUSTE_PONTUAL=0 desliga.
+  O render reaproveita os trechos prontos (cache por recorte), então só o que mudou é recodificado.
+- **Timeline no app:** cada prévia ganha uma faixa com 1 quadro por segundo (original_meta.timeline_vN). No ajuste o editor marca vários trechos (toque no começo e no fim) com um pedido em cada;
+  vai em original_meta.selecoes_vN e o motor liga cada trecho às palavras, segmentos, B-rolls e destaques daquele tempo.
+- **Recursos de venda:** destaque 'preco' (De R$X branco riscado de vermelho + por R$Y num selo branco com barra e número na cor de destaque), 'selo' de campanha
+  (BLACK/FRIDAY/até 50% em Anton inclinada e Sacramento; fundo escuro e desfocado no vídeo; logo_cliente.png da pasta do projeto entra embaixo), B-roll com 'velocidade' (câmera lenta) e até o corte.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.
