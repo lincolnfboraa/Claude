@@ -1,0 +1,88 @@
+"""Diagnóstico de enquadramento dos takes de fala: quantas pessoas aparecem e onde (rostos por OpenCV), com uma folha de quadros com as caixas desenhadas.
+FASE 1 (só mede e mostra, não muda nenhum corte): o resultado vai pra original_meta.enquadramento e a folha pro bucket previas (diag_enquadramento.jpg).
+Nunca derruba a edição: sem OpenCV, sem quadros ou qualquer erro, devolve None.
+"""
+import json, os, subprocess, sys, tempfile
+import numpy as np
+
+LIB = os.path.join(os.environ.get('BORA_TRABALHO', '/trabalho'), '_pylib')
+N_QUADROS = 6
+
+def _cv2():
+    try:
+        import cv2; return cv2
+    except Exception: pass
+    try:                                                    # uma vez só: instala no volume de trabalho (persiste entre reinícios)
+        if LIB not in sys.path: sys.path.insert(0, LIB)
+        import cv2; return cv2
+    except Exception: pass
+    try:
+        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-cache-dir', '--target', LIB, 'opencv-python-headless==4.10.0.84'], capture_output=True, timeout=300, check=True)
+        if LIB not in sys.path: sys.path.insert(0, LIB)
+        import cv2; return cv2
+    except Exception as e:
+        print('enquadramento: sem OpenCV:', str(e)[:100], flush=True); return None
+
+def _duracao(v):
+    return float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', v], capture_output=True, text=True).stdout.strip() or 0)
+
+def _quadro(video, t, largura=540):
+    """Quadro em SDR (tone map só pra detectar), largura fixa. Devolve array BGR ou None."""
+    hdr = 'arib-std-b67' in subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=color_transfer', '-of', 'csv=p=0', video], capture_output=True, text=True).stdout
+    tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if hdr else ''
+    for f in (tm, ''):
+        r = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{t:.2f}', '-i', video, '-frames:v', '1', '-vf', f'{f}scale={largura}:-2,format=bgr24', '-f', 'rawvideo', '-'], capture_output=True)
+        if r.returncode == 0 and r.stdout:
+            h = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', video], capture_output=True, text=True).stdout.strip().split('x')
+            w0, h0 = int(h[0]), int(h[1]); n = len(r.stdout)
+            for hh in (round(largura * h0 / w0), round(largura * h0 / w0) + 1, round(largura * h0 / w0) - 1):
+                if n == largura * hh * 3: return np.frombuffer(r.stdout, np.uint8).reshape(hh, largura, 3).copy()
+    return None
+
+def rostos(cv2, img):
+    """Caixas [x, y, w, h] normalizadas (0 a 1) dos rostos achados: frontal e perfil, sem repetir o mesmo rosto."""
+    cinza = cv2.equalizeHist(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)); H, W = cinza.shape; caixas = []
+    for nome in ('haarcascade_frontalface_alt2.xml', 'haarcascade_profileface.xml'):
+        c = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, nome))
+        for im, espelho in ((cinza, False), (cv2.flip(cinza, 1), True)) if 'profile' in nome else ((cinza, False),):
+            for (x, y, w, h) in c.detectMultiScale(im, 1.08, 5, minSize=(int(W * 0.05), int(W * 0.05))):
+                if espelho: x = W - x - w
+                caixas.append([x, y, w, h])
+    final = []
+    for b in sorted(caixas, key=lambda b: -b[2] * b[3]):         # tira duplicados (caixas que se sobrepõem a uma maior)
+        if all(_iou(b, f) < 0.3 for f in final): final.append(b)
+    if final:                                                   # falsos positivos: muito menores que o maior rosto ou lá embaixo no quadro
+        maior = max(w * h for _, _, w, h in final); final = [b for b in final if b[2] * b[3] >= 0.25 * maior and b[1] < 0.75 * H]
+    return [[round(float(x) / W, 3), round(float(y) / H, 3), round(float(w) / W, 3), round(float(h) / H, 3)] for x, y, w, h in final]
+
+def _iou(a, b):
+    ax, ay, aw, ah = a; bx, by, bw, bh = b
+    ix, iy = max(0, min(ax + aw, bx + bw) - max(ax, bx)), max(0, min(ay + ah, by + bh) - max(ay, by)); i = ix * iy
+    return i / (aw * ah + bw * bh - i + 1e-9)
+
+def diagnosticar(arquivos, nomes, saida_jpg, papeis=None):
+    """arquivos: caminhos dos originais; nomes: nomes enviados. Devolve [{nome, rostos_por_quadro, max_rostos, caixa_grupo}] e grava a folha em saida_jpg."""
+    try:
+        cv2 = _cv2()
+        if cv2 is None: return None
+        linhas, resumo = [], []
+        for i, v in enumerate(arquivos):
+            if papeis and papeis[i] != 'fala': continue
+            dur = _duracao(v); quadros, conts, uniao = [], [], None
+            for k in range(N_QUADROS):
+                img = _quadro(v, dur * (k + 0.5) / N_QUADROS)
+                if img is None: continue
+                cx = rostos(cv2, img); conts.append(len(cx)); H, W = img.shape[:2]
+                for x, y, w, h in cx:
+                    cv2.rectangle(img, (int(x * W), int(y * H)), (int((x + w) * W), int((y + h) * H)), (0, 255, 0), 3)
+                    uniao = [x, y, x + w, y + h] if uniao is None else [min(uniao[0], x), min(uniao[1], y), max(uniao[2], x + w), max(uniao[3], y + h)]
+                cv2.putText(img, f'{len(cx)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 0, 255), 3)
+                quadros.append(cv2.resize(img, (270, int(270 * H / W))))
+            if quadros: linhas.append(np.hstack([q[:quadros[0].shape[0]] for q in quadros]))
+            resumo.append({'nome': nomes[i], 'rostos_por_quadro': conts, 'max_rostos': max(conts) if conts else 0,
+                           'caixa_grupo': [round(float(u), 3) for u in uniao] if uniao else None})
+        if linhas:
+            L = max(l.shape[1] for l in linhas); cv2.imwrite(saida_jpg, np.vstack([np.pad(l, ((0, 0), (0, L - l.shape[1]), (0, 0))) for l in linhas]), [cv2.IMWRITE_JPEG_QUALITY, 80])
+        return resumo
+    except Exception as e:
+        print('enquadramento: falhou (segue sem):', str(e)[:120], flush=True); return None

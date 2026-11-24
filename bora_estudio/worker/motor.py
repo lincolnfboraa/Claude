@@ -37,6 +37,22 @@ def nomes_originais(meta, arqs):
     por = {a.get('caminho'): a.get('nome') for a in (meta.get('arquivos') or []) if a.get('nome')}
     return [por.get(a) or os.path.basename(a) for a in arqs]
 
+def _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb):
+    """Fase 1 do enquadramento: mede rostos por take (uma vez por projeto) e guarda o resumo no projeto e a folha de quadros no bucket. Não muda nenhum corte; nunca derruba a edição."""
+    try:
+        cache = os.path.join(pasta, 'enquadramento_diag.json')
+        if os.path.exists(cache) or os.environ.get('BORA_DIAG_ENQ', '1') == '0': return
+        import enquadramento
+        jpg = os.path.join(pasta, 'diag_enquadramento.jpg')
+        res = enquadramento.diagnosticar(arqs, nomes, jpg, papeis)
+        json.dump(res or [], open(cache, 'w'))
+        if not res: return
+        if os.path.exists(jpg): _subir(sb, f'{cli_id}/{pid}/diag_enquadramento.jpg', jpg, 'image/jpeg')
+        m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        m2['enquadramento_diag'] = res; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m2})
+    except Exception as e:
+        print('diagnóstico de enquadramento:', str(e)[:120], flush=True)
+
 def _subir(sb, caminho, arq, tipo):
     url = os.environ['SUPABASE_URL'].rstrip('/') + f'/storage/v1/object/previas/{caminho}'
     r = urllib.request.Request(url, data=open(arq, 'rb').read(), method='POST',
@@ -196,6 +212,7 @@ def preparar(p, etapa, sb):
         if n > 1 and os.path.exists(ant_arq): anterior = json.load(open(ant_arq))
         feedbacks = [(x['numero'], x['feedback']) for x in versoes if x.get('feedback') and x['numero'] < n]
         nomes = nomes_originais(meta, arqs)
+        _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb)
         exigidos, casados = exigir_takes(nomes, papeis, meta.get('anexos') or [], [meta.get('briefing', '')] + [t for _, t in feedbacks[-1:]])
         etapa('A IA está montando o storytelling no DNA do cliente' if not anterior else 'A IA está aplicando o seu ajuste', 28)
         pronto = os.path.join(pasta, f'plano_v{n}.json')
