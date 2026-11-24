@@ -22,7 +22,7 @@ ESQUEMA = {
             'properties': {'rotulo': {'type': 'string'}, 'tema': {'type': 'string'}, 'pergunta': {'type': 'string'}}},
         'destaques': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
             'required': ['estilo', 'palavra_inicio', 'palavra_fim', 'linhas'],
-            'properties': {'estilo': {'type': 'string', 'enum': ['pop', 'serifa', 'lettering', 'palavra_solta']},
+            'properties': {'estilo': {'type': 'string', 'enum': ['pop', 'serifa', 'lettering', 'palavra_solta', 'preco']},
                            'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                            'linhas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['texto', 'papel'],
                                'properties': {'texto': {'type': 'string'}, 'papel': {'type': 'string', 'enum': ['pequena', 'grande']}}}}}}},
@@ -32,11 +32,11 @@ ESQUEMA = {
                                'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                                'modo': {'type': 'string', 'enum': ['tela_cheia', 'flutuando']}}}},
         'broll': {'type': 'array', 'description': 'Cenas de ambiente (B-roll, vídeos SEM fala listados abaixo) cobrindo a imagem durante a locução. A voz continua por baixo. Vazio se não houver B-roll.',
-            'items': {'type': 'object', 'additionalProperties': False, 'required': ['video', 'palavra_inicio', 'palavra_fim', 'inicio_s', 'motivo'],
+            'items': {'type': 'object', 'additionalProperties': False, 'required': ['video', 'palavra_inicio', 'palavra_fim', 'inicio_s', 'velocidade', 'motivo'],
                 'properties': {'video': {'type': 'integer', 'description': 'número do B-roll (1, 2, ...)'},
                                'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                                'inicio_s': {'type': 'number', 'description': 'segundo do vídeo de ambiente onde a cena começa: o melhor momento, com a câmera firme (veja os quadros e o tremor)'},
-                               'motivo': {'type': 'string'}}}},
+                               'velocidade': {'type': 'number', 'description': '1 = normal; 0.5 a 0.9 = câmera lenta, pra cena curta cobrir mais tempo'}, 'motivo': {'type': 'string'}}}},
         'correcoes': {'type': 'array', 'description': 'Grafia correta de palavras que a transcrição errou (só ortografia, nunca trocar o que foi dito).',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra', 'texto'],
                       'properties': {'palavra': {'type': 'integer'}, 'texto': {'type': 'string'}}}},
@@ -62,6 +62,7 @@ Como planejar
 - Observações do editor sobre o gancho NÃO são o texto do título: use como inspiração (crie um título curto e natural), a menos que venham marcadas como texto EXATO.
 - Os templates de título (premium, caixa, impacto, sem título) são desenhados pelo motor: nunca diga que um deles não está disponível.
 - Cada segmento termina numa palavra completa e fecha o pensamento; nunca corte no meio de uma frase.
+- Preço 'de X por Y': destaque estilo 'preco' com duas linhas: 'De R$X' (pequena, sai riscada em vermelho) e 'por R$Y' (grande, na cor de destaque); use em TODA oferta do vídeo, pra manter o padrão.
 - Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência. 'total' = quadro inteiro, sem zoom: use quando houver duas ou mais pessoas no quadro ou alguém perto da borda (olhe as folhas de quadros das falas); nunca corte uma pessoa na lateral.
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
 - Destaques: no máximo 3 ou 4 frases de destaque, variando os estilos no mesmo vídeo (pop, serifa, lettering), mais 2 ou 3 palavras soltas (estilo palavra_solta: só a palavra-chave, uma linha 'grande'). Os textos das linhas saem exatamente das palavras faladas no intervalo palavra_inicio..palavra_fim; a palavra principal fica numa linha 'grande', as de apoio em 'pequena'. Nada de destaque em todo lugar.
@@ -82,15 +83,20 @@ def marcar_repeticoes(pw):
     """Posições (no arquivo) do PRIMEIRO de um par repetido: gagueira ('eu eu'), falso começo (o mesmo par de palavras dito de novo logo adiante,
     marca o trecho todo da primeira tentativa) ou número dito duas vezes ('24%, uma redução de 24%'). É só um aviso pra IA, que decide."""
     n = [_n(w['w']) for w in pw]; m = set()
+    fecha = lambda a, b: any(pw[k]['w'].rstrip()[-1:] in '.?!' for k in range(a, b))      # frase completa no meio: é lista (ofertas), não falso começo
     for i in range(len(pw)):
         if not n[i]: continue
         if i + 1 < len(pw) and n[i + 1] == n[i] and len(n[i]) <= 12: m.add(i)
         if i + 1 < len(pw) and n[i + 1] and len(n[i]) + len(n[i + 1]) >= 5:
             for j in range(i + 2, min(len(pw) - 1, i + 14)):
-                if n[j] == n[i] and n[j + 1] == n[i + 1]: m.update(range(i, j)); break
+                if n[j] == n[i] and n[j + 1] == n[i + 1]:
+                    if not fecha(i, j): m.update(range(i, j))
+                    break
         if n[i].isdigit():
             for j in range(i + 1, min(len(pw), i + 8)):
-                if n[j] == n[i]: m.add(i); break
+                if n[j] == n[i]:
+                    if not fecha(i, j): m.add(i)
+                    break
     return m
 
 def numerar(palavras, arquivos, papeis=None):

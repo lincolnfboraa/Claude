@@ -315,20 +315,23 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr, cr
         if not sel: print('broll: trecho escolhido não está no vídeo montado, pulado', b, flush=True); continue
         a = min(t['s'] for t in sel); z = max(t['e'] for t in sel)
         final = dur - z < 1.5 and dur - a <= 7.0             # cena que fecha o vídeo: vai até o último quadro, sem voltar pro rosto
+        prox = min((t['s'] for t in tokens if t['s'] > z + 0.01), default=dur)
+        if prox - z < 0.8: z = prox                       # vai até a próxima fala: não volta pro rosto só no respiro do corte
         z = dur if final else min(max(z, a + 1.5), a + 4.5, dur)    # 1,5 a 4,5 s
+        vel = min(1.0, max(0.5, float(b.get('velocidade') or 1)))   # <1: cena mais lenta (cobre mais tempo com menos imagem)
         if a < ult_fim + 1.0 or z - a < 1.0: continue        # sem colar um B-roll no outro
         fa, fb = round(a * FPS), round(z * FPS); n = fb - fa
-        dclip = duracao(arq); ini = max(0.0, min(float(b.get('inicio_s') or 0), dclip - n / FPS - 0.05))
+        dclip = duracao(arq); ini = max(0.0, min(float(b.get('inicio_s') or 0), dclip - n * vel / FPS - 0.05))
         trem = (pl.get('_broll_tremor') or [])[k] if k < len(pl.get('_broll_tremor') or []) else None
-        novo = trecho_estavel(trem, ini, n / FPS, dclip)
+        novo = trecho_estavel(trem, ini, n * vel / FPS, dclip)
         if novo != ini: print(f'broll: trecho tremido em {ini:.1f} s, usando {novo:.1f} s', arq, flush=True); ini = novo
-        if dclip < n / FPS: n = int(dclip * FPS) - 1
+        if dclip < n * vel / FPS: n = int(dclip / vel * FPS) - 1
         if n < 20: continue
         W, H = sondar(arq)[:2]
         if W / H > 9 / 16: cw, ch = round(H * 9 / 16 / 2) * 2, H
         else: cw, ch = W, round(W * 16 / 9 / 2) * 2
         x, y = (W - cw) // 2, max(0, (H - ch) // 2)
-        chave = os.path.join(cache, f'broll{amb[k]}_{ini:.2f}_{n}_{crf}{"n" if nv else "r"}.mp4')
+        chave = os.path.join(cache, f'broll{amb[k]}_{ini:.2f}_{n}_{vel:g}_{crf}{"n" if nv else "r"}.mp4')
         if not os.path.exists(chave):
             if nv:
                 import codificadores; cod = codificadores.args_nvenc()
@@ -336,7 +339,7 @@ def aplicar_broll(base, saida, pl, tokens, dur, arquivos, altura, pasta, hdr, cr
                 cod = ['-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf), '-pix_fmt', 'yuv420p10le', '-x265-params', params]
             with pesado(altura):
                 rc, msg, mb = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-ss', f'{ini:.3f}', '-i', arq, '-an',
-                                     '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,fps=30000/1001', '-frames:v', str(n),
+                                     '-vf', f'crop={cw}:{ch}:{x}:{y},scale={OW}:{OH}:flags=lanczos,setsar=1,setpts=PTS/{vel:g},fps=30000/1001', '-frames:v', str(n),
                                      *cod, *tags, chave + '.tmp.mp4'], 'b-roll')
             if oom(rc, msg): raise SemMemoria(f'memória insuficiente no B-roll ({mb} MB)')
             if rc: print('broll falhou:', msg, flush=True); continue

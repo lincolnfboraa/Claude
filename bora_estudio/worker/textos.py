@@ -123,6 +123,7 @@ class Roteiro:
         t1 = min(self.blocos[k + 1]['s'], cobre[-1]['e'] + 1.2) if k + 1 < len(self.blocos) else self.fim
         for b in cobre: b['oculto'] = True
         est = d['estilo']
+        if est == 'preco': return self.preco(d, cobre, t0, t1)
         linhas = d['linhas'] if est != 'palavra_solta' else [{'texto': d['linhas'][0]['texto'] if d['linhas'] else '', 'papel': 'grande'}]
         L = []
         for j, ln in enumerate(linhas):
@@ -148,6 +149,24 @@ class Roteiro:
             px = {'l': esq + 8, 'r': dir_ - 6, 'c': 540}[x['alinh']]
             if est == 'lettering': self.linha_letras(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'])
             else: self.linha(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'], 'pop' if x['grande'] else 'slide')
+
+    def preco(self, d, cobre, t0, t1):
+        """Oferta: 'De R$X' em vermelho que leva um risco animado e 'por R$Y' grande na cor de destaque, que pula logo depois. Juntos, na altura dos destaques."""
+        ls = [x['texto'].strip().translate(LIMPA) for x in d['linhas'] if x['texto'].strip()]
+        if not ls: return
+        de, por = (ls[0], ls[1]) if len(ls) > 1 else ('', ls[0])
+        i0, i1 = d['palavra_inicio'], d['palavra_fim']
+        cue = next((t for t in self.tokens if i0 <= t['i'] <= i1 and t['tok'].lower().strip('.,') == 'por'), None)
+        tp = max(t0 + 0.45, (cue['s'] - 0.04) if cue else t0 + 0.6)
+        fg = ajusta_fs(por, 'Poppins Black', 760, -4, 200); bg = FUNDO_DESTAQUE - desc_glifo(por, fg, 'Poppins Black')
+        self.linha(tp, t1, por, 'Poppins Black', fg, self.DEST, 540, bg, 'c', -4, 'pop')
+        if de:
+            fp = min(110, ajusta_fs(de, 'Poppins SemiBold', 620, -1, 110)); w = largura(de, 'Poppins SemiBold', fp, -1)
+            bp = bg - FONTES['Poppins Black'][3] * fg - 14; VERM = cor_ass('#E53935')
+            self.linha(t0, t1, de, 'Poppins SemiBold', fp, VERM, 540, bp, 'c', -1, 'slide')
+            y = bp - FONTES['Poppins SemiBold'][3] * fp * 0.42; x0 = 540 - w / 2 - 10; x1 = 540 + w / 2 + 10; ts = int((tp - t0) * 1000) - 260
+            risco = f"{{\\an7\\pos(0,0)\\c{VERM}\\bord0\\shad0\\clip({x0:.0f},0,{x0:.0f},1920)\\t({max(ts, 120)},{max(ts, 120) + 220},\\clip({x0:.0f},0,{x1:.0f},1920))\\fad(0,140)\\p1}}m {x0:.0f} {y - 5:.0f} l {x1:.0f} {y - 9:.0f} l {x1:.0f} {y + 3:.0f} l {x0:.0f} {y + 7:.0f}{{\\p0}}"
+            self.dlg(5, t0, t1, 'K', risco)
 
     @staticmethod
     def _quebra(txt, f, fs, W, sp=0):
