@@ -251,10 +251,10 @@ def tremor_por_segundo(video, cache=None):
     if cache: json.dump(res, open(cache, 'w'))
     return res
 
-def folha_take(video, saida, largura=256):
-    """Folha com vários quadros do take (3 ou 4 por linha, 2 linhas), convertidos pra SDR só pra IA enxergar; não vai pro vídeo.
+def folha_take(video, saida, largura=256, k=None):
+    """Folha com vários quadros do take (k quadros em 2 linhas; padrão 6 ou 8), convertidos pra SDR só pra IA enxergar; não vai pro vídeo.
     Devolve (jpg, [segundo de cada quadro])."""
-    dur = duracao(video); k = 6 if dur <= 15 else 8; cols = k // 2
+    dur = duracao(video); k = (k or (6 if dur <= 15 else 8)) // 2 * 2; cols = k // 2
     tempos = [round(dur * (i + 0.5) / k, 1) for i in range(k)]
     if os.path.exists(saida): return saida, tempos
     hdr = sondar(video)[2] in ('arib-std-b67', 'smpte2084')

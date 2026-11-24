@@ -40,7 +40,7 @@ def nomes_originais(meta, arqs):
 def _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb):
     """Fase 1 do enquadramento: mede rostos por take (uma vez por projeto) e guarda o resumo no projeto e a folha de quadros no bucket. Não muda nenhum corte; nunca derruba a edição."""
     try:
-        cache = os.path.join(pasta, 'enquadramento_diag.json')
+        cache = os.path.join(pasta, 'enquadramento_diag2.json')      # v2: a 1ª versão não lia vídeo girado (iPhone) e gravou vazio
         if os.path.exists(cache) or os.environ.get('BORA_DIAG_ENQ', '1') == '0': return
         import enquadramento
         jpg = os.path.join(pasta, 'diag_enquadramento.jpg')
@@ -236,7 +236,14 @@ def preparar(p, etapa, sb):
             anexos_ia = [a for a in (meta.get('anexos') or []) if not a.get('capa_final') and a not in casados]       # o mesmo take de novo não é inserção: é pedido de uso
             if exigidos: pedido_sens += ' O editor pediu que ' + ', '.join(f'o Arquivo {i + 1} ({nomes[i]})' for i in sorted(exigidos)) + ' ENTRE no storytelling, com falas dele (não como inserção em tela cheia).'
             if any(a.get('capa_final') for a in (meta.get('anexos') or [])): pedido_sens += ' Uma capa final (CRM e RQE) será acrescentada depois do último trecho: o fechamento da fala não precisa citar o CRM.'
-            pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos)
+            falas = []                                  # quadros dos takes de fala: a IA evita trecho com gente entrando, produto sendo trocado etc.
+            for i, a in enumerate(arqs):
+                if papeis[i] != 'fala': continue
+                try:
+                    d_ = montagem.duracao(a); jpg, tempos = montagem.folha_take(a, os.path.join(pasta, f'fala_{i + 1:02d}_folha.jpg'), largura=200, k=min(16, max(6, int(d_ / 2))))
+                    if jpg: falas.append({'n': i + 1, 'nome': nomes[i], 'dur': d_, 'jpg': jpg, 'tempos': tempos})
+                except Exception as e: print('folha da fala:', str(e)[:100], flush=True)
+            pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
         pl['_anexos'] = [a for a in (meta.get('anexos') or []) if a not in casados]; pl['_exigidos'] = [nomes[i] for i in sorted(exigidos)]; pl['_exigidos_i'] = sorted(exigidos)
         pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]

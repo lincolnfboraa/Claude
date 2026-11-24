@@ -109,7 +109,7 @@ def numerar(palavras, arquivos, papeis=None):
             g += 1
     return '\n'.join(linhas)
 
-def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=(), exigidos=()):
+def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=(), exigidos=(), falas=()):
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
     pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos, papeis)}"]
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
@@ -125,7 +125,7 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
     import montagem
     amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}; G = montagem.indice_global(palavras)
     for tentativa in (0, 1):
-        conteudo = _conteudo('\n\n'.join(pedido), brolls)
+        conteudo = _conteudo('\n\n'.join(pedido), brolls, falas)
         plano = _chamar_gpt(sistema, conteudo) if IA == 'gpt' else _chamar_claude(sistema, conteudo)
         plano = validar(plano, sum(len(p) for p in palavras), amb, len(brolls), G)
         falta = sorted(set(exigidos) - {G[int(sg['palavra_inicio'])][0] for sg in plano['segmentos']})
@@ -178,18 +178,28 @@ def _chamar_gpt(sistema, conteudo):
     plano['_uso'] = {'entrada': r.usage.input_tokens, 'saida': r.usage.output_tokens}
     return plano
 
-def _conteudo(texto, brolls):
-    """Texto do pedido + um quadro de cada vídeo de ambiente, pra IA saber o que tem em cada cena."""
-    if not brolls: return texto
+def _conteudo(texto, brolls, falas=()):
+    """Texto do pedido + quadros de cada vídeo de ambiente (B-roll) e de cada take de fala, pra IA ver o que acontece na imagem."""
+    if not brolls and not falas: return texto
     import base64
-    blocos = [{'type': 'text', 'text': texto + '\n\nVídeos de ambiente disponíveis para B-roll. De cada um: uma folha com vários quadros '
+    img = lambda arq: {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': base64.b64encode(open(arq, 'rb').read()).decode()}}
+    blocos = [{'type': 'text', 'text': texto}]
+    if falas:
+        blocos.append({'type': 'text', 'text': 'Imagem dos takes de FALA (uma folha por arquivo, quadros da esquerda pra direita, linha de cima e depois a de baixo, no segundo indicado; '
+                       'o segundo é o mesmo da transcrição). Olhe a imagem antes de escolher as falas: NÃO use trechos em que outra pessoa entra ou passa no quadro, alguém '
+                       'arruma, troca ou coloca produto na frente de quem fala, quem fala sai do lugar, se ajeita ou olha pra fora, ou a câmera mexe. Se a fala desse trecho for '
+                       'essencial, cubra com B-roll (campo broll) pelo tempo do problema; senão, pule a frase. Em motivo, cite quando evitou um trecho por causa da imagem.'})
+        for f in falas:
+            blocos.append({'type': 'text', 'text': f"Arquivo {f['n']}: {f['nome']}, {f['dur']:.1f} s. Quadros em: {', '.join(f'{t:g} s' for t in f['tempos'])}"}); blocos.append(img(f['jpg']))
+    if not brolls: return blocos
+    blocos.append({'type': 'text', 'text': '\n\nVídeos de ambiente disponíveis para B-roll. De cada um: uma folha com vários quadros '
                '(da esquerda pra direita, linha de cima e depois a de baixo, no segundo indicado) e o tremor da câmera em cada segundo '
-               f'(0 = firme; acima de {TREMOR} = tremido, não use esse trecho):'}]
+               f'(0 = firme; acima de {TREMOR} = tremido, não use esse trecho):'})
     for b in brolls:
         tr = ' '.join(f'{i}s:{x:g}' for i, x in enumerate(b.get('tremor') or []))
         qs = ', '.join(f'{t:g} s' for t in b.get('tempos') or [])
         blocos.append({'type': 'text', 'text': f"B-roll {b['n']}: {b['nome']}, {b['dur']:.1f} s. Quadros em: {qs}. Tremor por segundo: {tr or 'ainda não medido (o motor mede depois da escolha e desloca a cena se estiver tremida); escolha pela imagem dos quadros'}"})
-        blocos.append({'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': base64.b64encode(open(b['jpg'], 'rb').read()).decode()}})
+        blocos.append(img(b['jpg']))
     return blocos
 
 def validar(plano, total, ambiente=None, n_broll=0, G=None):

@@ -32,11 +32,8 @@ def _quadro(video, t, largura=540):
     tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if hdr else ''
     for f in (tm, ''):
         r = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{t:.2f}', '-i', video, '-frames:v', '1', '-vf', f'{f}scale={largura}:-2,format=bgr24', '-f', 'rawvideo', '-'], capture_output=True)
-        if r.returncode == 0 and r.stdout:
-            h = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=width,height', '-of', 'csv=p=0:s=x', video], capture_output=True, text=True).stdout.strip().split('x')
-            w0, h0 = int(h[0]), int(h[1]); n = len(r.stdout)
-            for hh in (round(largura * h0 / w0), round(largura * h0 / w0) + 1, round(largura * h0 / w0) - 1):
-                if n == largura * hh * 3: return np.frombuffer(r.stdout, np.uint8).reshape(hh, largura, 3).copy()
+        if r.returncode == 0 and r.stdout and len(r.stdout) % (largura * 3) == 0:
+            return np.frombuffer(r.stdout, np.uint8).reshape(-1, largura, 3).copy()
     return None
 
 def rostos(cv2, img):
