@@ -5,7 +5,7 @@ R = []
 def ok(nome, cond, det=''): R.append(bool(cond)); print(('PASSOU ' if cond else 'FALHOU ') + nome + (f' ({det})' if det else ''), flush=True)
 arqs = ['/t/original_01.mov', '/t/original_02.mov', '/t/original_03.mov', '/t/original_04.mov']
 # nomes originais vêm dos arquivos do projeto: aqui usamos nomes reais pra casar
-arqs = ['/t/IMG_1703.MOV', '/t/IMG_1704.MOV', '/t/IMG_1705.MOV', '/t/IMG_1706.MOV']; pap = ['fala', 'fala', 'fala', 'ambiente']
+arqs = ['IMG_1703.MOV', 'IMG_1704.MOV', 'IMG_1705.MOV', 'IMG_1706.MOV']; pap = ['fala', 'fala', 'fala', 'ambiente']
 ex, cas = motor.exigir_takes(arqs, pap, [{'nome': 'IMG_1705.mov', 'tipo': 'video'}], [''])
 ok('anexo com o mesmo nome do original (maiúscula/minúscula) vira pedido de uso', ex == {2} and len(cas) == 1)
 ex, cas = motor.exigir_takes(arqs, pap, [], ['', 'Faltou o IMG_1704 no storytelling'])
@@ -28,4 +28,9 @@ pl = plano.gerar(pal, ['/t/a.mov', '/t/b.mov', '/t/c.mov'], {'nome': 'x'}, {}, {
 ok('plano sem o take pedido: refaz uma vez com aviso e passa a usar o take', len(chamadas) == 2 and 'NÃO usou' in chamadas[1] and pl['segmentos'][0]['palavra_inicio'] == 10, f'{len(chamadas)} chamadas')
 chamadas.clear(); plano.gerar(pal, ['/t/a.mov', '/t/b.mov', '/t/c.mov'], {'nome': 'x'}, {}, {}, '', None, (), (), ['fala'] * 3, ())
 ok('sem take exigido: uma chamada só', len(chamadas) == 1)
+meta = {'arquivos': [{'caminho': f'/trabalho/x/original_{i + 1:02d}.mov', 'nome': n} for i, n in enumerate(arqs)]}
+ok('nomes de verdade (IMG_1705.MOV) em vez de original_03.mov', motor.nomes_originais(meta, [a['caminho'] for a in meta['arquivos']]) == arqs)
+import montagem
+u = montagem.unir_moeda([{'w': 'custava', 's': 0, 'e': 1}, {'w': 'R', 's': 1, 'e': 1.1}, {'w': '$219', 's': 1.1, 'e': 1.5}, {'w': ',90.', 's': 1.5, 'e': 1.9}, {'w': 'hoje', 's': 2, 'e': 2.2}])
+ok('R $219 ,90. vira R$219,90.', [x['w'] for x in u] == ['custava', 'R$219,90.', 'hoje'] and u[1]['s'] == 1 and u[1]['e'] == 1.9)
 print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)

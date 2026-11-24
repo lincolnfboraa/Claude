@@ -32,6 +32,11 @@ def _arquivos(pid, meta):
     arqs = [a['caminho'] for a in (meta.get('arquivos') or []) if os.path.exists(a.get('caminho', ''))]
     return arqs or sorted(glob.glob(os.path.join(TRAB, pid, 'original_*.*')))
 
+def nomes_originais(meta, arqs):
+    """Nome que o editor enviou (IMG_1705.MOV) de cada original, na mesma ordem de arqs; o caminho no servidor é original_NN.mov."""
+    por = {a.get('caminho'): a.get('nome') for a in (meta.get('arquivos') or []) if a.get('nome')}
+    return [por.get(a) or os.path.basename(a) for a in arqs]
+
 def _subir(sb, caminho, arq, tipo):
     url = os.environ['SUPABASE_URL'].rstrip('/') + f'/storage/v1/object/previas/{caminho}'
     r = urllib.request.Request(url, data=open(arq, 'rb').read(), method='POST',
@@ -128,7 +133,7 @@ def exigir_takes(arqs, papeis, anexos, textos):
     """Takes de fala que o editor pediu pra entrar no storytelling: o anexo tem o mesmo nome de um original (IMG_1705.mov = IMG_1705.MOV)
     ou o pedido (briefing, último feedback) cita o take. Devolve (índices dos originais, anexos que eram só o mesmo take de novo)."""
     import re
-    stems = {i: os.path.splitext(os.path.basename(a))[0].casefold() for i, a in enumerate(arqs) if papeis[i] == 'fala'}
+    stems = {i: os.path.splitext(os.path.basename(a))[0].casefold() for i, a in enumerate(arqs) if papeis[i] == 'fala'}      # arqs: nomes dos originais (nomes_originais)
     exig, casados = set(), []
     for x in anexos:
         if x.get('capa_final'): continue
@@ -190,7 +195,8 @@ def preparar(p, etapa, sb):
         ant_arq = os.path.join(pasta, f'plano_v{n - 1}.json')
         if n > 1 and os.path.exists(ant_arq): anterior = json.load(open(ant_arq))
         feedbacks = [(x['numero'], x['feedback']) for x in versoes if x.get('feedback') and x['numero'] < n]
-        exigidos, casados = exigir_takes(arqs, papeis, meta.get('anexos') or [], [meta.get('briefing', '')] + [t for _, t in feedbacks[-1:]])
+        nomes = nomes_originais(meta, arqs)
+        exigidos, casados = exigir_takes(nomes, papeis, meta.get('anexos') or [], [meta.get('briefing', '')] + [t for _, t in feedbacks[-1:]])
         etapa('A IA está montando o storytelling no DNA do cliente' if not anterior else 'A IA está aplicando o seu ajuste', 28)
         pronto = os.path.join(pasta, f'plano_v{n}.json')
         if os.path.exists(pronto):                     # retomada: reaproveita o plano já pago desta versão
@@ -211,10 +217,10 @@ def preparar(p, etapa, sb):
                 pedido_sens = ('Termos sensíveis (nomes comerciais de medicamentos: ' + ', '.join(sens['termos'][:8]) + '): NÃO use em título, destaque nem palavra solta, e prefira não escolher trechos que só '
                                'citem marca; a legenda troca por termos genéricos. Prefira trechos que falem das medicações como classe e do cuidado com o rim, sem promessa de efeito nem tom de venda.')
             anexos_ia = [a for a in (meta.get('anexos') or []) if not a.get('capa_final') and a not in casados]       # o mesmo take de novo não é inserção: é pedido de uso
-            if exigidos: pedido_sens += ' O editor pediu que ' + ', '.join(f'o Arquivo {i + 1} ({os.path.basename(arqs[i])})' for i in sorted(exigidos)) + ' ENTRE no storytelling, com falas dele (não como inserção em tela cheia).'
+            if exigidos: pedido_sens += ' O editor pediu que ' + ', '.join(f'o Arquivo {i + 1} ({nomes[i]})' for i in sorted(exigidos)) + ' ENTRE no storytelling, com falas dele (não como inserção em tela cheia).'
             if any(a.get('capa_final') for a in (meta.get('anexos') or [])): pedido_sens += ' Uma capa final (CRM e RQE) será acrescentada depois do último trecho: o fechamento da fala não precisa citar o CRM.'
-            pl = plano_ia.gerar(pal, arqs, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos)
-        pl['_anexos'] = [a for a in (meta.get('anexos') or []) if a not in casados]; pl['_exigidos'] = [os.path.basename(arqs[i]) for i in sorted(exigidos)]
+            pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos)
+        pl['_anexos'] = [a for a in (meta.get('anexos') or []) if a not in casados]; pl['_exigidos'] = [nomes[i] for i in sorted(exigidos)]; pl['_exigidos_i'] = sorted(exigidos)
         pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
         escolhidos = {int(b['video']) for b in pl.get('broll') or []}
@@ -276,8 +282,8 @@ def renderizar(pac, etapa, pasta=None):
         n_dest = len(pl.get('destaques') or []) if any(',K,' in l for l in open(saida_txt + '.ass')) else 0
         verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest, vocab=pac.get('vocabulario'))
         if pl.get('_exigidos'):
-            G = montagem.indice_global(pal); usados = {os.path.basename(arqs[G[int(sg['palavra_inicio'])][0]]) for sg in pl['segmentos']}
-            faltou = [x for x in pl['_exigidos'] if x not in usados]
+            G = montagem.indice_global(pal); usados = {G[int(sg['palavra_inicio'])][0] for sg in pl['segmentos']}
+            faltou = [nm for nm, i in zip(pl['_exigidos'], pl.get('_exigidos_i') or []) if i not in usados]
             verif.insert(-2, {'item': 'Takes pedidos entraram', 'ok': not faltou, 'detalhe': ('todos usados: ' + ', '.join(pl['_exigidos'])) if not faltou else 'ficou de fora: ' + ', '.join(faltou)})
         if (pac.get('vocabulario') or {}).get('sensiveis'):
             sobra = validacao.termos_na_tela(open(saida_txt + '.ass', encoding='utf-8').read(), pac['vocabulario'])

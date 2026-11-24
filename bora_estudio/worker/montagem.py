@@ -106,9 +106,19 @@ def transcrever(video, cache, vocab=None):
     kw = {'hotwords': vocabulario.dica(vocab)} if vocabulario.dica(vocab) else {}      # termos do cliente como dica em toda janela de áudio
     seg, _ = _modelo.transcribe(a, language='pt', word_timestamps=True, beam_size=1, vad_filter=True, condition_on_previous_text=False, **kw)
     pal = [{'w': w.word.strip(), 's': round(w.start, 3), 'e': round(w.end, 3)} for s in seg for w in s.words if w.word.strip()]
-    pal = vocabulario.aplicar(pal, vocab)
+    pal = unir_moeda(vocabulario.aplicar(pal, vocab))
     json.dump(pal, open(cache, 'w'), ensure_ascii=False)
     return pal
+
+def unir_moeda(pal):
+    """O Whisper às vezes parte valores: 'R' '$219' ',90' (a legenda saía 'R $219 ,90'). Junta em 'R$219,90'."""
+    out = []
+    for w in pal:
+        t = w['w']
+        if out and ((out[-1]['w'] == 'R' and t.startswith('$')) or (re.match(r'^[,.]\d', t) and re.search(r'\d$', out[-1]['w']))):
+            out[-1] = {**out[-1], 'w': out[-1]['w'] + t, 'e': w['e']}
+        else: out.append(w)
+    return out
 
 def envelope(wav, hop=0.02):
     a = np.frombuffer(wave.open(wav).readframes(10 ** 10), dtype=np.int16).astype(np.float32) / 32768
