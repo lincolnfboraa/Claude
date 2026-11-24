@@ -54,6 +54,7 @@ class Roteiro:
         self.tokens, self.fim, self.ev = tokens, fim, []
         self.BR, self.DEST = cor_ass(cor_leg), cor_ass(cor_dest, '#FFFFFF')
         self.blocos = self._blocos()
+        self.desfoque = []                             # janelas (t0, t1) em que o vídeo atrás fica escuro e desfocado (selo de oferta)
         self.t_destaques = []                          # quando cada destaque entra (usado pelos efeitos sonoros)
 
     def dlg(self, layer, t0, t1, st, txt): self.ev.append(f"Dialogue: {layer},{ts_ass(t0)},{ts_ass(t1)},{st},,0,0,0,,{txt}")
@@ -124,6 +125,7 @@ class Roteiro:
         for b in cobre: b['oculto'] = True
         est = d['estilo']
         if est == 'preco': return self.preco(d, cobre, t0, t1)
+        if est == 'selo': return self.selo(d, t0, max(t1, t0 + 2.2))
         linhas = d['linhas'] if est != 'palavra_solta' else [{'texto': d['linhas'][0]['texto'] if d['linhas'] else '', 'papel': 'grande'}]
         L = []
         for j, ln in enumerate(linhas):
@@ -151,22 +153,47 @@ class Roteiro:
             else: self.linha(x['tc'], t1, x['txt'], x['f'], x['fs'], x['cor'], px, x['base'] + desloc, x['alinh'], x['sp'], 'pop' if x['grande'] else 'slide')
 
     def preco(self, d, cobre, t0, t1):
-        """Oferta: 'De R$X' em vermelho que leva um risco animado e 'por R$Y' grande na cor de destaque, que pula logo depois. Juntos, na altura dos destaques."""
+        """Oferta: 'De R$X' branco que leva um risco vermelho animado e, na hora do 'por', o preço novo num selo branco com barra na cor de destaque
+        e o número na cor de destaque (pula com zoom). Juntos, na altura dos destaques."""
         ls = [x['texto'].strip().translate(LIMPA) for x in d['linhas'] if x['texto'].strip()]
         if not ls: return
         de, por = (ls[0], ls[1]) if len(ls) > 1 else ('', ls[0])
         i0, i1 = d['palavra_inicio'], d['palavra_fim']
         cue = next((t for t in self.tokens if i0 <= t['i'] <= i1 and t['tok'].lower().strip('.,') == 'por'), None)
         tp = max(t0 + 0.45, (cue['s'] - 0.04) if cue else t0 + 0.6)
-        fg = ajusta_fs(por, 'Poppins Black', 760, -4, 200); bg = FUNDO_DESTAQUE - desc_glifo(por, fg, 'Poppins Black')
-        self.linha(tp, t1, por, 'Poppins Black', fg, self.DEST, 540, bg, 'c', -4, 'pop')
+        f = 'Poppins Black'; fg = ajusta_fs(por, f, 600, -2, 150); w = largura(por, f, fg, -2)
+        cap = FONTES[f][3] * fg; padx, pady, barra = 34, 22, 26
+        bw, bh = w + 2 * padx + barra, cap + 2 * pady; cy = FUNDO_DESTAQUE - bh / 2; cx = 540
+        pop = "\\fscx40\\fscy40\\t(0,140,\\fscx110\\fscy110)\\t(140,230,\\fscx100\\fscy100)\\fad(80,140)"
+        caixa = f"m 0 0 l {bw:.0f} 0 l {bw:.0f} {bh:.0f} l 0 {bh:.0f}"
+        self.dlg(5, tp, t1, 'K', f"{{\\an5\\pos({cx:.0f},{cy:.0f}){pop}\\c&HFFFFFF&\\bord0\\shad6\\4a&H70&\\p1}}{caixa}{{\\p0}}")
+        self.dlg(6, tp, t1, 'K', f"{{\\an5\\pos({cx - bw / 2 + barra / 2:.0f},{cy:.0f}){pop}\\c{self.DEST}\\bord0\\shad0\\p1}}m 0 0 l {barra} 0 l {barra} {bh:.0f} l 0 {bh:.0f}{{\\p0}}")
+        self.dlg(7, tp, t1, 'K', f"{{\\an5\\pos({cx + barra / 2:.0f},{cy + cap * 0.04:.0f}){pop}\\fnPoppins\\b1\\fs{fg}\\fsp-2\\c{self.DEST}\\bord3\\3c&H202020&\\shad0}}{por}")
         if de:
-            fp = min(110, ajusta_fs(de, 'Poppins SemiBold', 620, -1, 110)); w = largura(de, 'Poppins SemiBold', fp, -1)
-            bp = bg - FONTES['Poppins Black'][3] * fg - 14; VERM = cor_ass('#E53935')
-            self.linha(t0, t1, de, 'Poppins SemiBold', fp, VERM, 540, bp, 'c', -1, 'slide')
-            y = bp - FONTES['Poppins SemiBold'][3] * fp * 0.42; x0 = 540 - w / 2 - 10; x1 = 540 + w / 2 + 10; ts = int((tp - t0) * 1000) - 260
-            risco = f"{{\\an7\\pos(0,0)\\c{VERM}\\bord0\\shad0\\clip({x0:.0f},0,{x0:.0f},1920)\\t({max(ts, 120)},{max(ts, 120) + 220},\\clip({x0:.0f},0,{x1:.0f},1920))\\fad(0,140)\\p1}}m {x0:.0f} {y - 5:.0f} l {x1:.0f} {y - 9:.0f} l {x1:.0f} {y + 3:.0f} l {x0:.0f} {y + 7:.0f}{{\\p0}}"
-            self.dlg(5, t0, t1, 'K', risco)
+            fp = min(96, ajusta_fs(de, 'Poppins SemiBold', 560, -1, 96)); wd = largura(de, 'Poppins SemiBold', fp, -1)
+            bp = cy - bh / 2 - 30 - desc_glifo(de, fp, 'Poppins SemiBold'); VERM = cor_ass('#E53935')
+            self.linha(t0, t1, de, 'Poppins SemiBold', fp, self.BR, 540, bp, 'c', -1, 'slide')
+            y = bp - FONTES['Poppins SemiBold'][3] * fp * 0.42; x0 = 540 - wd / 2 - 10; x1 = 540 + wd / 2 + 10; ts = max(120, int((tp - t0) * 1000) - 260)
+            self.dlg(5, t0, t1, 'K', f"{{\\an7\\pos(0,0)\\c{VERM}\\bord0\\shad0\\clip({x0:.0f},0,{x0:.0f},1920)\\t({ts},{ts + 220},\\clip({x0:.0f},0,{x1:.0f},1920))\\fad(0,140)\\p1}}"
+                                 f"m {x0:.0f} {y - 6:.0f} l {x1:.0f} {y - 11:.0f} l {x1:.0f} {y + 3:.0f} l {x0:.0f} {y + 8:.0f}{{\\p0}}")
+
+    def selo(self, d, t0, t1):
+        """Selo de oferta no meio da tela (ex.: BLACK / FRIDAY / até 50%): fundo escurece e desfoca (o vídeo é desfocado no render),
+        o selo entra com zoom rápido. Linha 'grande' na cor de destaque; a última em serifa itálica."""
+        ls = [x for x in d['linhas'] if x['texto'].strip()]
+        if not ls: return
+        self.desfoque.append((t0, t1))
+        self.dlg(1, t0, t1, 'K', "{\\an7\\pos(0,0)\\c&H000000&\\1a&HFF&\\t(0,160,\\1a&H80&)\\fad(0,200)\\bord0\\shad0\\p1}m 0 0 l 1080 0 l 1080 1920 l 0 1920{\\p0}")
+        y = 760; zoom = "\\fscx25\\fscy25\\t(0,130,\\fscx112\\fscy112)\\t(130,220,\\fscx100\\fscy100)\\fad(60,200)"
+        for j, ln in enumerate(ls):
+            txt = ln['texto'].strip().translate(LIMPA); ult = j == len(ls) - 1 and len(ls) > 2
+            f = 'Merriweather Black Italic' if ult else 'Poppins Black'; sp = -2 if ult else -6
+            fs = ajusta_fs(txt, f, 560 if ult else 780, sp, 150 if ult else 230)
+            cor = self.DEST if ln.get('papel') == 'grande' else self.BR
+            cap = FONTES[f][3] * fs; y += cap / 2
+            fn = '\\fnPoppins\\b1' if f == 'Poppins Black' else f'\\fn{f}\\b0'
+            self.dlg(3, t0 + 0.06 * j, t1, 'K', f"{{\\an5\\pos(540,{y:.0f}){zoom}{fn}\\fs{fs}\\fsp{sp}\\c{cor}\\bord4\\3c&H101010&\\shad8\\4a&H60&}}{txt}")
+            y += cap / 2 + 18
 
     @staticmethod
     def _quebra(txt, f, fs, W, sp=0):

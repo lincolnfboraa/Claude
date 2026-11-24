@@ -553,6 +553,14 @@ def _textos_em_pedacos(base, ass, saida, crf, partes, here, prog):
             if os.path.exists(f): os.remove(f)
     return ruim or (0, '', max(r[2] for r in res))
 
+def desfocar(base, saida, janelas, crf=14):
+    """Desfoca o vídeo só nas janelas (t0, t1) do selo de oferta; o resto e o áudio ficam iguais (mesma cor, HDR mantido)."""
+    if not janelas: return base
+    params, tags = x265(sondar(base)[2]); en = '+'.join(f'between(t,{a:.3f},{b:.3f})' for a, b in janelas)
+    rc, msg, _ = rodar(['ffmpeg', '-nostdin', '-v', 'error', '-y', '-i', base, '-vf', f"boxblur=12:2:enable='{en}'", '-c:v', 'libx265', '-preset', 'veryfast', '-crf', str(crf),
+                        '-pix_fmt', 'yuv420p10le', '-x265-params', params, *tags, '-c:a', 'copy', saida], 'desfoque do selo')
+    return saida if rc == 0 else base
+
 def aplicar_textos(base, ass, saida, hdr, crf=24, here=os.path.dirname(os.path.abspath(__file__)), prog=None):
     """Textos por cima sem mexer na imagem: HDR usa a conversão SDR->HLG com branco forte; SDR queima direto."""
     if hdr:

@@ -22,7 +22,7 @@ ESQUEMA = {
             'properties': {'rotulo': {'type': 'string'}, 'tema': {'type': 'string'}, 'pergunta': {'type': 'string'}}},
         'destaques': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
             'required': ['estilo', 'palavra_inicio', 'palavra_fim', 'linhas'],
-            'properties': {'estilo': {'type': 'string', 'enum': ['pop', 'serifa', 'lettering', 'palavra_solta', 'preco']},
+            'properties': {'estilo': {'type': 'string', 'enum': ['pop', 'serifa', 'lettering', 'palavra_solta', 'preco', 'selo']},
                            'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                            'linhas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['texto', 'papel'],
                                'properties': {'texto': {'type': 'string'}, 'papel': {'type': 'string', 'enum': ['pequena', 'grande']}}}}}}},
@@ -63,6 +63,7 @@ Como planejar
 - Os templates de título (premium, caixa, impacto, sem título) são desenhados pelo motor: nunca diga que um deles não está disponível.
 - Cada segmento termina numa palavra completa e fecha o pensamento; nunca corte no meio de uma frase.
 - Preço 'de X por Y': destaque estilo 'preco' com duas linhas: 'De R$X' (pequena, sai riscada em vermelho) e 'por R$Y' (grande, na cor de destaque); use em TODA oferta do vídeo, pra manter o padrão.
+- Selo de campanha ('selo'): quando a fala anuncia a campanha (ex.: Black Friday), um selo no meio da tela com o fundo escurecido e desfocado: linhas curtas ('BLACK' pequena, 'FRIDAY' grande, 'até 50%' pequena). No máximo 1 por vídeo, longe dos preços.
 - Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência. 'total' = quadro inteiro, sem zoom: use quando houver duas ou mais pessoas no quadro ou alguém perto da borda (olhe as folhas de quadros das falas); nunca corte uma pessoa na lateral.
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
 - Destaques: no máximo 3 ou 4 frases de destaque, variando os estilos no mesmo vídeo (pop, serifa, lettering), mais 2 ou 3 palavras soltas (estilo palavra_solta: só a palavra-chave, uma linha 'grande'). Os textos das linhas saem exatamente das palavras faladas no intervalo palavra_inicio..palavra_fim; a palavra principal fica numa linha 'grande', as de apoio em 'pequena'. Nada de destaque em todo lugar.
