@@ -22,7 +22,10 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   BORA_ENQUADRAMENTO=0 desliga. A IA também vê uma folha de quadros de cada take de fala e evita trecho com gente entrando, produto sendo trocado ou câmera mexendo.
 - **Aprendizados dos ajustes** ficam no DNA Global (regras_globais.aprendizados, no Supabase) e valem pra todos os clientes: a IA lê em todo plano.
 - **Notas (assertividade):** cada prévia ganha uma nota da IA de 0 a 10 (avaliacao.py: quadros a cada 2 s + falas + pedido do editor; critérios gancho, storytelling, cortes, enquadramento e complemento, cada um com o motivo; contexto do cliente e do DNA)
-  em original_meta.nota_ia_vN, em segundo plano no VPS (BORA_NOTA_IA=0 desliga). O editor dá a dele no app (nota_editor_vN); o app mostra a diferença e a média.
+  em original_meta.nota_ia_vN. O editor dá a dele no app (nota_editor_vN); o app mostra a diferença e a média.
+- **Revisão interna antes de entregar:** a prévia só chega ao editor com nota da IA >= 7,5 e nenhum critério abaixo de 6 (BORA_NOTA_MIN). Abaixo disso o plano é refeito com os problemas
+  apontados e a prévia renderizada de novo, até 2 vezes (BORA_REVISOES); entrega a melhor rodada (plano e vídeo dela). Pessoa cortada na borda: o plano usa o quadro 'total' (sem zoom).
+  O que o enquadramento mediu fica em original_meta.enquadramento_vN (quadros lidos, com rosto e o erro, se houver).
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

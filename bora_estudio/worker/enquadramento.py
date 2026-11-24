@@ -26,14 +26,25 @@ def _cv2():
 def _duracao(v):
     return float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', v], capture_output=True, text=True).stdout.strip() or 0)
 
+ULTIMO_ERRO = ['']
+
+def _ler_png(cv2, arq):
+    img = cv2.imread(arq) if os.path.exists(arq) else None
+    return img
+
 def _quadro(video, t, largura=540):
-    """Quadro em SDR (tone map só pra detectar), largura fixa. Devolve array BGR ou None."""
+    """Quadro em SDR (tone map só pra detectar), largura fixa, via PNG temporário. Devolve array BGR ou None (motivo em ULTIMO_ERRO)."""
+    cv2 = _cv2()
+    if cv2 is None: return None
     hdr = 'arib-std-b67' in subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=color_transfer', '-of', 'csv=p=0', video], capture_output=True, text=True).stdout
     tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if hdr else ''
-    for f in (tm, ''):
-        r = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{t:.2f}', '-i', video, '-frames:v', '1', '-vf', f'{f}scale={largura}:-2,format=bgr24', '-f', 'rawvideo', '-'], capture_output=True)
-        if r.returncode == 0 and r.stdout and len(r.stdout) % (largura * 3) == 0:
-            return np.frombuffer(r.stdout, np.uint8).reshape(-1, largura, 3).copy()
+    with tempfile.TemporaryDirectory() as d:
+        arq = os.path.join(d, 'q.png')
+        for f in (tm, ''):
+            r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{t:.2f}', '-i', video, '-frames:v', '1', '-vf', f'{f}scale={largura}:-2', arq], capture_output=True)
+            img = _ler_png(cv2, arq)
+            if img is not None: return img
+            ULTIMO_ERRO[0] = (r.stderr.decode(errors='ignore')[-200:] or f'ffmpeg {r.returncode}').strip()
     return None
 
 def rostos(cv2, img):
@@ -76,7 +87,7 @@ def diagnosticar(arquivos, nomes, saida_jpg, papeis=None):
                 cv2.putText(img, f'{len(cx)}', (10, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (0, 0, 255), 3)
                 quadros.append(cv2.resize(img, (270, int(270 * H / W))))
             if quadros: linhas.append(np.hstack([q[:quadros[0].shape[0]] for q in quadros]))
-            resumo.append({'nome': nomes[i], 'rostos_por_quadro': conts, 'max_rostos': max(conts) if conts else 0,
+            resumo.append({'nome': nomes[i], 'erro': '' if conts else ULTIMO_ERRO[0], 'rostos_por_quadro': conts, 'max_rostos': max(conts) if conts else 0,
                            'caixa_grupo': [round(float(u), 3) for u in uniao] if uniao else None})
         if linhas:
             L = max(l.shape[1] for l in linhas); cv2.imwrite(saida_jpg, np.vstack([np.pad(l, ((0, 0), (0, L - l.shape[1]), (0, 0))) for l in linhas]), [cv2.IMWRITE_JPEG_QUALITY, 80])
@@ -85,27 +96,28 @@ def diagnosticar(arquivos, nomes, saida_jpg, papeis=None):
         print('enquadramento: falhou (segue sem):', str(e)[:120], flush=True); return None
 
 # ---------------- Fase 2: rostos ao longo do take e recorte que não corta ninguém ----------------
-def rostos_no_tempo(video, largura=360):
-    """Rostos nos quadros-chave do take (iPhone: ~1 por segundo), só decodifica os quadros-chave (rápido mesmo em 4K).
-    Devolve [[t, [[x, y, w, h], ...]], ...] normalizado no quadro em pé, ou [] se não der."""
+def rostos_no_tempo(video, largura=360, passo=1.0):
+    """Rostos ao longo do take, um quadro por segundo (passo). Devolve [[t, [[x, y, w, h], ...]], ...] normalizado no quadro em pé, ou [] (motivo em ULTIMO_ERRO)."""
     try:
         cv2 = _cv2()
-        if cv2 is None: return []
+        if cv2 is None: ULTIMO_ERRO[0] = 'OpenCV não carregou'; return []
         import montagem
-        W0, H0, transf, _ = montagem.sondar(video); alt = round(largura * H0 / W0 / 2) * 2
+        W0, H0, transf, _ = montagem.sondar(video); dur = _duracao(video)
         tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if transf in ('arib-std-b67', 'smpte2084') else ''
-        r = subprocess.run(['ffmpeg', '-v', 'info', '-skip_frame', 'nokey', '-i', video, '-an', '-vsync', '0', '-vf', f'{tm}scale={largura}:{alt},showinfo,format=bgr24',
-                            '-f', 'rawvideo', '-'], capture_output=True, timeout=600)
-        ts = [float(x) for x in __import__('re').findall(rb'pts_time:([0-9.]+)', r.stderr)]
-        tam = largura * alt * 3; n = len(r.stdout) // tam
-        if not n: return []
-        out = []
-        for i in range(min(n, len(ts))):
-            img = np.frombuffer(r.stdout[i * tam:(i + 1) * tam], np.uint8).reshape(alt, largura, 3)
-            out.append([round(ts[i], 2), rostos(cv2, img)])
-        return out
+        with tempfile.TemporaryDirectory() as d:
+            for f in (tm, ''):
+                r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', video, '-an', '-vf', f'fps=1/{passo:g},{f}scale={largura}:-2', os.path.join(d, 'q%04d.png')],
+                                   capture_output=True, timeout=900)
+                arqs = sorted(x for x in os.listdir(d) if x.endswith('.png'))
+                if arqs: break
+                ULTIMO_ERRO[0] = (r.stderr.decode(errors='ignore')[-200:] or f'ffmpeg {r.returncode}').strip()
+            out = []
+            for i, a in enumerate(arqs):
+                img = cv2.imread(os.path.join(d, a))
+                if img is not None: out.append([round(min(dur, (i + 0.5) * passo), 2), rostos(cv2, img)])
+            return out
     except Exception as e:
-        print('rostos no tempo:', str(e)[:120], flush=True); return []
+        ULTIMO_ERRO[0] = str(e)[:200]; print('rostos no tempo:', str(e)[:120], flush=True); return []
 
 RESPIRO = float(os.environ.get('BORA_RESPIRO', '0.12'))       # espaço livre acima da cabeça: 12% da altura do quadro (Fabiola: ~270 px em 1920 = 14%)
 

@@ -2,7 +2,7 @@
 nova_edicao / ajuste: transcreve os originais, a IA monta o plano no DNA do cliente, ffmpeg monta a prévia 480p (HDR do original),
   os textos entram no padrão aprovado e a prévia vai pro app.
 final: renderiza de novo a partir dos ORIGINAIS na resolução nativa (4K), com e sem legenda + .srt, num .zip (sem compressão)."""
-import glob, json, os, re, time, urllib.request
+import glob, json, os, re, shutil, time, urllib.request
 import insercoes, montagem, textos
 
 TRAB = os.environ.get('BORA_TRABALHO', '/trabalho')
@@ -53,6 +53,8 @@ def _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb
     except Exception as e:
         print('diagnóstico de enquadramento:', str(e)[:120], flush=True)
 
+ESTADO_ROSTOS = {}
+
 def medir_rostos(pl, pal, arqs, pasta, etapa=None):
     """Rostos nos takes de fala usados no plano (cache por arquivo): o render usa pra não cortar ninguém no zoom e deixar respiro em cima."""
     if os.environ.get('BORA_ENQUADRAMENTO', '1') == '0': return {}
@@ -62,10 +64,12 @@ def medir_rostos(pl, pal, arqs, pasta, etapa=None):
         if etapa: etapa('Olhando onde estão as pessoas em cada take', 34)
         out = {}
         for ai in usados:
-            cache = os.path.join(pasta, f'rostos_{ai + 1:02d}.json')
+            cache = os.path.join(pasta, f'rostos2_{ai + 1:02d}.json')
             if os.path.exists(cache): r = json.load(open(cache))
             else:
-                r = enquadramento.rostos_no_tempo(arqs[ai]); json.dump(r, open(cache, 'w'))
+                r = enquadramento.rostos_no_tempo(arqs[ai])
+                if r: json.dump(r, open(cache, 'w'))                      # vazio não fica guardado: tenta de novo no próximo
+            ESTADO_ROSTOS[str(ai)] = {'quadros': len(r), 'com_rosto': sum(1 for _, cs in r if cs), 'erro': '' if r else enquadramento.ULTIMO_ERRO[0][:160]}
             if any(cs for _, cs in r): out[str(ai)] = r
         return out
     except Exception as e:
@@ -181,7 +185,7 @@ def exigir_takes(arqs, papeis, anexos, textos):
         if re.search(r'(?<![a-z0-9])' + re.escape(s_) + r'(?![a-z0-9])', txt) or (len(num) >= 3 and re.search(r'(?<!\d)' + num + r'(?!\d)', txt)): exig.add(i)
     return exig, casados
 
-def preparar(p, etapa, sb):
+def preparar(p, etapa, sb, correcao=None):
     """Parte leve (fica no VPS): lê o pedido, transcreve (com cache), a IA monta o plano e grava o PACOTE de render.
     O pacote só tem nomes de arquivo relativos à pasta do projeto, então qualquer máquina com os mesmos arquivos renderiza igual."""
     pid, tipo = p['projeto_id'], p['tipo']
@@ -230,9 +234,13 @@ def preparar(p, etapa, sb):
         ant_arq = os.path.join(pasta, f'plano_v{n - 1}.json')
         if n > 1 and os.path.exists(ant_arq): anterior = json.load(open(ant_arq))
         feedbacks = [(x['numero'], x['feedback']) for x in versoes if x.get('feedback') and x['numero'] < n]
+        if correcao:                                      # revisão interna: refaz o plano desta versão com os problemas que a avaliação achou
+            atual = os.path.join(pasta, f'plano_v{n}.json')
+            if os.path.exists(atual): anterior = json.load(open(atual)); os.replace(atual, os.path.join(pasta, f'plano_v{n}_revisado_{int(time.time())}.json'))
+            feedbacks = feedbacks + [(n, correcao)]
         nomes = nomes_originais(meta, arqs)
         _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb)
-        exigidos, casados = exigir_takes(nomes, papeis, meta.get('anexos') or [], [meta.get('briefing', '')] + [t for _, t in feedbacks[-1:]])
+        exigidos, casados = exigir_takes(nomes, papeis, meta.get('anexos') or [], [meta.get('briefing', '')] + [t for nn, t in feedbacks if nn < n][-1:])
         etapa('A IA está montando o storytelling no DNA do cliente' if not anterior else 'A IA está aplicando o seu ajuste', 28)
         pronto = os.path.join(pasta, f'plano_v{n}.json')
         if os.path.exists(pronto):                     # retomada: reaproveita o plano já pago desta versão
@@ -272,7 +280,11 @@ def preparar(p, etapa, sb):
             if b['n'] in escolhidos and b['tremor'] is None:
                 b['tremor'] = montagem.tremor_por_segundo(arqs[b['ai']], os.path.join(pasta, f"broll_{b['ai'] + 1:02d}_tremor.json"))
         pl['_broll_tremor'] = [b['tremor'] for b in brolls]
-        pl['_rostos'] = medir_rostos(pl, pal, arqs, pasta, etapa)
+        ESTADO_ROSTOS.clear(); pl['_rostos'] = medir_rostos(pl, pal, arqs, pasta, etapa)
+        try:                                              # o que o enquadramento conseguiu medir (aparece no projeto, pra conferir)
+            m3 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+            m3[f'enquadramento_v{n}'] = {nomes[int(k)] if int(k) < len(nomes) else k: v for k, v in ESTADO_ROSTOS.items()}; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m3})
+        except Exception as e: print('estado do enquadramento:', str(e)[:100], flush=True)
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()
@@ -361,7 +373,7 @@ def renderizar(pac, etapa, pasta=None):
         if os.path.exists(x): os.remove(x)
     return {'arquivos': [os.path.relpath(zipf, pasta)], 'dur': dur, 'verif': verif}
 
-def concluir(pac, res, sb, pasta=None):
+def concluir(pac, res, sb, pasta=None, nota=None):
     """Grava o resultado no banco e no Storage (sempre no VPS). Mesmo efeito de antes da separação."""
     pid, n, cli_id = pac['projeto_id'], pac['n'], pac['cliente_id']; pasta = pasta or os.path.join(TRAB, pid)
     if pac['tipo'] == 'previa':
@@ -374,8 +386,8 @@ def concluir(pac, res, sb, pasta=None):
         m.update({'andamento': None, 'progresso': None, 'dur': f"{round(res['dur'])} s", f'validacao_v{n}': res.get('verif')})
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
-        import threading                                  # nota da IA em segundo plano: a prévia já foi entregue
-        threading.Thread(target=_nota_ia, args=(pac, previa, pl, pasta, res.get('verif'), sb), daemon=True).start()
+        if nota:                                          # nota da revisão interna (a que foi entregue)
+            m[f'nota_ia_v{n}'] = nota; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
         return
     zipf = os.path.join(pasta, res['arquivos'][0])
     m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
@@ -384,12 +396,16 @@ def concluir(pac, res, sb, pasta=None):
               'final_crf': pac.get('crf_final'), 'validacao_final': res.get('verif')})
     sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
 
-def _nota_ia(pac, previa, pl, pasta, verif, sb):
-    """Nota de 0 a 10 da IA pra prévia (critérios e problemas com o segundo). Falha não afeta nada."""
-    if os.environ.get('BORA_NOTA_IA', '1') == '0': return
+NOTA_MIN = float(os.environ.get('BORA_NOTA_MIN', '7.5'))     # abaixo disso (ou algum critério abaixo de 6) a prévia volta pra correção antes de chegar ao editor
+REVISOES = int(os.environ.get('BORA_REVISOES', '2'))           # rodadas de correção automática por versão
+
+def avaliar_previa(pac, res, sb, pasta=None):
+    """Nota de 0 a 10 da IA pra prévia (critérios com motivo e problemas com o segundo), ou None se não der pra avaliar."""
+    if os.environ.get('BORA_NOTA_IA', '1') == '0': return None
     try:
         import avaliacao
-        pid, n = pac['projeto_id'], pac['n']
+        pid, n = pac['projeto_id'], pac['n']; pasta = pasta or os.path.join(TRAB, pid)
+        previa = os.path.join(pasta, res['arquivos'][0]); pl = json.load(open(os.path.join(pasta, pac['plano'])))
         pal = [json.load(open(os.path.join(pasta, t))) for t in pac['transcricoes']]
         ant = sb('GET', f'/rest/v1/versoes?projeto_id=eq.{pid}&numero=eq.{n - 1}&select=feedback') if n > 1 else []
         meta0 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
@@ -397,14 +413,43 @@ def _nota_ia(pac, previa, pl, pasta, verif, sb):
         cli = (sb('GET', f"/rest/v1/clientes?id=eq.{pac['cliente_id']}&select=nome,segmento") or [{}])[0]
         dna = (sb('GET', f"/rest/v1/dna_ativo?cliente_id=eq.{pac['cliente_id']}&select=dna") or [{}])[0].get('dna') or {}
         contexto = f"cliente {cli.get('nome')} ({cli.get('segmento') or 'segmento não informado'}). DNA do cliente: " + json.dumps(dna, ensure_ascii=False)[:1800]
-        nota = avaliacao.avaliar(previa, pl, pal, pedido, verif, pasta, contexto)
-        if not nota: return
-        m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
-        m[f'nota_ia_v{n}'] = nota; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
+        return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto)
     except Exception as e:
-        print('nota da IA:', str(e)[:150], flush=True)
+        print('nota da IA:', str(e)[:150], flush=True); return None
+
+def passou(nota):
+    return nota is None or (nota['nota'] >= NOTA_MIN and all(c['nota'] >= 6 for c in nota['criterios'].values()))
+
+def texto_correcao(nota):
+    """Pedido de correção pra IA a partir da avaliação interna."""
+    fracos = [f"{k}: {c['motivo']}" for k, c in nota['criterios'].items() if c['nota'] < 8]
+    dica = ''
+    if nota['criterios'].get('enquadramento', {}).get('nota', 10) < 7:
+        dica = " Pessoas cortadas na borda: nesses trechos use quadro 'total' (sem zoom), principalmente com duas pessoas no quadro."
+    return (f"Revisão interna antes de entregar (nota {nota['nota']}): corrija TUDO abaixo e mantenha o que está bom. "
+            + ' | '.join(f"{round(p['segundo'])} s: {p['problema']}" for p in nota['problemas']) + ' | ' + ' | '.join(fracos) + dica)
+
+def revisar_e_concluir(p, pac, res, etapa, sb, render):
+    """Antes de entregar: um editor sênior (IA) dá nota; se ficar abaixo do mínimo, refaz o plano com os problemas e renderiza de novo
+    (até REVISOES vezes). Entrega a melhor rodada e grava a nota dela. render(pac) -> res."""
+    pasta = os.path.join(TRAB, pac['projeto_id']); n = pac['n']; rodadas = []
+    for k in range(REVISOES + 1):
+        etapa('Revisão interna: um editor sênior está conferindo a prévia', 92 if k == 0 else 93)
+        nota = avaliar_previa(pac, res, sb)
+        copia_p, copia_v = os.path.join(pasta, f'plano_v{n}_rodada{k}.json'), os.path.join(pasta, f'previa_v{n}_rodada{k}.mp4')
+        shutil.copyfile(os.path.join(pasta, pac['plano']), copia_p); shutil.copyfile(os.path.join(pasta, res['arquivos'][0]), copia_v)
+        rodadas.append((nota['nota'] if nota else -1, k, nota, dict(res), copia_p, copia_v))
+        if passou(nota) or k == REVISOES: break
+        etapa(f"Revisão interna: nota {str(nota['nota']).replace('.', ',')}, corrigindo antes de te enviar ({k + 1}/{REVISOES})", 30)
+        pac = preparar(p, etapa, sb, correcao=texto_correcao(nota))
+        res = render(pac)
+    _, k, nota, res, copia_p, copia_v = max(rodadas, key=lambda r: (r[0], r[1]))
+    shutil.copyfile(copia_p, os.path.join(pasta, pac['plano'])); shutil.copyfile(copia_v, os.path.join(pasta, res['arquivos'][0]))
+    if nota: nota = {**nota, 'rodadas': [{'nota': r[0], 'rodada': r[1]} for r in rodadas], 'entregue': k}
+    concluir(pac, res, sb, nota=nota if nota else False)
 
 def executar(p, etapa, sb):
     """Tudo no próprio VPS (o caminho de sempre)."""
     pac = preparar(p, etapa, sb)
-    concluir(pac, renderizar(pac, etapa), sb)
+    if pac['tipo'] == 'previa': revisar_e_concluir(p, pac, renderizar(pac, etapa), etapa, sb, lambda pc: renderizar(pc, etapa))
+    else: concluir(pac, renderizar(pac, etapa), sb)

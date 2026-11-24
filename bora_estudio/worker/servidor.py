@@ -234,12 +234,15 @@ def previa_externa(p, et):
         if res is None: return False                   # o VPS transcreve e faz tudo
         quem_t = _nome(ULT_WORKER[0])
     pac = motor.preparar(p, et, sb)                    # transcrições já prontas: só a IA monta o plano
-    et('Montando a prévia no computador de render', 40)
-    res = _esperar_externo(pac); quem_p = _nome(ULT_WORKER[0])
-    if res is None:
-        et('Computador de render saiu: o VPS termina a prévia', 40)
-        res = motor.renderizar(pac, et); quem_p = 'VPS'
-    motor.concluir(pac, res, sb)
+    quem = ['']
+    def render(pc):
+        et('Montando a prévia no computador de render', 40)
+        r = _esperar_externo(pc); quem[0] = _nome(ULT_WORKER[0])
+        if r is None:
+            et('Computador de render saiu: o VPS termina a prévia', 40)
+            r = motor.renderizar(pc, et); quem[0] = 'VPS'
+        return r
+    motor.revisar_e_concluir(p, pac, render(pac), et, sb, render); quem_p = quem[0]
     registrar_motor(p['projeto_id'], f"motor_v{pac['n']}", {'transcricao': quem_t, 'previa': quem_p, 'ia': 'VPS', 'segundos': round(time.time() - t0)})
     return True
 

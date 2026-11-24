@@ -9,7 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 FPS = 30000 / 1001
-ENQ = {'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}   # zoom, posição do rosto (aprovados na Fabiola)
+ENQ = {'total': (1.0, 0.30), 'aberto': (1.18, 0.30), 'medio': (1.32, 0.28), 'fechado': (1.48, 0.26)}   # zoom, posição do rosto (aprovados na Fabiola)
 # Pausas: silêncio de verdade (abaixo do limiar) maior que min_s vira 2*mantem_s; nas pontas de cada trecho sobra borda_s.
 # Antes: 0,30 / 0,10 / 0,18 (cada junção carregava uns 0,36 s de silêncio; o motor ainda protege 120 ms depois de cada palavra, e o total da pausa interna fica uns 0,24 s). Ajuste fino por projeto no bora.env (BORA_PAUSA_*).
 PAUSA = {'limiar_db': -45, 'min_s': float(os.environ.get('BORA_PAUSA_MIN', '0.25')), 'mantem_s': float(os.environ.get('BORA_PAUSA_MANTEM', '0.04')),

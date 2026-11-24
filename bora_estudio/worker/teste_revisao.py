@@ -1,0 +1,36 @@
+"""Revisão interna: prévia abaixo da nota mínima volta pra correção antes de chegar ao editor; entrega a melhor rodada."""
+import json, os, shutil, sys, tempfile
+T = tempfile.mkdtemp(); os.environ['BORA_TRABALHO'] = T
+import motor
+R = []
+def ok(nome, cond, det=''): R.append(bool(cond)); print(('PASSOU ' if cond else 'FALHOU ') + nome + (f' ({det})' if det else ''), flush=True)
+motor.TRAB = T; pid = 'p1'; pasta = os.path.join(T, pid); os.makedirs(pasta)
+def nota(x, enq=8): return {'nota': x, 'motivo': 'm', 'criterios': {c: {'nota': (enq if c == 'enquadramento' else 8), 'motivo': 'porque ' + c} for c in ('gancho', 'storytelling', 'cortes', 'enquadramento', 'complemento')},
+                            'problemas': [{'segundo': 14.5, 'problema': 'homem cortado na lateral'}], 'resumo': 'r'}
+def cenario(notas):
+    pedidos, entregue, rodada = [], {}, [0]
+    def grava(k):
+        json.dump({'rodada': k}, open(os.path.join(pasta, 'plano_v6.json'), 'w')); open(os.path.join(pasta, 'previa_v6.mp4'), 'w').write(f'video {k}')
+    grava(0); fila = list(notas)
+    motor.avaliar_previa = lambda pac, res, sb, pasta=None: fila.pop(0)
+    def prep(p, et, sb, correcao=None): pedidos.append(correcao); rodada[0] += 1; return pac
+    motor.preparar = prep
+    motor.concluir = lambda pac, res, sb, pasta=None, nota=None: entregue.update(nota=nota, plano=json.load(open(os.path.join(pasta_, 'plano_v6.json'))), video=open(os.path.join(pasta_, 'previa_v6.mp4')).read())
+    pac = {'projeto_id': pid, 'n': 6, 'plano': 'plano_v6.json'}
+    motor.revisar_e_concluir({}, pac, {'arquivos': ['previa_v6.mp4']}, lambda *a, **k: None, None, lambda pc: (grava(rodada[0]), {'arquivos': ['previa_v6.mp4']})[1])
+    return pedidos, entregue
+pasta_ = pasta
+ped, ent = cenario([nota(5.5, 4), nota(8.2)])
+ok('nota 5,5: corrige antes de entregar e entrega a rodada boa', len(ped) == 1 and ent['nota']['nota'] == 8.2 and ent['plano']['rodada'] == 1 and ent['video'] == 'video 1')
+ok('o pedido de correção leva problema com o segundo, motivo e dica do quadro total', '14 s: homem cortado' in ped[0] or '15 s: homem cortado' in ped[0])
+ok('enquadramento baixo sugere quadro total', "'total'" in ped[0])
+ped, ent = cenario([nota(8.0)])
+ok('nota boa de primeira: entrega sem refazer', not ped and ent['nota']['nota'] == 8.0)
+ped, ent = cenario([nota(6.8), nota(5.0), nota(6.0)])
+ok('correções piores: entrega a melhor rodada (a primeira) com plano e vídeo dela', len(ped) == 2 and ent['nota']['nota'] == 6.8 and ent['plano']['rodada'] == 0 and ent['video'] == 'video 0', str(ent.get('nota', {}).get('nota')))
+ok('nota guarda o histórico das rodadas', [r['nota'] for r in ent['nota']['rodadas']] == [6.8, 5.0, 6.0] and ent['nota']['entregue'] == 0)
+ped, ent = cenario([None])
+ok('sem avaliação (IA fora): entrega normal, sem travar', not ped and ent['nota'] is False)
+ok('critério abaixo de 6 reprova mesmo com nota alta', not motor.passou(nota(8.0, 5)) and motor.passou(nota(7.5)))
+shutil.rmtree(T)
+print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)

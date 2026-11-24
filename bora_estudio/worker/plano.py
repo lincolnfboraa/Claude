@@ -16,7 +16,7 @@ ESQUEMA = {
         'segmentos': {'type': 'array', 'description': 'Trechos na ORDEM do vídeo final. Cada um é um intervalo contínuo de palavras de um mesmo arquivo.',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'palavra_fim', 'quadro', 'motivo'],
                 'properties': {'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
-                               'quadro': {'type': 'string', 'enum': ['aberto', 'medio', 'fechado']}, 'motivo': {'type': 'string'}}}},
+                               'quadro': {'type': 'string', 'enum': ['total', 'aberto', 'medio', 'fechado']}, 'motivo': {'type': 'string'}}}},
         'usar_titulo': {'type': 'boolean'},
         'titulo': {'type': 'object', 'additionalProperties': False, 'required': ['rotulo', 'tema', 'pergunta'],
             'properties': {'rotulo': {'type': 'string'}, 'tema': {'type': 'string'}, 'pergunta': {'type': 'string'}}},
@@ -62,7 +62,7 @@ Como planejar
 - Observações do editor sobre o gancho NÃO são o texto do título: use como inspiração (crie um título curto e natural), a menos que venham marcadas como texto EXATO.
 - Os templates de título (premium, caixa, impacto, sem título) são desenhados pelo motor: nunca diga que um deles não está disponível.
 - Cada segmento termina numa palavra completa e fecha o pensamento; nunca corte no meio de uma frase.
-- Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência.
+- Respeite a duração e o ritmo do DNA do cliente. Varie o enquadramento entre segmentos (aberto, medio, fechado) pra dar dinamismo, sem pular de fechado pra fechado em sequência. 'total' = quadro inteiro, sem zoom: use quando houver duas ou mais pessoas no quadro ou alguém perto da borda (olhe as folhas de quadros das falas); nunca corte uma pessoa na lateral.
 - Título (usar_titulo): rótulo curto em caixa alta (ex.: DIA MUNDIAL DO DIABETES), tema de uma ou duas palavras e uma pergunta curta. Use quando o tema pedir.
 - Destaques: no máximo 3 ou 4 frases de destaque, variando os estilos no mesmo vídeo (pop, serifa, lettering), mais 2 ou 3 palavras soltas (estilo palavra_solta: só a palavra-chave, uma linha 'grande'). Os textos das linhas saem exatamente das palavras faladas no intervalo palavra_inicio..palavra_fim; a palavra principal fica numa linha 'grande', as de apoio em 'pequena'. Nada de destaque em todo lugar.
 - Hierarquia: 1) DNA Global Bora (as 'obrigatorias' e as 10 'regras_fundamentais' nunca são quebradas), 2) DNA do cliente (estilo, ritmo, cores, ganchos), 3) briefing e ajustes do projeto (valem só para este vídeo), 4) aprendizados confirmados. Em conflito, vale o nível mais alto; as cores da Bora nunca vão para o cliente. Se o DNA do cliente for provisório, seja conservador.
