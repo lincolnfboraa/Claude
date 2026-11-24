@@ -109,7 +109,7 @@ def numerar(palavras, arquivos, papeis=None):
             g += 1
     return '\n'.join(linhas)
 
-def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=()):
+def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, feedbacks=(), anexos=(), papeis=None, brolls=(), exigidos=()):
     dna_txt = json.dumps({'cliente': cliente.get('nome'), 'segmento': cliente.get('segmento'), 'status': cliente.get('status'), **(dna or {})}, ensure_ascii=False)
     pedido = [f"Transcrição numerada (use os números entre colchetes):\n{numerar(palavras, arquivos, papeis)}"]
     if briefing: pedido.append(f"Briefing do projeto: {briefing}")
@@ -122,11 +122,17 @@ def gerar(palavras, arquivos, cliente, dna, regras, briefing='', anterior=None, 
         pedido.append("Monte o plano da primeira versão.")
     sistema = [SISTEMA, 'DNA Global Bora (sempre prevalece):\n' + json.dumps({k: v for k, v in regras.items() if k != 'historico'}, ensure_ascii=False),
                'DNA do cliente:\n' + dna_txt]
-    conteudo = _conteudo('\n\n'.join(pedido), brolls)
-    plano = _chamar_gpt(sistema, conteudo) if IA == 'gpt' else _chamar_claude(sistema, conteudo)
     import montagem
-    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}
-    return validar(plano, sum(len(p) for p in palavras), amb, len(brolls), montagem.indice_global(palavras))
+    amb = {i for i, p in enumerate(papeis or []) if p == 'ambiente'}; G = montagem.indice_global(palavras)
+    for tentativa in (0, 1):
+        conteudo = _conteudo('\n\n'.join(pedido), brolls)
+        plano = _chamar_gpt(sistema, conteudo) if IA == 'gpt' else _chamar_claude(sistema, conteudo)
+        plano = validar(plano, sum(len(p) for p in palavras), amb, len(brolls), G)
+        falta = sorted(set(exigidos) - {G[int(sg['palavra_inicio'])][0] for sg in plano['segmentos']})
+        if not falta or tentativa: break
+        pedido.append('ATENÇÃO: o plano que você acabou de montar NÃO usou ' + ', '.join(f"o Arquivo {i + 1} ({os.path.basename(arquivos[i])})" for i in falta) +
+                      ', e o editor pediu que ele entre no storytelling. Refaça o plano com pelo menos um trecho de fala de cada um desses arquivos, no ponto da história em que fizer mais sentido.')
+    return plano
 
 def _chamar_claude(sistema, conteudo):
     import anthropic
