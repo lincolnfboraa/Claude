@@ -83,3 +83,57 @@ def diagnosticar(arquivos, nomes, saida_jpg, papeis=None):
         return resumo
     except Exception as e:
         print('enquadramento: falhou (segue sem):', str(e)[:120], flush=True); return None
+
+# ---------------- Fase 2: rostos ao longo do take e recorte que não corta ninguém ----------------
+def rostos_no_tempo(video, largura=360):
+    """Rostos nos quadros-chave do take (iPhone: ~1 por segundo), só decodifica os quadros-chave (rápido mesmo em 4K).
+    Devolve [[t, [[x, y, w, h], ...]], ...] normalizado no quadro em pé, ou [] se não der."""
+    try:
+        cv2 = _cv2()
+        if cv2 is None: return []
+        import montagem
+        W0, H0, transf, _ = montagem.sondar(video); alt = round(largura * H0 / W0 / 2) * 2
+        tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if transf in ('arib-std-b67', 'smpte2084') else ''
+        r = subprocess.run(['ffmpeg', '-v', 'info', '-skip_frame', 'nokey', '-i', video, '-an', '-vsync', '0', '-vf', f'{tm}scale={largura}:{alt},showinfo,format=bgr24',
+                            '-f', 'rawvideo', '-'], capture_output=True, timeout=600)
+        ts = [float(x) for x in __import__('re').findall(rb'pts_time:([0-9.]+)', r.stderr)]
+        tam = largura * alt * 3; n = len(r.stdout) // tam
+        if not n: return []
+        out = []
+        for i in range(min(n, len(ts))):
+            img = np.frombuffer(r.stdout[i * tam:(i + 1) * tam], np.uint8).reshape(alt, largura, 3)
+            out.append([round(ts[i], 2), rostos(cv2, img)])
+        return out
+    except Exception as e:
+        print('rostos no tempo:', str(e)[:120], flush=True); return []
+
+RESPIRO = float(os.environ.get('BORA_RESPIRO', '0.12'))       # espaço livre acima da cabeça: 12% da altura do quadro (Fabiola: ~270 px em 1920 = 14%)
+
+def recorte(W, H, z, fy, caixas):
+    """Recorte (cw, ch, x, y) em pixels do original em pé. Sem rostos: o de sempre (centro, zoom z).
+    Com rostos: o zoom cai até caber todo mundo com folga dos lados e respiro em cima; o recorte centra no grupo."""
+    cw0, ch0 = (H * 9 / 16, H) if W / H > 9 / 16 else (W, W * 16 / 9)
+    def tam(zz): return round(cw0 / zz / 2) * 2, round(ch0 / zz / 2) * 2
+    def lim(v, a, b): return int(min(max(v, a), b))
+    if not caixas:
+        cw, ch = tam(z); return cw, ch, lim(0.5 * W - cw / 2, 0, W - cw), lim(0.40 * H - fy * ch, 0, H - ch)
+    fh = max(c[3] for c in caixas) * H; fw = max(c[2] for c in caixas) * W
+    ux0, ux1 = min(c[0] for c in caixas) * W, max(c[0] + c[2] for c in caixas) * W
+    topo = min(c[1] for c in caixas) * H - 0.30 * fh                  # alto da cabeça (o rosto detectado começa na testa)
+    folga = max(0.6 * fw, 0.04 * W)
+    zz = z
+    while True:
+        cw, ch = tam(zz)
+        y = lim(min(0.40 * H - fy * ch, topo - RESPIRO * ch), 0, H - ch)
+        cabe = (ux1 - ux0 + 2 * folga) <= cw and (topo - y) >= RESPIRO * ch * 0.98
+        if cabe or zz <= 1.0: break
+        zz = max(1.0, zz - 0.02)
+    meio = (ux0 + ux1) / 2
+    return cw, ch, lim(meio - cw / 2, 0, W - cw), y
+
+def caixas_do_trecho(rostos_take, t0, t1):
+    """Rostos do take entre t0 e t1 (com meio segundo de folga), sem os muito menores que o maior (falso positivo)."""
+    cx = [c for t, cs in rostos_take if t0 - 0.5 <= t <= t1 + 0.5 for c in cs]
+    if not cx: return []
+    maior = max(c[2] * c[3] for c in cx)
+    return [c for c in cx if c[2] * c[3] >= 0.3 * maior]

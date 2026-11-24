@@ -53,6 +53,24 @@ def _diagnostico_enquadramento(pid, cli_id, arqs, nomes, papeis, pasta, meta, sb
     except Exception as e:
         print('diagnóstico de enquadramento:', str(e)[:120], flush=True)
 
+def medir_rostos(pl, pal, arqs, pasta, etapa=None):
+    """Rostos nos takes de fala usados no plano (cache por arquivo): o render usa pra não cortar ninguém no zoom e deixar respiro em cima."""
+    if os.environ.get('BORA_ENQUADRAMENTO', '1') == '0': return {}
+    try:
+        import enquadramento
+        G = montagem.indice_global(pal); usados = sorted({G[int(sg['palavra_inicio'])][0] for sg in pl.get('segmentos') or []})
+        if etapa: etapa('Olhando onde estão as pessoas em cada take', 34)
+        out = {}
+        for ai in usados:
+            cache = os.path.join(pasta, f'rostos_{ai + 1:02d}.json')
+            if os.path.exists(cache): r = json.load(open(cache))
+            else:
+                r = enquadramento.rostos_no_tempo(arqs[ai]); json.dump(r, open(cache, 'w'))
+            if any(cs for _, cs in r): out[str(ai)] = r
+        return out
+    except Exception as e:
+        print('medir rostos:', str(e)[:120], flush=True); return {}
+
 def _subir(sb, caminho, arq, tipo):
     url = os.environ['SUPABASE_URL'].rstrip('/') + f'/storage/v1/object/previas/{caminho}'
     r = urllib.request.Request(url, data=open(arq, 'rb').read(), method='POST',
@@ -109,7 +127,8 @@ def _renderizar(pid, pl, arqs, pal, altura, cores, saida_base, etapa=None, faixa
             if e and os.path.exists(os.path.join(pasta, e['arquivo'])): lista_sfx.append((max(0.0, t - float(e.get('pico_s') or 0)), os.path.join(pasta, e['arquivo'])))
         print(f'efeitos sonoros: {len(lista_sfx)} no vídeo', flush=True)
     capa = next((x for x in pl.get('_anexos', []) if x.get('capa_final') and os.path.exists(x.get('caminho', ''))), None)      # capa final anexada no app
-    hdr = montagem.render_base(pcs, arqs, base, altura, crf_i, prog, sfx=lista_sfx or None, capa={'imagem': capa['caminho'], 'dur': CAPA_FINAL_S} if capa else None)
+    hdr = montagem.render_base(pcs, arqs, base, altura, crf_i, prog, sfx=lista_sfx or None, capa={'imagem': capa['caminho'], 'dur': CAPA_FINAL_S} if capa else None,
+                               rostos=pl.get('_rostos'))
     if pl.get('broll') and pl.get('_broll_arquivos'):
         if etapa: etapa('Encaixando as cenas de ambiente (B-roll)', a + int((b - a) * 0.9))
         base = montagem.aplicar_broll(base, os.path.join(pasta, f'_broll_{altura}.mp4'), pl, tokens, dur, arqs, altura, pasta, hdr, crf=crf_i)
@@ -253,6 +272,7 @@ def preparar(p, etapa, sb):
             if b['n'] in escolhidos and b['tremor'] is None:
                 b['tremor'] = montagem.tremor_por_segundo(arqs[b['ai']], os.path.join(pasta, f"broll_{b['ai'] + 1:02d}_tremor.json"))
         pl['_broll_tremor'] = [b['tremor'] for b in brolls]
+        pl['_rostos'] = medir_rostos(pl, pal, arqs, pasta, etapa)
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
         import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()

@@ -416,7 +416,7 @@ def _capa_animada(imagem, saida, OW, OH, dur_s, hdr, crf, params, tags):
     except BrokenPipeError: err = p.stderr.read().decode(); p.wait()
     if p.returncode: raise RuntimeError('cartão animado: ' + err[-200:])
 
-def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None, capa=None):
+def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=None, capa=None, rostos=None):
     """Monta o vídeo base (sem textos). Cada peça vira um arquivo; depois junta sem recodificar."""
     OH = altura; OW = OH * 9 // 16
     tmp = tempfile.mkdtemp(prefix='base_', dir=os.path.dirname(os.path.abspath(saida)))
@@ -427,14 +427,13 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=No
     jobs, a_in, a_fc = [], [], []
     for n, (ai, fa, fb, quadro) in enumerate(pcs):
         W, H = info[ai][0], info[ai][1]; z, fy = ENQ.get(quadro, ENQ['medio'])
-        if W / H > 9 / 16: cw0, ch0 = H * 9 / 16, H        # original horizontal: recorte vertical central
-        else: cw0, ch0 = W, W * 16 / 9
-        cw, ch = round(cw0 / z / 2) * 2, round(ch0 / z / 2) * 2
-        x = int(min(max(0.5 * W - cw / 2, 0), W - cw)); y = int(min(max(0.40 * H - fy * ch, 0), H - ch))
         tin, dur = fa / FPS, (fb - fa) / FPS
+        import enquadramento                            # com rostos medidos: zoom que não corta ninguém, respiro em cima, centrado no grupo
+        cx = enquadramento.caixas_do_trecho((rostos or {}).get(str(ai)) or [], tin, tin + dur)
+        cw, ch, x, y = enquadramento.recorte(W, H, z, fy, cx)
         # intermediário: rápido e quase sem perda (a entrega é recodificada depois). NVENC só se a máquina validou (codificadores.py)
         nv = os.environ.get('BORA_INTERMEDIARIO') == 'nvenc'
-        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{crf}{"n" if nv else "r"}.mp4')
+        chave = os.path.join(cache, f'a{ai}_{fa}_{fb}_{quadro}_{cw}x{ch}+{x}+{y}_{crf}{"n" if nv else "r"}.mp4')
         if nv:
             import codificadores; cod = codificadores.args_nvenc()
         else:

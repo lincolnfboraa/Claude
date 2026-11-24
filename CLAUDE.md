@@ -17,6 +17,10 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   áudio estendido em silêncio. Vale pras versões seguintes e pro 4K.
 - **Zonas do Reels (1080x1920):** topo 220 px, base 450 px (y 1470), laterais 35 px. A legenda termina em y 1470 e os destaques em y 1450 (FUNDO_DESTAQUE 1390); margens laterais medidas:
   legenda 174 px, destaque 102 px.
+- **Enquadramento automático:** o editor mede os rostos nos quadros-chave de cada take de fala usado (enquadramento.py, OpenCV, só no VPS) e grava no plano (_rostos).
+  No render, o zoom do trecho cai até caber todo mundo com folga dos lados e respiro de 12% acima da cabeça (BORA_RESPIRO), e o recorte centra no grupo; sem rosto, o recorte de sempre.
+  BORA_ENQUADRAMENTO=0 desliga. A IA também vê uma folha de quadros de cada take de fala e evita trecho com gente entrando, produto sendo trocado ou câmera mexendo.
+- **Aprendizados dos ajustes** ficam no DNA Global (regras_globais.aprendizados, no Supabase) e valem pra todos os clientes: a IA lê em todo plano.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.
