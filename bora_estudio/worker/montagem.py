@@ -429,10 +429,13 @@ def render_base(pcs, arquivos, saida, altura=854, crf=14, progresso=None, sfx=No
     transf = info[0][2]; params, tags = x265(transf)
     jobs, a_in, a_fc = [], [], []
     for n, (ai, fa, fb, quadro) in enumerate(pcs):
-        W, H = info[ai][0], info[ai][1]; z, fy = ENQ.get(quadro, ENQ['medio'])
+        W, H = info[ai][0], info[ai][1]; q_, _, foco = str(quadro).partition('@'); z, fy = ENQ.get(q_, ENQ['medio'])
         tin, dur = fa / FPS, (fb - fa) / FPS
         import enquadramento                            # com rostos medidos: zoom que não corta ninguém, respiro em cima, centrado no grupo
         cx = enquadramento.caixas_do_trecho((rostos or {}).get(str(ai)) or [], tin, tin + dur)
+        if foco in ('esq', 'dir') and cx:                # close em quem fala: só o rosto daquele lado (quadro 'fechado@esq' / 'medio@dir')
+            lado = [c for c in cx if (c[0] + c[2] / 2 < 0.5) == (foco == 'esq')]
+            cx = lado or cx
         cw, ch, x, y = enquadramento.recorte(W, H, z, fy, cx)
         # intermediário: rápido e quase sem perda (a entrega é recodificada depois). NVENC só se a máquina validou (codificadores.py)
         nv = os.environ.get('BORA_INTERMEDIARIO') == 'nvenc'
