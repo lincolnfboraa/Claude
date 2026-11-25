@@ -13,7 +13,7 @@ def cenario(notas):
         json.dump({'rodada': k}, open(os.path.join(pasta, 'plano_v6.json'), 'w')); open(os.path.join(pasta, 'previa_v6.mp4'), 'w').write(f'video {k}')
     grava(0); fila = list(notas)
     vistos_esp.clear()
-    def av(pac, res, sb, pasta=None, esperado=()): vistos_esp.append(list(esperado)); return fila.pop(0)
+    def av(pac, res, sb_, pasta=None, esperado=()): vistos_esp.append(list(esperado)); return fila.pop(0)
     motor.avaliar_previa = av
     def prep(p, et, sb, correcao=None): pedidos.append(correcao); rodada[0] += 1; return pac
     motor.preparar = prep

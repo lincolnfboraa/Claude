@@ -625,14 +625,25 @@ def revisar_e_concluir(p, pac, res, etapa, sb, render):
         nota = avaliar_previa(pac, res, sb, esperado=[f"{round(x['segundo'])} a {round(x.get('fim', x['segundo']))} s: {x.get('mudanca_esperada', '')}" for x in esperado])
         copia_p, copia_v = os.path.join(pasta, f'plano_v{n}_rodada{k}.json'), os.path.join(pasta, f'previa_v{n}_rodada{k}.mp4')
         shutil.copyfile(os.path.join(pasta, pac['plano']), copia_p); shutil.copyfile(os.path.join(pasta, res['arquivos'][0]), copia_v)
-        rodadas.append((nota['nota'] if nota else -1, k, nota, dict(res), copia_p, copia_v))
+        rot_atual = os.path.join(pasta, f'roteiro_v{n}.json')        # o roteiro desta rodada (o app mostra o da rodada entregue)
+        if os.path.exists(rot_atual): shutil.copyfile(rot_atual, os.path.join(pasta, f'roteiro_v{n}_rodada{k}.json'))
+        try: snap = (sb('GET', f"/rest/v1/projetos?id=eq.{pac['projeto_id']}&select=original_meta")[0]['original_meta'] or {}).get(f'roteiro_v{n}')
+        except Exception: snap = None
+        rodadas.append((nota['nota'] if nota else -1, k, nota, dict(res), copia_p, copia_v, snap))
         if passou(nota) or k == REVISOES: break
         esperado = [x for x in nota.get('problemas') or [] if x.get('mudanca_esperada')]
         etapa(f"Revisão interna: nota {str(nota['nota']).replace('.', ',')}, corrigindo antes de te enviar ({k + 1}/{REVISOES})", 30)
         pac = preparar(p, etapa, sb, correcao=texto_correcao(nota))
         res = render(pac)
-    _, k, nota, res, copia_p, copia_v = max(rodadas, key=lambda r: (r[0], r[1]))
+    _, k, nota, res, copia_p, copia_v, snap = max(rodadas, key=lambda r: (r[0], r[1]))
     shutil.copyfile(copia_p, os.path.join(pasta, pac['plano'])); shutil.copyfile(copia_v, os.path.join(pasta, res['arquivos'][0]))
+    rot_k = os.path.join(pasta, f'roteiro_v{n}_rodada{k}.json')
+    if os.path.exists(rot_k): shutil.copyfile(rot_k, os.path.join(pasta, f'roteiro_v{n}.json'))
+    if snap:                                                      # o roteiro no app é o da rodada que foi entregue
+        try:
+            m3 = sb('GET', f"/rest/v1/projetos?id=eq.{pac['projeto_id']}&select=original_meta")[0]['original_meta'] or {}
+            m3[f'roteiro_v{n}'] = snap; sb('PATCH', f"/rest/v1/projetos?id=eq.{pac['projeto_id']}", {'original_meta': m3})
+        except Exception as e: print('roteiro da rodada entregue:', str(e)[:100], flush=True)
     if nota:
         nota = {**nota, 'rodadas': [{'nota': r[0], 'rodada': r[1], 'conferencia': (r[2] or {}).get('conferencia') or []} for r in rodadas], 'entregue': k}
         if not passou(nota):                                   # nenhuma rodada resolveu: o editor decide, com o trecho marcado e as opções
