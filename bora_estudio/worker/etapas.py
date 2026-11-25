@@ -116,7 +116,6 @@ def segundos_roteiro(rot, palavras):
 
 def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='', pedido='', exigidos=()):
     total = sum(len(p) for p in palavras)
-    dmin, dmax = duracao_alvo(dna, briefing)
     quem = sorted({t.get('quem') for t in (mapa or {}).get('trechos') or [] if t.get('quem') and t.get('papel') not in ('bastidor', 'erro', 'repeticao')})
     base = (f"Transcrição numerada:\n{plano.numerar(palavras, nomes, papeis)}\n\nMAPA DOS ORIGINAIS (etapa 1):\n" + json.dumps(mapa, ensure_ascii=False) + '\n\n' +
             (f"Briefing: {briefing}\n\n" if briefing else '') + (f"Pedido do editor: {pedido}\n\n" if pedido else '') +
@@ -124,7 +123,7 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
             'ETAPA 2, ROTEIRO: escolha a ideia central e monte as falas em sequência, só com fala real (intervalos de palavras do mapa ou da transcrição; frases inteiras). '
             'Estrutura: gancho que cria uma pergunta, contexto, desenvolvimento ou prova, ponte quando o assunto muda, fechamento que RESPONDE a abertura e conclui a ideia '
             '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n'
-            f'DURAÇÃO: o vídeo final deve ter entre {dmin} e {dmax} s de fala. Use o material: um bom vídeo aproveita os melhores momentos, não o mínimo. Nunca encurte só por encurtar.\n'
+            'SEM DURAÇÃO FIXA: o tamanho do vídeo é consequência da estrutura, do contexto e do storytelling. Use todos os momentos que fortalecem a história e corte só o que não serve a ela.\n'
             'EMOÇÃO E PERSONAGENS: comece por um momento que prenda (história pessoal, humor, revelação, emoção alta no mapa) quando existir. '
             + (f'Falam no material: {", ".join(quem)}. Cada pessoa que fala tem um papel na história: use falas de cada uma, e quem aparece em tela precisa ter motivo pra estar ali. ' if len(quem) > 1 else '')
             + 'Bastidor com emoção (riso, cumplicidade, erro engraçado) pode entrar como respiro ou fechamento se combinar com o tom do cliente.')
@@ -135,7 +134,6 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
         rot['partes'] = [p for p in rot.get('partes') or [] if 0 <= int(p['palavra_inicio']) <= int(p['palavra_fim']) < total]
         problemas = _checar(rot, palavras)
         seg = segundos_roteiro(rot, palavras)
-        if seg < dmin * 0.9: problemas.append(f'o roteiro tem só {seg:.0f} s de fala, abaixo do mínimo de {dmin} s: use mais do material (histórias, a fala de cada pessoa, exemplos)')
         if len(quem) > 1:
             usados = {t.get('quem') for t in mapa.get('trechos') or [] for p in rot['partes'] if int(t['palavra_inicio']) <= int(p['palavra_fim']) and int(t['palavra_fim']) >= int(p['palavra_inicio'])}
             faltam = [q for q in quem if q not in usados]
