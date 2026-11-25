@@ -344,7 +344,7 @@ const fotoDe=v=>{const k=(v.media||{}).capa;return k&&CAPAS[k]?CAPAS[k].u:null};
 const carregarPerfil=id=>cli(id);
 async function recarregar(){await carregarTudo();render()}
 const ST={ok:['Aprovado','ok'],wait:['Para revisar','wait'],run:['Em produção','run']};
-const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,capaF:{},sel:{},selIni:{},q4k:'alta',bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
+const S={anexos:{},ajTxt:'',cores:null,arquivos:[],stack:[{v:'inicio'}],tab:'inicio',sugerir:true,novaCli:null,parecer:{},briefing:'',coresAbertas:false,gancho:{template:'ia',frase:''},gAj:null,sfx:false,capaF:{},sel:{},selIni:{},corrRot:{},rotAberto:null,baseAj:{},q4k:'alta',bib:null,bibGrupo:'Todos',bibAud:{},bibImg:{}};
 const $=s=>document.querySelector(s), cli=id=>DB.clientes.find(c=>c.id===id);
 const todos=()=>DB.clientes.flatMap(c=>c.projetos.map(p=>(p.cli=c.id,p)));
 const vid=id=>todos().find(v=>v.id===id), vatual=v=>v.versoes[v.versoes.length-1]||{};
@@ -486,6 +486,7 @@ const V={
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
    ${p==='ok'?blocoQ4k():''}
    ${p==='ajuste'&&m['timeline_v'+a.n]?blocoTimeline(id,m['timeline_v'+a.n]):''}
+   ${p==='ajuste'&&v.versoes.length>1?`<h3 class="rot">Partir da versão</h3><div class="chips">${v.versoes.filter(x=>x.previa).map(x=>`<button class="chip" ${(S.baseAj[id]||a.n)===x.n?'style="background:var(--beige);color:#072740;font-weight:700"':''} data-baseaj="${id}:${x.n}">v${x.n}</button>`).join('')}</div>`:''}
    ${p==='ajuste'?`<h3 class="rot">Observações</h3><textarea id="aj" placeholder="Escreva do seu jeito, como falaria com o editor.">${esc(S.ajTxt||'')}</textarea>
     ${S.gAj===id?blocoGancho(c,true)+blocoSfx():`<button class="dobra" style="margin-top:10px" data-gaj="${id}">Trocar gancho, título, cores e sons<span class="seta">›</span></button>`}
     <div class="anx">${(S.anexos[id]||[]).map((f,i)=>`<span class="anxi">${f.type.startsWith('video')?SV(I.revisar):SV(I.clipe)}<b>${esc(f.name)}</b><button data-rmanx="${id}:${i}" aria-label="Remover">✕</button></span>`).join('')}
@@ -498,6 +499,7 @@ const V={
     <button class="ln" data-sw style="padding:16px 2px"><span class="tx"><b>Sugerir pro DNA</b><small>Depois da aprovação vira sugestão no DNA de ${esc(c.nome)}. Só vira regra se você confirmar.</small></span><span class="sw ${S.sugerir?'':'off'}"></span></button>`:''}`:''}
   ${semFinal?`<button class="pill full" style="margin-top:16px" data-reabrir="${id}">${SV(I.refaz)}Pedir ajuste antes do 4K</button>`:''}
   ${m['validacao_v'+a.n]?listaVerif('Verificação da v'+a.n,m['validacao_v'+a.n]):''}
+  ${m['roteiro_v'+a.n]?blocoRoteiro(id,a.n,m['roteiro_v'+a.n],m['custo_v'+a.n],v.st==='wait'):''}
   ${m['marcas_v'+a.n]?blocoMarcasPrevia(m['marcas_v'+a.n]):''}
   ${a.previa?blocoNotas(id,a.n,m):''}
   ${v.st==='ok'&&m.validacao_final?listaVerif('Verificação do 4K',m.validacao_final):''}
@@ -527,6 +529,19 @@ function blocoTimeline(id,tl){const u=TLURL[tl.path];if(!u){sb.storage.from('pre
  <div class="tl">${cel}</div>
  ${sel.map((x,k)=>`<div class="tls"><b>${k+1}</b><span>${x.t0}s a ${x.t1}s</span><input data-seltxt="${id}:${k}" value="${esc(x.texto||'')}" placeholder="O que mudar nesse trecho"><button data-rmsel="${id}:${k}" aria-label="Remover">✕</button></div>`).join('')}`}
 const TLURL={};
+const PAPEL={gancho:'Gancho',contexto:'Contexto',desenvolvimento:'Desenvolvimento',prova:'Prova',ponte:'Ponte',fechamento:'Fechamento',chamada:'Chamada',bastidor:'Bastidor'};
+function blocoRoteiro(id,n,r,custo,pode){const corr=(S.corrRot[id]||{}),aberto=S.rotAberto===id;
+ const val=r.validacao||{},chk=(b,t)=>`<span style="color:${b?'var(--ok)':'var(--warn)'}">${b?'✓':'✗'} ${t}</span>`;
+ const tk=custo?(custo.etapas||[]).reduce((a,e)=>a+(e.entrada||0)+(e.saida||0),0):0;
+ return `<h3 class="rot">Roteiro da v${n}</h3><div class="lst">
+ <button class="ln" data-rotab="${id}"><span class="tx"><b style="font-size:14px">${esc(r.ideia_central||'Roteiro')}</b><small style="white-space:normal">${(r.partes||[]).length} falas · ${chk(val.abertura_respondida,'abertura respondida')} · ${chk(val.ligacao_entre_falas,'falas ligadas')} · ${chk(val.fechamento_conclui,'fechamento conclui')}${r.base?` · ajuste a partir da v${r.base}`:''}</small></span><span class="seta">${aberto?'⌃':'›'}</span></button>
+ ${aberto?`${(r.problemas||[]).length?`<div class="ln"><span class="tx"><b style="font-size:14px;color:var(--warn)">Pontos pra você decidir</b>${r.problemas.map(x=>`<small style="white-space:normal">${esc(x)}</small>`).join('')}</span></div>`:''}
+ ${(r.trocas||[]).length?`<div class="ln"><span class="tx"><b style="font-size:14px">O que mudou</b>${r.trocas.map(t=>`<small style="white-space:normal">Parte ${t.parte+1}: saiu "${esc(t.antes||'')}" · entrou "${esc(t.depois||'')}"</small>`).join('')}</span></div>`:''}
+ ${(r.partes||[]).map((x,k)=>`<div class="ln" style="display:block"><span class="tx"><b style="font-size:13px">${k+1}. ${PAPEL[x.papel]||x.papel} · ${esc(x.arquivo||'')} ${fmtT(x.inicio_s)} a ${fmtT(x.fim_s)}</b>
+   <small style="white-space:normal;opacity:1;color:inherit">"${esc(x.texto||'')}"</small>${x.obs_imagem?`<small style="white-space:normal">Imagem: ${esc(x.obs_imagem)}</small>`:''}${x.motivo?`<small style="white-space:normal">Por quê: ${esc(x.motivo)}</small>`:''}</span>
+   ${pode?(corr[k]!=null?`<div class="tls"><input data-corrtxt="${id}:${k}" value="${esc(corr[k])}" placeholder="O que mudar nesta parte"><button data-corrrm="${id}:${k}" aria-label="Remover">✕</button></div>`:`<button class="pill sm" style="margin-top:6px" data-corr="${id}:${k}">Corrigir esta parte</button>`):''}</div>`).join('')}
+ ${(r.bastidores||[]).length?`<div class="ln"><span class="tx"><b style="font-size:14px">Bastidores considerados</b>${r.bastidores.map(b=>`<small style="white-space:normal">${b.usou?'Entrou':'Ficou de fora'}: ${esc(b.motivo)}</small>`).join('')}</span></div>`:''}
+ ${custo?`<div class="ln"><span class="tx"><small>Tempo da IA: ${Math.round(custo.segundos||0)} s · ${tk.toLocaleString('pt-BR')} tokens</small></span></div>`:''}`:''}</div>`}
 function blocoMarcasPrevia(arr){return `<h3 class="rot">Trechos que você marcou</h3><div class="lst">${arr.map((x,k)=>`<div class="ln"><span style="width:22px;text-align:center;font-weight:700;color:${x.entrou?'var(--ok)':'var(--warn)'}">${x.entrou?'✓':'!'}</span><span class="tx"><b style="font-size:14px">${esc(x.arquivo)} · ${fmtT(x.t0)} a ${fmtT(x.t1)} · ${TIPOS[x.tipo]||x.tipo}</b><small style="white-space:normal">${x.entrou?'Entrou aos '+String(x.tempo_previa).replace('.',',')+' s da prévia':'Ficou de fora: '+esc(x.motivo||'')}</small></span></div>`).join('')}</div>`}
 function blocoNotas(id,n,m){const ia=m['nota_ia_v'+n],ed=m['nota_editor_v'+n],f=x=>String(x).replace('.',',');
  const nm={gancho:'Gancho',storytelling:'Storytelling',cortes:'Cortes',enquadramento:'Enquadramento',complemento:'Complemento',broll:'B-roll',textos:'Textos'};
@@ -677,6 +692,11 @@ async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),capa=S.capaF[id],fs
   const tok=(await sb.auth.getSession()).data.session.access_token;
   const r=await fetch(`${EDITOR}/anexo/${v.id}/fim`,{method:'POST',headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:JSON.stringify({versao:a.n,arquivos:fs.map(x=>({nome:x.name,tamanho:x.size,...(x===capa?{capa_final:true}:{})}))})});
   if(!r.ok)throw new Error((await r.json()).erro||'anexos não chegaram');delete S.anexos[id];delete S.capaF[id]}
+ document.querySelectorAll('[data-corrtxt]').forEach(el=>{const[i,k]=el.dataset.corrtxt.split(':');if(S.corrRot[i])S.corrRot[i][k]=el.value});
+ {const cr=Object.entries(S.corrRot[id]||{}).filter(([k,x])=>(x||'').trim()).map(([k,x])=>({parte:+k,texto:x.trim()})),bs=S.baseAj[id];
+  if(cr.length||(bs&&bs!==a.n)){const {data:pj}=await sb.from('projetos').select('original_meta').eq('id',v.id).single();const mq=(pj&&pj.original_meta)||{};const b=bs||a.n;
+   if(cr.length){mq['roteiro_corrigir_v'+b]=cr;t+='\nCorreções no roteiro: '+cr.map(c=>`parte ${c.parte+1}: ${c.texto}`).join('; ')}
+   mq.base_ajuste={para:a.n+1,base:b};await q(sb.from('projetos').update({original_meta:mq}).eq('id',v.id));delete S.corrRot[id];delete S.baseAj[id]}}
  document.querySelectorAll('[data-seltxt]').forEach(el=>{const[i,k]=el.dataset.seltxt.split(':');if(S.sel[i]&&S.sel[i][+k])S.sel[i][+k].texto=el.value});
  if((S.sel[id]||[]).length){const {data:pj}=await sb.from('projetos').select('original_meta').eq('id',v.id).single();const mq=(pj&&pj.original_meta)||{};mq['selecoes_v'+a.n]=S.sel[id];
   await q(sb.from('projetos').update({original_meta:mq}).eq('id',v.id));t+='\nTrechos marcados: '+S.sel[id].map((x,k)=>`${k+1}) ${x.t0}s a ${x.t1}s: ${x.texto||'ver pedido'}`).join('; ');delete S.sel[id];delete S.selIni[id]}
@@ -691,7 +711,7 @@ async function pedirAjuste(id,t){const v=vid(id),a=vatual(v),capa=S.capaF[id],fs
  await q(sb.from('projetos').update({status:'editando'}).eq('id',v.id));delete S.parecer[id];close();await recarregar();toast('Feedback registrado na v'+a.n+'. A v'+(a.n+1)+' entrou na fila')}
 
 document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if(!b||b.disabled)return;const d=b.dataset||{};
- {document.querySelectorAll('[data-seltxt]').forEach(el=>{const[id,k]=el.dataset.seltxt.split(':');if(S.sel[id]&&S.sel[id][+k])S.sel[id][+k].texto=el.value});const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
+ {document.querySelectorAll('[data-corrtxt]').forEach(el=>{const[id,k]=el.dataset.corrtxt.split(':');if(S.corrRot[id])S.corrRot[id][k]=el.value});document.querySelectorAll('[data-seltxt]').forEach(el=>{const[id,k]=el.dataset.seltxt.split(':');if(S.sel[id]&&S.sel[id][+k])S.sel[id][+k].texto=el.value});const gf=$('#gfrase');if(gf)S.gancho.frase=gf.value;const aj=$('#aj');if(aj&&!('enviar' in d))S.ajTxt=aj.value;const bf=$('#briefing');if(bf)S.briefing=bf.value}
  if(d.gtpl){S.gancho.template=d.gtpl;return reRender()}
  if('sfx' in d){S.sfx=!S.sfx;return reRender()}
  if(d.rmcapa){delete S.capaF[d.rmcapa];return reRender()}
@@ -747,6 +767,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/projeto/${d.descartar}/descartar`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
    S.stack=[{v:S.tab}];await recarregar();toast('Vídeo descartado')}catch(e){toast('Não consegui descartar: '+e.message)}})()}
+ else if(d.rotab){S.rotAberto=S.rotAberto===d.rotab?null:d.rotab;reRender()}
+ else if(d.corr){const[id,k]=d.corr.split(':');(S.corrRot[id]=S.corrRot[id]||{})[k]='';S.parecer[id]='ajuste';reRender()}
+ else if(d.corrrm){const[id,k]=d.corrrm.split(':');delete S.corrRot[id][k];reRender()}
+ else if(d.baseaj){const[id,k]=d.baseaj.split(':');S.baseAj[id]=+k;reRender()}
  else if(d.marcar){sheet(sheetMarcas(+d.marcar))}
  else if('minicio' in d&&$('#mv')){S.mtmp.t0=$('#mv').currentTime;atualizaMarcas()}
  else if('mfim' in d&&$('#mv')){S.mtmp.t1=$('#mv').currentTime;atualizaMarcas()}

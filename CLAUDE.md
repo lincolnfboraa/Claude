@@ -39,6 +39,11 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
 - **Marcações nos brutos:** ao pedir o vídeo, o editor marca trechos de cada vídeo do celular como fala principal, bastidor ou considerar (original_meta.marcas);
   a IA responde cada uma (plano.marcas) e o motor grava onde entrou na prévia ou por que ficou de fora (marcas_vN).
 - **Legibilidade medida:** a verificação mede o fundo real (vídeo sem texto) atrás da legenda nos momentos de fala e acusa fundo claro demais.
+- **Storytelling em três etapas (etapas.py, BORA_TRES_ETAPAS=0 volta ao plano direto):** 1) MAPA dos originais (mapa.json, uma vez por projeto: trechos com papel, qualidade e
+  observação de imagem, cada um com arquivo e intervalo); 2) ROTEIRO com as falas literais em sequência (roteiro_vN.json), validado ANTES do render: abertura respondida,
+  falas ligadas, fechamento que conclui (refaz uma vez com a crítica; o que sobrar vai pro editor decidir); 3) PLANO de edição com os segmentos travados no roteiro.
+  Tudo vai pro projeto (original_meta.mapa, roteiro_vN, custo_vN com tempo e tokens por etapa). Ajuste parte da versão escolhida (base_ajuste): só texto mantém áudio e cortes;
+  outro fechamento troca só a parte citada e registra o que entrou no lugar (roteiro_vN.trocas). No app: abrir o roteiro, corrigir uma parte, escolher a versão base.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

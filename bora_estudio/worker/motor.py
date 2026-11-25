@@ -278,7 +278,13 @@ def preparar(p, etapa, sb, correcao=None):
                     if jpg: falas.append({'n': i + 1, 'nome': nomes[i], 'dur': d_, 'jpg': jpg, 'tempos': tempos})
                 except Exception as e: print('folha da fala:', str(e)[:100], flush=True)
             pl = None
-            if anterior and os.environ.get('BORA_AJUSTE_PONTUAL', '1') != '0' and not any(a.get('versao') == n - 1 for a in anexos_ia):      # ajuste PONTUAL: só muda o que o pedido cita, o resto fica travado
+            if os.environ.get('BORA_TRES_ETAPAS', '1') != '0':      # mapa dos originais -> roteiro validado -> plano de edição (cada um salvo)
+                try:
+                    pl = tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, feedbacks, brolls, falas, exigidos, anexos_ia,
+                                     '\n'.join(x for x in (pedido_gancho, pedido_sens.strip()) if x), correcao, etapa, sb, pid, anterior)
+                except Exception as e:
+                    import traceback; traceback.print_exc(); print('três etapas falhou, usando o plano direto:', str(e)[:150], flush=True); pl = None
+            if pl is None and anterior and os.environ.get('BORA_AJUSTE_PONTUAL', '1') != '0' and not any(a.get('versao') == n - 1 for a in anexos_ia):      # ajuste PONTUAL: só muda o que o pedido cita, o resto fica travado
                 pedido_aj = correcao or (feedbacks[-1][1] if feedbacks else '')
                 sel = selecoes_texto(meta, n, anterior, pal, arqs, pasta)
                 if sel: pedido_aj = (pedido_aj + '\n' if pedido_aj else '') + sel
@@ -498,6 +504,70 @@ def onde_entraram(pl, meta, nomes, pal, arqs, pasta):
         out.append({**m, 'entrou': onde is not None, 'tempo_previa': round(onde, 1) if onde is not None else None,
                     'motivo': '' if onde is not None else (r.get('motivo') or 'a IA não explicou')})
     return out
+
+def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, feedbacks, brolls, falas, exigidos, anexos_ia, extra, correcao, etapa, sb, pid, anterior=None):
+    """Mapa dos originais (uma vez por projeto) -> roteiro com falas literais (validado antes do render) -> plano de edição.
+    Ajuste parte da versão escolhida (original_meta.base_ajuste = {para: n, base: k}; padrão a anterior): só texto preserva áudio e cortes;
+    outro fechamento ou fala troca só a parte citada e registra o que entrou no lugar."""
+    import etapas, plano as plano_ia
+    etapas.CUSTO.clear(); t_ini = time.time()
+    briefing = meta.get('briefing', '') or ''
+    arq_mapa = os.path.join(pasta, 'mapa.json')
+    if os.path.exists(arq_mapa): mapa = json.load(open(arq_mapa))
+    else:
+        etapa('Etapa 1: estudando os originais (mapa)', 26)
+        mapa = etapas.mapear(pal, nomes, papeis, cliente, dna, regras, briefing, falas, brolls, marcas_texto(meta, nomes, pal))
+        json.dump(mapa, open(arq_mapa, 'w'), ensure_ascii=False, indent=1)
+    ba = meta.get('base_ajuste') or {}
+    base = int(ba['base']) if ba.get('para') == n and ba.get('base') else n - 1
+    rot_b = os.path.join(pasta, f'roteiro_v{base}.json'); pl_b = os.path.join(pasta, f'plano_v{base}.json')
+    if correcao and anterior and os.path.exists(os.path.join(pasta, f'roteiro_v{n}.json')):     # revisão interna: corrige a própria versão
+        base, rot_b = n, os.path.join(pasta, f'roteiro_v{n}.json')
+    trocas, tipo, resumo_aj = [], 'novo', ''
+    if (base == n or n > 1) and os.path.exists(rot_b) and (base == n or os.path.exists(pl_b)) and not any(a.get('versao') == n - 1 for a in anexos_ia):
+        rot0, ant = json.load(open(rot_b)), (anterior if base == n else json.load(open(pl_b)))
+        pedido = correcao or (feedbacks[-1][1] if feedbacks else '')
+        corr = meta.get(f'roteiro_corrigir_v{base}') or []
+        if corr: pedido += '\nCorreções no roteiro (índice [k] da lista): ' + '; '.join(f"parte [{c['parte']}]: {c['texto']}" for c in corr)
+        sel = selecoes_texto(meta, n, ant, pal, arqs, pasta)
+        if sel: pedido += '\n' + sel
+        etapa(f'Etapa 2: ajustando o roteiro a partir da v{base}', 28)
+        tipo, rot, trocas, resumo_aj = etapas.ajustar_roteiro(rot0, mapa, pal, nomes, papeis, cliente, dna, regras, pedido)
+        etapa('Etapa 3: plano de edição (só o que mudou)', 32)
+        extra2 = extra + ('\n' + etapas.texto_roteiro_para_plano(rot) if tipo == 'roteiro' else '')
+        pl = plano_ia.ajustar(pal, nomes, cliente, dna, regras, ant, pedido, brolls, falas, papeis, extra2) or plano_ia.gerar(
+            pal, nomes, cliente, dna, regras, '\n'.join(x for x in (briefing, extra2) if x), ant, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
+        if tipo == 'so_texto':                         # só texto: áudio e cortes exatamente iguais aos da versão escolhida
+            pl['segmentos'] = ant['segmentos']; pl['broll'] = ant.get('broll') or []; rot = rot0
+        elif tipo == 'imagem':                          # imagem: mesmas falas, muda enquadramento/B-roll
+            rot = rot0; pl = etapas.segmentos_do_roteiro(rot, {**pl, 'segmentos': pl['segmentos']})
+        else:
+            pl = etapas.segmentos_do_roteiro(rot, pl)
+    else:
+        etapa('Etapa 2: roteiro com as falas em sequência', 28)
+        pedido = '\n'.join(x for x in (extra, correcao or '') if x)
+        rot = etapas.roteirizar(mapa, pal, nomes, papeis, cliente, dna, regras, briefing, pedido, sorted(exigidos))
+        etapa('Etapa 3: plano de edição', 32)
+        pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (briefing, extra, etapas.texto_roteiro_para_plano(rot)) if x),
+                            None, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
+        pl = etapas.segmentos_do_roteiro(rot, pl)
+    u = pl.get('_uso') or {}
+    etapas.CUSTO.append({'etapa': 'plano de edição', 'segundos': None, 'entrada': u.get('entrada'), 'saida': u.get('saida'), 'modelo': pl.get('_modelo')})
+    rot = etapas.completar(rot, pal, nomes, mapa)
+    json.dump(rot, open(os.path.join(pasta, f'roteiro_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
+    custo = {'etapas': list(etapas.CUSTO), 'segundos': round(time.time() - t_ini, 1), 'tipo_ajuste': tipo, 'base': base if n > 1 else None}
+    pl['_roteiro'] = {'tipo': tipo, 'trocas': trocas, 'resumo_ajuste': resumo_aj}
+    try:                                                # as três entregas ficam no projeto (o app mostra e deixa corrigir o roteiro)
+        m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+        m2['mapa'] = {'tema': mapa.get('tema'), 'ideias_centrais': mapa.get('ideias_centrais'),
+                      'trechos': [{k: t.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'qualidade', 'obs_imagem', 'resumo')} for t in mapa.get('trechos') or []]}
+        m2[f'roteiro_v{n}'] = {'ideia_central': rot.get('ideia_central'), 'promessa': rot.get('promessa_da_abertura'), 'validacao': rot.get('validacao'), 'problemas': rot.get('problemas') or [],
+                               'bastidores': rot.get('bastidores_considerados') or [], 'tipo_ajuste': tipo, 'base': custo['base'], 'trocas': trocas,
+                               'partes': [{k: p.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'motivo', 'obs_imagem')} for p in rot['partes']]}
+        m2[f'custo_v{n}'] = custo
+        sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m2})
+    except Exception as e: print('salvar roteiro:', str(e)[:120], flush=True)
+    return pl
 
 def selecoes_texto(meta, n, anterior, pal, arqs, pasta):
     """Trechos que o editor marcou na timeline da versão anterior ([{t0, t1, texto}] em original_meta.selecoes_v{n-1}), já ligados às palavras e itens do plano."""
