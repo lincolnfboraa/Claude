@@ -4,7 +4,7 @@ T = tempfile.mkdtemp(); os.environ['BORA_TRABALHO'] = T
 import motor
 R = []
 def ok(nome, cond, det=''): R.append(bool(cond)); print(('PASSOU ' if cond else 'FALHOU ') + nome + (f' ({det})' if det else ''), flush=True)
-motor.TRAB = T; pid = 'p1'; pasta = os.path.join(T, pid); os.makedirs(pasta)
+motor.TRAB = T; motor.REVISOES = 2; pid = 'p1'; pasta = os.path.join(T, pid); os.makedirs(pasta)
 def nota(x, enq=8): return {'nota': x, 'motivo': 'm', 'criterios': {c: {'nota': (enq if c == 'enquadramento' else 8), 'motivo': 'porque ' + c} for c in ('gancho', 'storytelling', 'cortes', 'enquadramento', 'complemento')},
                             'problemas': [{'segundo': 14.5, 'fim': 16, 'problema': 'homem cortado na lateral', 'mudanca_esperada': 'quadro total de 14 a 16 s', 'opcoes': ['cortar o trecho']}], 'conferencia': [], 'resumo': 'r'}
 def cenario(notas):

@@ -433,7 +433,7 @@ def concluir(pac, res, sb, pasta=None, nota=None):
     sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
 
 NOTA_MIN = float(os.environ.get('BORA_NOTA_MIN', '7.5'))     # abaixo disso (ou algum critério abaixo de 6) a prévia volta pra correção antes de chegar ao editor
-REVISOES = int(os.environ.get('BORA_REVISOES', '2'))           # rodadas de correção automática por versão
+REVISOES = int(os.environ.get('BORA_REVISOES', '0'))           # rodadas de correção automática por versão
 
 def avaliar_previa(pac, res, sb, pasta=None, esperado=()):
     """Nota de 0 a 10 da IA pra prévia (critérios com motivo e problemas com o segundo), ou None se não der pra avaliar."""
