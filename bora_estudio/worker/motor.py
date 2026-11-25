@@ -208,6 +208,7 @@ def preparar(p, etapa, sb, correcao=None):
              'caixa': (proj.get('cores_texto') or {}).get('caixa') or tx.get('caixa') or '#1E2A47'}
     pasta = os.path.join(TRAB, pid); os.makedirs(pasta, exist_ok=True)
     etapa('Lendo o pedido', 5)
+    import plano as _pl; _pl.VOZES.update(f0=None, limiar=None)           # vozes medidas são deste projeto (zera as do anterior)
     import vocabulario
     vocab = vocabulario.carregar(cli_id, dna)                 # termos do cliente (nomes de remédios, estudos...) pro Whisper
     pal = _transcricoes(pid, arqs, etapa, vocab)
@@ -515,11 +516,19 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
     import etapas, plano as plano_ia
     etapas.CUSTO.clear(); t_ini = time.time()
     briefing = meta.get('briefing', '') or ''
+    import vozes                                       # quem fala, pelo som (a IA só via o texto e chutava)
+    arq_vozes = os.path.join(pasta, 'vozes.json')
+    if os.path.exists(arq_vozes): f0 = json.load(open(arq_vozes))
+    else:
+        f0 = vozes.alturas(arqs, pal) if any(p_ == 'fala' for p_ in papeis) else [[None] * len(pw) for pw in pal]
+        json.dump(f0, open(arq_vozes, 'w'))
+    plano_ia.VOZES.update(f0=f0, limiar=vozes.separar(f0))
     arq_mapa = os.path.join(pasta, 'mapa.json')
     if os.path.exists(arq_mapa): mapa = json.load(open(arq_mapa))
     else:
         etapa('Etapa 1: estudando os originais (mapa)', 26)
         mapa = etapas.mapear(pal, nomes, papeis, cliente, dna, regras, briefing, falas, brolls, marcas_texto(meta, nomes, pal))
+        etapas.quem_pelo_som(mapa, pal, f0, plano_ia.VOZES['limiar'])
         json.dump(mapa, open(arq_mapa, 'w'), ensure_ascii=False, indent=1)
     # bastidores dos takes de fala viram COBERTURA possível: a imagem cobre um trecho fraco (tremido, mal enquadrado) e a voz continua por baixo
     por_arq = {}

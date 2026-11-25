@@ -103,8 +103,13 @@ def marcar_repeticoes(pw):
                     break
     return m
 
+VOZES = {'f0': None, 'limiar': None}                       # altura da voz por palavra (vozes.py): a transcrição diz quem fala pelo SOM
+
 def numerar(palavras, arquivos, papeis=None):
-    """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase. Vídeos de ambiente não entram (os índices continuam valendo)."""
+    """Transcrição numerada: '[12] palavra (3.42)' agrupada por arquivo e por frase, com a voz de cada frase (grave/aguda) quando medida.
+    Vídeos de ambiente não entram (os índices continuam valendo)."""
+    import vozes
+    f0, lim = VOZES.get('f0'), VOZES.get('limiar')
     linhas, g = [], 0
     for ai, pw in enumerate(palavras):
         if papeis and papeis[ai] == 'ambiente':
@@ -115,7 +120,8 @@ def numerar(palavras, arquivos, papeis=None):
             frase.append(f"[{g}]{w['w']}" + ('⟲' if k in marcas else ''))
             fim_frase = w['w'][-1:] in '.?!' or (k + 1 < len(pw) and pw[k + 1]['s'] - w['e'] > 0.8)
             if fim_frase or k == len(pw) - 1:
-                linhas.append(f"({pw[k - len(frase) + 1]['s']:.1f}s) " + ' '.join(frase)); frase = []
+                v = vozes.quem_fala(f0[ai][k - len(frase) + 1:k + 1], lim) if f0 and lim and ai < len(f0) else None
+                linhas.append(f"({pw[k - len(frase) + 1]['s']:.1f}s)" + (f" [{v}]" if v else '') + ' ' + ' '.join(frase)); frase = []
             g += 1
     return '\n'.join(linhas)
 

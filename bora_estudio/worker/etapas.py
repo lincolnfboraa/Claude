@@ -87,6 +87,7 @@ def origem(palavras, nomes, a, b):
 def mapear(palavras, nomes, papeis, cliente, dna, regras, briefing='', falas=(), brolls=(), marcas=''):
     texto = (f"Transcrição numerada de TODOS os originais:\n{plano.numerar(palavras, nomes, papeis)}\n\n" + (f"Briefing: {briefing}\n\n" if briefing else '') +
              (marcas + '\n\n' if marcas else '') +
+             'Cada frase traz a voz medida no áudio ([voz grave] / [voz aguda]): use isso pra saber quem fala, não o texto. '
              'ETAPA 1, MAPA DOS ORIGINAIS: estude TODO o material antes de qualquer decisão. Divida as falas em trechos (frases ou ideias completas) e diga o papel de cada um, quem fala, a emoção, '
              'a qualidade (hesitação, frase cortada, repetição = ruim) e o que a imagem mostra naquele momento (use as folhas de quadros). Conversas fora do assunto, '
              'combinações de gravação e erros são bastidor, erro ou repeticao. Não monte o vídeo ainda.')
@@ -95,6 +96,25 @@ def mapear(palavras, nomes, papeis, cliente, dna, regras, briefing='', falas=(),
     for t in r['trechos']:
         arq, s0, s1, lit = origem(palavras, nomes, t['palavra_inicio'], t['palavra_fim']); t.update(arquivo=arq, inicio_s=s0, fim_s=s1, texto=lit)
     return r
+
+def quem_pelo_som(mapa, palavras, f0, limiar):
+    """Corrige 'quem fala' de cada trecho do mapa pela voz medida (grave/aguda). O nome vem do que a IA mais usou pra cada voz;
+    se ela deu o mesmo nome às duas, a voz que sobra vira 'outra pessoa'."""
+    import montagem, vozes
+    if not limiar: return mapa
+    G = montagem.indice_global(palavras); por_voz = {}
+    for t in mapa.get('trechos') or []:
+        a, b = int(t['palavra_inicio']), int(t['palavra_fim'])
+        v = vozes.quem_fala([f0[G[i][0]][G[i][1]] for i in range(a, b + 1)], limiar)
+        t['voz'] = v
+        if v in ('voz grave', 'voz aguda') and t.get('quem'): por_voz.setdefault(v, []).append(t['quem'])
+    from collections import Counter
+    nome = {v: Counter(ns).most_common(1)[0][0] for v, ns in por_voz.items()}
+    if nome.get('voz grave') and nome.get('voz grave') == nome.get('voz aguda'): nome['voz grave'] = 'outra pessoa (voz grave)'
+    for t in mapa.get('trechos') or []:
+        if t.get('voz') in ('voz grave', 'voz aguda'): t['quem'] = nome.get(t['voz'], t['voz'])
+        elif t.get('voz') == 'as duas vozes': t['quem'] = ' e '.join(x for x in (nome.get('voz aguda'), nome.get('voz grave')) if x) or 'os dois'
+    return mapa
 
 def _checar(rot, palavras):
     """Validação por código além da da IA: partes válidas e o fechamento termina em frase completa."""

@@ -53,6 +53,8 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   de pessoas diferentes ficam juntas. O código confere se abre no gancho e fecha no desfecho.
 - **Bastidor como cobertura:** trechos de bastidor dos takes de fala entram na lista de B-roll (só a imagem, a voz continua) pra cobrir fala boa com imagem fraca.
 - **Restaurar fala:** em "O que entrou e o que saiu", cada trecho que saiu tem "Restaurar fala"; vai no ajuste como pedido de roteiro com arquivo, intervalo e palavras.
+- **Quem fala, pelo som (vozes.py):** altura da voz (F0) de cada palavra, separada em voz grave e aguda; a transcrição numerada marca [voz grave]/[voz aguda] por frase
+  e o mapa corrige 'quem' pela voz (o GPT chutava pelo texto e errava). Cache em vozes.json na pasta do projeto.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.
