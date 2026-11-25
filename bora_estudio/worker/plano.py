@@ -11,8 +11,11 @@ MODELO_GPT = os.environ.get('BORA_MODELO_GPT', '')               # modelo da Ope
 
 ESQUEMA = {
     'type': 'object', 'additionalProperties': False,
-    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'insercoes', 'broll', 'correcoes', 'cores', 'resumo', 'nao_feito'],
+    'required': ['segmentos', 'usar_titulo', 'titulo', 'destaques', 'insercoes', 'broll', 'correcoes', 'cores', 'resumo', 'nao_feito', 'marcas'],
     'properties': {
+        'marcas': {'type': 'array', 'description': 'Uma por trecho marcado pelo editor nos brutos (vazio se não houver): se usou e, se não, o motivo.',
+            'items': {'type': 'object', 'additionalProperties': False, 'required': ['marca', 'usou', 'motivo'],
+                      'properties': {'marca': {'type': 'integer'}, 'usou': {'type': 'boolean'}, 'motivo': {'type': 'string'}}}},
         'segmentos': {'type': 'array', 'description': 'Trechos na ORDEM do vídeo final. Cada um é um intervalo contínuo de palavras de um mesmo arquivo.',
             'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'palavra_fim', 'quadro', 'motivo'],
                 'properties': {'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},

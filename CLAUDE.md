@@ -34,6 +34,11 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   vai em original_meta.selecoes_vN e o motor liga cada trecho às palavras, segmentos, B-rolls e destaques daquele tempo.
 - **Recursos de venda:** destaque 'preco' (De R$X branco riscado de vermelho + por R$Y num selo branco com barra e número na cor de destaque), 'selo' de campanha
   (BLACK/FRIDAY/até 50% em Anton inclinada e Sacramento; fundo escuro e desfocado no vídeo; logo_cliente.png da pasta do projeto entra embaixo), B-roll com 'velocidade' (câmera lenta) e até o corte.
+- **Revisor com mudança esperada:** cada problema traz trecho (início e fim), motivo, a mudança que precisa aparecer e as opções; a rodada seguinte confere uma a uma (conferencia).
+  Nenhuma rodada resolveu: nota_ia_vN.decisao_editorial (o app mostra "Precisa de decisão editorial" e marca os trechos na timeline). Confere também se a última fala fecha a ideia.
+- **Marcações nos brutos:** ao pedir o vídeo, o editor marca trechos de cada vídeo do celular como fala principal, bastidor ou considerar (original_meta.marcas);
+  a IA responde cada uma (plano.marcas) e o motor grava onde entrou na prévia ou por que ficou de fora (marcas_vN).
+- **Legibilidade medida:** a verificação mede o fundo real (vídeo sem texto) atrás da legenda nos momentos de fala e acusa fundo claro demais.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

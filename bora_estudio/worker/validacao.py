@@ -4,7 +4,7 @@ import json, re, subprocess, unicodedata
 
 def _n(t): return re.sub(r'[^a-z0-9]', '', unicodedata.normalize('NFKD', t.lower()).encode('ascii', 'ignore').decode())
 
-def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques, vocab=None):
+def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques, vocab=None, base=None):
     itens = []
     pr = json.loads(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'stream=codec_type,height,color_transfer:format=duration',
                                     '-of', 'json', arq], capture_output=True, text=True).stdout or '{}')
@@ -40,12 +40,40 @@ def verificar(arq, pl, tokens, dur, altura, hdr_origem, aplicadas, n_destaques, 
     pedidas = len([i for i in pl.get('insercoes') or []])
     if pedidas: itens.append(('Imagens e vídeos anexados', aplicadas == pedidas, f'{aplicadas} de {pedidas} aplicados'))
     if pl.get('destaques'): itens.append(('Destaques', n_destaques > 0, f'{n_destaques} no vídeo'))
+    leg = legibilidade(base, tokens, dur) if base else None
+    if leg: itens.append(('Legenda legível sobre a imagem', leg[0], leg[1]))
     itens.append(('Rosto livre e textos legíveis', None, 'precisa olhar na prévia'))
     itens.append(('Imagem sem filtros', True, 'o motor não aplica filtros nem suavização'))
     return [{'item': a, 'ok': b, 'detalhe': c} for a, b, c in itens]
 
 
 PISO_MBPS = {24: 0.0, 16: 4.0, 10: 6.0}       # abaixo disso, com 'alta' ou 'máxima', algo ficou comprimido demais (vídeo muito simples pode dar alarme falso)
+
+def legibilidade(base, tokens, dur, passo=2.0):
+    """Mede o fundo REAL (vídeo sem texto) atrás da legenda branca nos momentos com fala: fundo claro demais tira o contraste.
+    Devolve (ok, detalhe) ou None se não der pra medir."""
+    try:
+        import numpy as np
+        ts = sorted({round(t['s'] + 0.2, 1) for t in tokens})
+        amostras, ult = [], -9.0
+        for t in ts:
+            if t - ult >= passo and t < dur: amostras.append(t); ult = t
+        amostras = amostras[:20]
+        if not amostras: return None
+        tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,'
+        ruins = []
+        for t in amostras:
+            r = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{t:.2f}', '-i', base, '-frames:v', '1', '-vf', f'{tm}scale=270:480,format=gray', '-f', 'rawvideo', '-'], capture_output=True)
+            if len(r.stdout) != 270 * 480:
+                r = subprocess.run(['ffmpeg', '-v', 'error', '-ss', f'{t:.2f}', '-i', base, '-frames:v', '1', '-vf', 'scale=270:480,format=gray', '-f', 'rawvideo', '-'], capture_output=True)
+            if len(r.stdout) != 270 * 480: continue
+            a = np.frombuffer(r.stdout, np.uint8).reshape(480, 270)[int(480 * 1290 / 1920):int(480 * 1470 / 1920), 54:216] / 255.0
+            if a.mean() > 0.72 or (a > 0.82).mean() > 0.35: ruins.append(t)
+        if not amostras: return None
+        if not ruins: return True, f'fundo com contraste nos {len(amostras)} momentos medidos'
+        return len(ruins) <= max(1, len(amostras) // 5), f'fundo claro atrás da legenda em {len(ruins)} de {len(amostras)} momentos (' + ', '.join(f'{t:g} s' for t in ruins[:6]) + ')'
+    except Exception as e:
+        print('legibilidade:', str(e)[:100], flush=True); return None
 
 def verificar_final(arq, dur, altura, hdr_origem, crf):
     """Confere o 4K gerado (antes de entregar): tamanho, codec, 10 bits, HDR, duração, áudio e taxa de bits real.

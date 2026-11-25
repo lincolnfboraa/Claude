@@ -266,6 +266,8 @@ def preparar(p, etapa, sb, correcao=None):
                                'citem marca; a legenda troca por termos genéricos. Prefira trechos que falem das medicações como classe e do cuidado com o rim, sem promessa de efeito nem tom de venda.')
             anexos_ia = [a for a in (meta.get('anexos') or []) if not a.get('capa_final') and a not in casados]       # o mesmo take de novo não é inserção: é pedido de uso
             pedido_sens += (' ' + avaliacao_anterior(meta, n)) if n > 1 and not correcao else ''
+            mt = marcas_texto(meta, nomes, pal)
+            if mt: pedido_sens += '\n' + mt
             if exigidos: pedido_sens += ' O editor pediu que ' + ', '.join(f'o Arquivo {i + 1} ({nomes[i]})' for i in sorted(exigidos)) + ' ENTRE no storytelling, com falas dele (não como inserção em tela cheia).'
             if any(a.get('capa_final') for a in (meta.get('anexos') or [])): pedido_sens += ' Uma capa final (CRM e RQE) será acrescentada depois do último trecho: o fechamento da fala não precisa citar o CRM.'
             falas = []                                  # quadros dos takes de fala: a IA evita trecho com gente entrando, produto sendo trocado etc.
@@ -292,6 +294,7 @@ def preparar(p, etapa, sb, correcao=None):
                         if set(exigidos) - {G_[int(sg['palavra_inicio'])][0] for sg in pl['segmentos']}: pl = None
             if pl is None:
                 pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (meta.get('briefing', ''), pedido_gancho, pedido_sens.strip()) if x), anterior, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
+        pl['_marcas'] = onde_entraram({**pl, '_broll_arquivos': [b['ai'] for b in brolls]}, meta, nomes, pal, arqs, pasta)
         pl['_anexos'] = [a for a in (meta.get('anexos') or []) if a not in casados]; pl['_exigidos'] = [nomes[i] for i in sorted(exigidos)]; pl['_exigidos_i'] = sorted(exigidos)
         pl['_gancho'] = {**(meta.get('gancho') or {}), 'frase': gancho_texto((meta.get('gancho') or {}).get('frase'))[0]}   # template e título EXATO (observação do editor não vira título)
         pl['_broll_arquivos'] = [b['ai'] for b in brolls]
@@ -357,7 +360,7 @@ def renderizar(pac, etapa, pasta=None):
         etapa('Conferindo a prévia (áudio, palavras, resolução, anexos)', 88)
         import validacao
         n_dest = len(pl.get('destaques') or []) if any(',K,' in l for l in open(saida_txt + '.ass')) else 0
-        verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest, vocab=pac.get('vocabulario'))
+        verif = validacao.verificar(previa, pl, tokens_v, dur, 854, hdr, insercoes.APLICADAS if pl.get('insercoes') else 0, n_dest, vocab=pac.get('vocabulario'), base=base)
         if pl.get('_exigidos'):
             G = montagem.indice_global(pal); usados = {G[int(sg['palavra_inicio'])][0] for sg in pl['segmentos']}
             faltou = [nm for nm, i in zip(pl['_exigidos'], pl.get('_exigidos_i') or []) if i not in usados]
@@ -410,6 +413,7 @@ def concluir(pac, res, sb, pasta=None, nota=None):
         m = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m.update({'andamento': None, 'progresso': None, 'dur': f"{round(res['dur'])} s", f'validacao_v{n}': res.get('verif')})
         if tl: m[f'timeline_v{n}'] = tl
+        if pl.get('_marcas'): m[f'marcas_v{n}'] = pl['_marcas']
         if pl.get('usar_titulo'): m.update({'rotulo': pl['titulo'].get('rotulo'), 'pergunta': pl['titulo'].get('pergunta')})
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m})
         if nota:                                          # nota da revisão interna (a que foi entregue)
@@ -454,6 +458,46 @@ def _timeline(previa, pasta, n, w=96):
             if r.returncode == 0 and os.path.exists(arq): return {'arq': arq, 'n': k, 'w': w, 'h': h}
     except Exception as e: print('timeline:', str(e)[:100], flush=True)
     return None
+
+TIPOS_MARCA = {'principal': 'FALA PRINCIPAL (tem que entrar)', 'bastidor': 'USAR COMO BASTIDOR (cena de apoio/B-roll ou bastidor no vídeo)', 'considerar': 'CONSIDERAR SE ENCAIXAR (use se melhorar a história)'}
+
+def marcas_texto(meta, nomes, pal):
+    """Trechos que o editor marcou nos brutos ao pedir o vídeo ([{arquivo, t0, t1, tipo}] em original_meta.marcas), ligados às palavras."""
+    out = []
+    G0 = 0; inicio = []
+    for pw in pal: inicio.append(G0); G0 += len(pw)
+    for k, m in enumerate((meta or {}).get('marcas') or [], 1):
+        try: ai = [x.casefold() for x in nomes].index(str(m.get('arquivo', '')).casefold())
+        except ValueError: continue
+        ws = [inicio[ai] + j for j, w in enumerate(pal[ai]) if w['e'] > float(m['t0']) and w['s'] < float(m['t1'])]
+        fala = f"palavras {ws[0]}-{ws[-1]}" if ws else 'sem fala (use a imagem)'
+        out.append(f"Marca {k}: Arquivo {ai + 1} ({nomes[ai]}) de {float(m['t0']):.1f} a {float(m['t1']):.1f} s, {fala}: {TIPOS_MARCA.get(m.get('tipo'), m.get('tipo'))}")
+    return ('Trechos marcados pelo editor nos brutos (responda cada um no campo marcas; fala principal TEM que entrar; bastidor sem fala vira cena de apoio):\n' + '\n'.join(out)) if out else ''
+
+def onde_entraram(pl, meta, nomes, pal, arqs, pasta):
+    """Pra cada trecho marcado: se entrou na prévia e em que segundo, ou o motivo de ter ficado de fora."""
+    marcas = (meta or {}).get('marcas') or []
+    if not marcas: return []
+    try: _, tokens, _ = montagem.pecas(pl, arqs, pal, pasta)
+    except Exception as e: print('marcas:', str(e)[:100], flush=True); tokens = []
+    G = montagem.indice_global(pal); resp = {int(r.get('marca', 0)): r for r in pl.get('marcas') or []}; out = []
+    amb = pl.get('_broll_arquivos') or []
+    for k, m in enumerate(marcas, 1):
+        try: ai = [x.casefold() for x in nomes].index(str(m.get('arquivo', '')).casefold())
+        except ValueError: out.append({**m, 'entrou': False, 'motivo': 'arquivo não encontrado no projeto'}); continue
+        t0, t1 = float(m['t0']), float(m['t1'])
+        tem = [t for t in tokens if G[t['i']][0] == ai and t0 - 0.2 <= pal[ai][G[t['i']][1]]['s'] <= t1 + 0.2]
+        onde = min(t['s'] for t in tem) if tem else None
+        if onde is None and ai in amb:                     # vídeo sem fala usado como B-roll: entrou se a cena começa dentro do trecho
+            vb = amb.index(ai) + 1
+            for b in pl.get('broll') or []:
+                if int(b.get('video', 0)) == vb and t0 - 0.5 <= float(b.get('inicio_s') or 0) <= t1:
+                    sel = [t for t in tokens if int(b['palavra_inicio']) <= t['i'] <= int(b['palavra_fim'])]
+                    if sel: onde = min(t['s'] for t in sel); break
+        r = resp.get(k) or {}
+        out.append({**m, 'entrou': onde is not None, 'tempo_previa': round(onde, 1) if onde is not None else None,
+                    'motivo': '' if onde is not None else (r.get('motivo') or 'a IA não explicou')})
+    return out
 
 def selecoes_texto(meta, n, anterior, pal, arqs, pasta):
     """Trechos que o editor marcou na timeline da versão anterior ([{t0, t1, texto}] em original_meta.selecoes_v{n-1}), já ligados às palavras e itens do plano."""

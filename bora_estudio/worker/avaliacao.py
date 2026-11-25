@@ -31,6 +31,8 @@ Critérios (0 a 10 cada, com motivo):
 - enquadramento: ninguém cortado na lateral, respiro acima da cabeça, zoom coerente (sem pular de escala sem motivo), câmera firme.
 - complemento: o conjunto que apoia a fala: B-roll no momento certo e firme, legenda legível e sem erro (valores, nomes), destaques poucos e bem colocados (nada em cima do rosto), cores e identidade do cliente.
 Respeite o estilo APROVADO no DNA do cliente (ex.: legenda pequena minimalista branca com sombra leve, título sem caixa): não tire ponto por isso, só por erro real (texto ilegível, em cima do rosto, valor errado).
+Confira se a ÚLTIMA fala fecha a ideia (frase completa, não termina no meio nem numa constatação solta) antes da cartela final; se não fechar, é problema grave de storytelling, com o trecho e a mudança.
+Use a verificação 'Legenda legível sobre a imagem' (mede o fundo real): onde ela acusar fundo claro, aponte o trecho.
 No storytelling, só cobre o que existe nas gravações: se nenhum take tem orientação ou chamada, diga isso no motivo mas não desça abaixo de 6 só por esse motivo.
 A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro, gancho fraco) puxa a nota pra 6 ou menos.
 Em problemas, cite o trecho (segundo e fim), o que falhou e por quê, a mudança concreta que precisa aparecer na próxima versão e as opções se ela não for possível.

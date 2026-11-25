@@ -498,6 +498,7 @@ const V={
     <button class="ln" data-sw style="padding:16px 2px"><span class="tx"><b>Sugerir pro DNA</b><small>Depois da aprovação vira sugestão no DNA de ${esc(c.nome)}. Só vira regra se você confirmar.</small></span><span class="sw ${S.sugerir?'':'off'}"></span></button>`:''}`:''}
   ${semFinal?`<button class="pill full" style="margin-top:16px" data-reabrir="${id}">${SV(I.refaz)}Pedir ajuste antes do 4K</button>`:''}
   ${m['validacao_v'+a.n]?listaVerif('Verificação da v'+a.n,m['validacao_v'+a.n]):''}
+  ${m['marcas_v'+a.n]?blocoMarcasPrevia(m['marcas_v'+a.n]):''}
   ${a.previa?blocoNotas(id,a.n,m):''}
   ${v.st==='ok'&&m.validacao_final?listaVerif('Verificação do 4K',m.validacao_final):''}
   <div class="lst" style="margin-top:18px"><button class="ln" data-info="${id}">${SV(I.clipe)}<span class="tx"><b>Arquivos do projeto</b><small>${esc(m.arq||'Original')}${m.res?' · '+esc(m.res.replace(' × ','×'))+' · '+esc(m.cor||''):''}</small></span><span class="seta">›</span></button>
@@ -526,6 +527,7 @@ function blocoTimeline(id,tl){const u=TLURL[tl.path];if(!u){sb.storage.from('pre
  <div class="tl">${cel}</div>
  ${sel.map((x,k)=>`<div class="tls"><b>${k+1}</b><span>${x.t0}s a ${x.t1}s</span><input data-seltxt="${id}:${k}" value="${esc(x.texto||'')}" placeholder="O que mudar nesse trecho"><button data-rmsel="${id}:${k}" aria-label="Remover">✕</button></div>`).join('')}`}
 const TLURL={};
+function blocoMarcasPrevia(arr){return `<h3 class="rot">Trechos que você marcou</h3><div class="lst">${arr.map((x,k)=>`<div class="ln"><span style="width:22px;text-align:center;font-weight:700;color:${x.entrou?'var(--ok)':'var(--warn)'}">${x.entrou?'✓':'!'}</span><span class="tx"><b style="font-size:14px">${esc(x.arquivo)} · ${fmtT(x.t0)} a ${fmtT(x.t1)} · ${TIPOS[x.tipo]||x.tipo}</b><small style="white-space:normal">${x.entrou?'Entrou aos '+String(x.tempo_previa).replace('.',',')+' s da prévia':'Ficou de fora: '+esc(x.motivo||'')}</small></span></div>`).join('')}</div>`}
 function blocoNotas(id,n,m){const ia=m['nota_ia_v'+n],ed=m['nota_editor_v'+n],f=x=>String(x).replace('.',',');
  const nm={gancho:'Gancho',storytelling:'Storytelling',cortes:'Cortes',enquadramento:'Enquadramento',complemento:'Complemento',broll:'B-roll',textos:'Textos'};
  const cor=x=>x>=8?'var(--ok)':x>=6?'var(--beige)':'var(--warn)';
@@ -587,10 +589,23 @@ function sheetStatus(){const l=emProducao();return `<div class="grab"></div><div
 function onde(m,n){const min=s=>s==null?'':s<90?' · '+Math.round(s)+' s':' · '+Math.round(s/60)+' min',p=m['motor_v'+n],f=m.motor_final,l=[];
  if(p)l.push(`Prévia v${n}: transcrição ${esc(p.transcricao)}, render ${esc(p.previa)}, IA ${esc(p.ia||'VPS')}${min(p.segundos)}`);
  if(f)l.push(`4K: ${esc(f.feito)}${min(f.segundos)}`);return l.join('<br>')}
+const TIPOS={principal:'Fala principal',bastidor:'Usar como bastidor',considerar:'Considerar se encaixar'};
+function fmtT(t){t=Math.max(0,t||0);return Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')}
+function listaMarcas(i){const f=S.arquivos[i]||{},m=f._marcas||[];return m.length?m.map((x,k)=>`<div class="tls"><b>${k+1}</b><span>${fmtT(x.t0)} a ${fmtT(x.t1)}</span><span style="flex:1;opacity:1">${TIPOS[x.tipo]}</span><button data-mrm="${i}:${k}" aria-label="Remover">✕</button></div>`).join(''):'<p class="vazio" style="padding:8px 0">Nenhum trecho marcado ainda.</p>'}
+function sheetMarcas(i){const f=S.arquivos[i];S.mtmp={i,t0:null,t1:null,tipo:S.mtmp&&S.mtmp.tipo||'principal'};
+ return `<div class="grab"></div><div class="sh"><button data-close>Fechar</button><b>${esc(f.name)}</b><span style="width:52px"></span></div>
+ <video id="mv" src="${f._url}" controls playsinline style="width:100%;max-height:46vh;border-radius:14px;background:#000"></video>
+ <small style="display:block;opacity:.7;margin:8px 0">Toque play, pare no começo e toque "Início aqui"; depois no fim, "Fim aqui". Escolha o tipo e adicione.</small>
+ <div style="display:flex;gap:8px"><button class="pill sm" style="flex:1" data-minicio>Início aqui <b id="mi" style="margin-left:6px">–</b></button><button class="pill sm" style="flex:1" data-mfim>Fim aqui <b id="mf" style="margin-left:6px">–</b></button></div>
+ <div class="chips" id="mtp">${Object.entries(TIPOS).map(([k,v])=>`<button class="chip" data-mtipo="${k}" ${S.mtmp.tipo===k?'style="background:var(--beige);color:#072740;font-weight:700"':''}>${v}</button>`).join('')}</div>
+ <button class="pill pri full" style="margin-top:8px" data-madd="${i}">Adicionar trecho</button>
+ <div id="mlist" style="margin-top:10px">${listaMarcas(i)}</div>`}
+function atualizaMarcas(){const m=S.mtmp;$('#mi').textContent=m.t0==null?'–':fmtT(m.t0);$('#mf').textContent=m.t1==null?'–':fmtT(m.t1);
+ document.querySelectorAll('[data-mtipo]').forEach(b=>b.style.cssText=b.dataset.mtipo===m.tipo?'background:var(--beige);color:#072740;font-weight:700':'');$('#mlist').innerHTML=listaMarcas(m.i)}
 function blocoMat(lado,titulo,sub){const k=lado==='fala'?'fala':'amb',drv=(S.drive&&S.drive[k])||[],loc=S.arquivos.map((f,i)=>({f,i})).filter(x=>(x.f._papel||'fala')===lado);
  return `<h3 class="rot">${titulo}</h3><div class="lst">
   ${drv.map((f,i)=>`<div class="ln"><img class="mini" data-mini="${f.id}" alt=""><span class="tx"><b>${esc(f.nome)}</b><small>${(f.tamanho/1048576).toFixed(0)} MB · do Google Drive</small></span><button class="voltar" data-rmd="${k}:${i}" aria-label="Remover">✕</button></div>`).join('')}
-  ${loc.map(({f,i})=>`<div class="ln"><video class="mini" src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="tx"><b>${esc(f.name)}</b><small>${(f.size/1048576).toFixed(0)} MB · do celular <span id="du${i}">${f._dur||''}</span></small></span><button class="voltar" data-rmarq="${i}" aria-label="Remover">✕</button></div>`).join('')}
+  ${loc.map(({f,i})=>`<div class="ln"><video class="mini" src="${f._url}#t=0.5" muted playsinline preload="metadata" data-i="${i}"></video><span class="tx"><b>${esc(f.name)}</b><small>${(f.size/1048576).toFixed(0)} MB · do celular <span id="du${i}">${f._dur||''}</span>${(f._marcas||[]).length?' · '+f._marcas.length+' trecho(s) marcado(s)':''}</small><button class="pill sm" style="margin-top:6px" data-marcar="${i}">Marcar trechos</button></span><button class="voltar" data-rmarq="${i}" aria-label="Remover">✕</button></div>`).join('')}
   ${!drv.length&&!loc.length?`<p class="vazio" style="padding:14px 4px 4px">${sub}</p>`:''}
   <div style="display:flex;gap:8px;padding:12px 0 4px"><label class="pill sm" for="arq_${lado}" style="cursor:pointer;flex:1;justify-content:center">${SV(I.pasta)}Do celular</label><input type="file" id="arq_${lado}" accept="video/*" multiple hidden>
    <button class="pill sm" data-drive="${lado}" style="flex:1;justify-content:center">${SV(I.nuvem)}Do Google Drive</button></div></div>`}
@@ -716,7 +731,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   const drv=[...dv.fala.map(f=>({...f,papel:'fala'})),...dv.amb.map(f=>({...f,papel:'ambiente'}))],total=fs.length+drv.length;
   const n=(falasCel[0]?falasCel[0].name:dv.fala[0].nome).replace(/\.[^.]+$/,'');
   (async()=>{try{
-   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,gancho:{template:S.gancho.template,frase:(S.gancho.frase||'').trim()||undefined},sfx:S.sfx||undefined,aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
+   const [p]=await q(sb.from('projetos').insert({cliente_id:c.id,titulo:n,status:'editando',dna_versao_id:c.dna_versao_id,cores_texto:{...S.cores},original_meta:{arq:total>1?total+' vídeos':n,briefing:brief||undefined,gancho:{template:S.gancho.template,frase:(S.gancho.frase||'').trim()||undefined},sfx:S.sfx||undefined,marcas:(fs.flatMap(f=>(f._marcas||[]).map(x=>({arquivo:f.name,...x}))).length?fs.flatMap(f=>(f._marcas||[]).map(x=>({arquivo:f.name,...x}))):undefined),aguardando_upload:true,andamento:fs.length?'Enviando do celular':'Baixando do Drive',progresso:0}}).select());
    if(fs.length){const w=$('#upwrap');w.classList.remove('rodape');
     w.innerHTML=`<div class="envio" style="margin-top:26px"><span id="upanel">${anel(0,60)}</span><span class="tx"><b>Enviando ${fs.length>1?fs.length+' vídeos':'o vídeo'} do celular</b><small id="upinfo">Preparando…</small></span></div><p class="nota">Deixe o app aberto até terminar. Se a internet cair, ele continua de onde parou.</p>`;
     const TOT=fs.reduce((a,x)=>a+x.size,0);let feito=0;
@@ -732,6 +747,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/projeto/${d.descartar}/descartar`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
    S.stack=[{v:S.tab}];await recarregar();toast('Vídeo descartado')}catch(e){toast('Não consegui descartar: '+e.message)}})()}
+ else if(d.marcar){sheet(sheetMarcas(+d.marcar))}
+ else if('minicio' in d&&$('#mv')){S.mtmp.t0=$('#mv').currentTime;atualizaMarcas()}
+ else if('mfim' in d&&$('#mv')){S.mtmp.t1=$('#mv').currentTime;atualizaMarcas()}
+ else if(d.mtipo){S.mtmp.tipo=d.mtipo;atualizaMarcas()}
+ else if(d.madd){const m=S.mtmp,f=S.arquivos[+d.madd];if(m.t0==null||m.t1==null)return toast('Marque o início e o fim');const a=Math.min(m.t0,m.t1),b=Math.max(m.t0,m.t1);if(b-a<0.5)return toast('Trecho muito curto');
+  (f._marcas=f._marcas||[]).push({t0:Math.round(a*10)/10,t1:Math.round(b*10)/10,tipo:m.tipo});m.t0=m.t1=null;atualizaMarcas();reRender()}
+ else if(d.mrm){const[i,k]=d.mrm.split(':');S.arquivos[+i]._marcas.splice(+k,1);atualizaMarcas();reRender()}
  else if(d.decmarca){const[id,n]=d.decmarca.split(':');const ia=(vid(id).media||{})['nota_ia_v'+n];S.sel[id]=(ia.decisao_editorial.trechos||[]).map(x=>({t0:Math.max(0,Math.floor(x.inicio)),t1:Math.ceil(Math.max(x.fim,x.inicio+1)),texto:x.mudanca_esperada||x.problema}));S.parecer[id]='ajuste';reRender();toast('Trechos marcados. Ajuste o texto de cada um e envie')}
  else if(d.tl){const[id,t0]=d.tl.split(':'),t=+t0;S.sel[id]=S.sel[id]||[];const ini=S.selIni[id];
   if(ini==null||ini===undefined){S.selIni[id]=t}else{S.sel[id].push({t0:Math.min(ini,t),t1:Math.max(ini,t)+1,texto:''});S.selIni[id]=null}reRender()}
