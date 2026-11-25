@@ -44,6 +44,10 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   falas ligadas, fechamento que conclui (refaz uma vez com a crítica; o que sobrar vai pro editor decidir); 3) PLANO de edição com os segmentos travados no roteiro.
   Tudo vai pro projeto (original_meta.mapa, roteiro_vN, custo_vN com tempo e tokens por etapa). Ajuste parte da versão escolhida (base_ajuste): só texto mantém áudio e cortes;
   outro fechamento troca só a parte citada e registra o que entrou no lugar (roteiro_vN.trocas). No app: abrir o roteiro, corrigir uma parte, escolher a versão base.
+- **Modos do pedido (original_meta.modo):** história completa (padrão, sem duração fixa), só limpar pausas (todas as falas na ordem gravada, sem erro, repetição e bastidor,
+  sem IA no roteiro) ou resumir para X s (limite validado no roteiro).
+- **Rastreio por versão (rastreio_vN):** cada trecho do mapa diz se entrou na prévia (e em que segundo) ou em que etapa saiu (roteiro, plano, montagem) e por quê;
+  mais o tempo: fala gravada, escolhida, prévia, tirado pela história e pelas pausas. O app mostra em "O que entrou e o que saiu".
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

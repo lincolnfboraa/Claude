@@ -117,7 +117,18 @@ def segundos_roteiro(rot, palavras):
         tot += palavras[G[b][0]][G[b][1]]['e'] - palavras[G[a][0]][G[a][1]]['s']
     return tot * 0.88                                                 # pausas cortadas no render
 
-def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='', pedido='', exigidos=()):
+def so_limpar(mapa, palavras, nomes):
+    """Modo 'só limpar pausas': todas as falas na ordem gravada, sem erro, repetição nem bastidor (as pausas o render corta)."""
+    tre = sorted([t for t in (mapa or {}).get('trechos') or [] if t.get('papel') not in ('erro', 'repeticao', 'bastidor')], key=lambda t: int(t['palavra_inicio']))
+    rot = {'ideia_central': 'Falas na ordem gravada, só sem pausas, erros e repetições', 'promessa_da_abertura': '', 'bastidores_considerados': [], 'melhores_falas': [],
+           'partes': [{'papel': 'desenvolvimento', 'palavra_inicio': int(t['palavra_inicio']), 'palavra_fim': int(t['palavra_fim']), 'motivo': 'ordem original'} for t in tre],
+           'validacao': {'abertura_respondida': True, 'ligacao_entre_falas': True, 'fechamento_conclui': True, 'comentario': 'modo só limpar pausas'}, 'problemas': []}
+    return completar(rot, palavras, nomes, mapa)
+
+def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='', pedido='', exigidos=(), modo=None):
+    modo = modo or {}
+    if modo.get('tipo') == 'limpar': return so_limpar(mapa, palavras, nomes)
+    limite = float(modo.get('segundos') or 0) if modo.get('tipo') == 'resumir' else 0
     total = sum(len(p) for p in palavras)
     peso = {'alta': 0, 'media': 1, 'baixa': 2}
     melhores = sorted([t for t in (mapa or {}).get('trechos') or [] if t.get('qualidade') == 'boa' and t.get('papel') not in ('bastidor', 'erro', 'repeticao')],
@@ -131,7 +142,8 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
             'Estrutura: gancho que cria uma pergunta, contexto, desenvolvimento ou prova, ponte quando o assunto muda, fechamento que RESPONDE a abertura e conclui a ideia '
             '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n' +
             ('MELHORES FALAS DO MAPA (qualidade boa, das mais fortes pras menos): parta delas para montar a história e responda cada uma em melhores_falas:\n' + lista_melhores + '\n' if lista_melhores else '') +
-            'SEM DURAÇÃO FIXA: o tamanho do vídeo é consequência da estrutura, do contexto e do storytelling. Use todos os momentos que fortalecem a história e corte só o que não serve a ela.\n'
+            (f'RESUMIR: o editor pediu esta peça com até {limite:.0f} s de fala. Mantenha gancho e desfecho e as falas mais fortes; corte o que pesa menos na história.\n' if limite else
+             'HISTÓRIA COMPLETA, SEM DURAÇÃO FIXA: o tamanho do vídeo é consequência da estrutura, do contexto e do storytelling. Use todos os momentos que fortalecem a história e corte só o que não serve a ela.\n') +
             'EMOÇÃO E PERSONAGENS: comece por um momento que prenda (história pessoal, humor, revelação, emoção alta no mapa) quando existir. '
             + (f'Falam no material: {", ".join(quem)}. Cada pessoa que fala tem um papel na história: use falas de cada uma, e quem aparece em tela precisa ter motivo pra estar ali. ' if len(quem) > 1 else '')
             + 'Bastidor com emoção (riso, cumplicidade, erro engraçado) pode entrar como respiro ou fechamento se combinar com o tom do cliente.')
@@ -146,6 +158,7 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
             usados = {t.get('quem') for t in mapa.get('trechos') or [] for p in rot['partes'] if int(t['palavra_inicio']) <= int(p['palavra_fim']) and int(t['palavra_fim']) >= int(p['palavra_inicio'])}
             faltam = [q for q in quem if q not in usados]
             if faltam: problemas.append('quem fala no material e ficou sem nenhuma fala: ' + ', '.join(faltam))
+        if limite and seg > limite * 1.15: problemas.append(f'o roteiro tem {seg:.0f} s de fala, acima do limite de {limite:.0f} s pedido pelo editor')
         rot['segundos'] = round(seg, 1)
         if not problemas: break
     rot['problemas'] = problemas                                   # sobra = vai pro editor decidir (o fluxo segue, mas avisa)

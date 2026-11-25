@@ -546,7 +546,7 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
     else:
         etapa('Etapa 2: roteiro com as falas em sequência', 28)
         pedido = '\n'.join(x for x in (extra, correcao or '') if x)
-        rot = etapas.roteirizar(mapa, pal, nomes, papeis, cliente, dna, regras, briefing, pedido, sorted(exigidos))
+        rot = etapas.roteirizar(mapa, pal, nomes, papeis, cliente, dna, regras, briefing, pedido, sorted(exigidos), meta.get('modo'))
         etapa('Etapa 3: plano de edição', 32)
         pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (briefing, extra, etapas.texto_roteiro_para_plano(rot)) if x),
                             None, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)
@@ -555,6 +555,10 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
     etapas.CUSTO.append({'etapa': 'plano de edição', 'segundos': None, 'entrada': u.get('entrada'), 'saida': u.get('saida'), 'modelo': pl.get('_modelo')})
     rot = etapas.completar(rot, pal, nomes, mapa)
     json.dump(rot, open(os.path.join(pasta, f'roteiro_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
+    try:
+        rastreio, tempos = rastrear(mapa, rot, pl, pal, arqs, pasta)
+        json.dump({'trechos': rastreio, 'tempos': tempos}, open(os.path.join(pasta, f'rastreio_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
+    except Exception as e: print('rastreio:', str(e)[:120], flush=True); rastreio, tempos = [], {}
     custo = {'etapas': list(etapas.CUSTO), 'segundos': round(time.time() - t_ini, 1), 'tipo_ajuste': tipo, 'base': base if n > 1 else None}
     pl['_roteiro'] = {'tipo': tipo, 'trocas': trocas, 'resumo_ajuste': resumo_aj}
     try:                                                # as três entregas ficam no projeto (o app mostra e deixa corrigir o roteiro)
@@ -567,9 +571,37 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
         if correcao and m2.get(f'custo_v{n}'):          # rodadas da revisão interna somam ao custo da versão (não apagam o mapa e o roteiro)
             ant_c = m2[f'custo_v{n}']; custo = {**custo, 'etapas': (ant_c.get('etapas') or []) + custo['etapas'], 'segundos': round((ant_c.get('segundos') or 0) + custo['segundos'], 1)}
         m2[f'custo_v{n}'] = custo
+        m2[f'rastreio_v{n}'] = {'trechos': rastreio, 'tempos': tempos}
         sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m2})
     except Exception as e: print('salvar roteiro:', str(e)[:120], flush=True)
     return pl
+
+def rastrear(mapa, rot, pl, pal, arqs, pasta):
+    """Caminho de cada trecho do mapa nesta versão: entrou no roteiro? no plano? em que segundo da prévia? Se saiu, em que etapa e por quê.
+    Também o tempo retirado (material, escolhido no roteiro, pausas cortadas no render)."""
+    import montagem
+    def cruza(a, b, lst): return [k for k, x in enumerate(lst) if int(x['palavra_inicio']) <= b and int(x['palavra_fim']) >= a]
+    try: _, tokens, dur = montagem.pecas(pl, arqs, pal, pasta)
+    except Exception as e: print('rastreio:', str(e)[:100], flush=True); tokens, dur = [], 0
+    motivos = {int(x['palavra_inicio']): x.get('motivo', '') for x in (rot.get('melhores_falas') or []) + (rot.get('bastidores_considerados') or []) if not x.get('usou')}
+    G = montagem.indice_global(pal); out = []
+    for t in (mapa or {}).get('trechos') or []:
+        a, b = int(t['palavra_inicio']), int(t['palavra_fim'])
+        rp, ps = cruza(a, b, rot.get('partes') or []), cruza(a, b, pl.get('segmentos') or [])
+        tk = [x for x in tokens if a <= x['i'] <= b]
+        if tk: etapa_, motivo = 'prévia', ''
+        elif ps: etapa_, motivo = 'render', 'cortado na montagem (pausa, borda ou palavra fora do trecho)'
+        elif rp: etapa_, motivo = 'plano', 'o plano de edição não usou este trecho do roteiro'
+        else: etapa_, motivo = 'roteiro', motivos.get(a) or ('erro/repetição' if t.get('papel') in ('erro', 'repeticao') else 'não escolhido pra história')
+        out.append({'arquivo': t.get('arquivo'), 'inicio_s': t.get('inicio_s'), 'fim_s': t.get('fim_s'), 'texto': t.get('texto', ''), 'papel': t.get('papel'), 'quem': t.get('quem'),
+                    'emocao': t.get('emocao'), 'roteiro': [k + 1 for k in rp], 'plano': [k + 1 for k in ps], 'na_previa': round(min(x['s'] for x in tk), 1) if tk else None,
+                    'saiu_em': None if tk else etapa_, 'motivo': motivo})
+    falado = lambda ws: sum(w['e'] - w['s'] for w in ws)
+    material = sum(falado(pw) for pw in pal)
+    escolhido = sum(pal[G[b][0]][G[b][1]]['e'] - pal[G[a][0]][G[a][1]]['s'] for a, b in ((int(s['palavra_inicio']), int(s['palavra_fim'])) for s in pl.get('segmentos') or []))
+    tempos = {'material_s': round(material, 1), 'escolhido_s': round(escolhido, 1), 'previa_s': round(dur, 1),
+              'tirado_roteiro_s': round(max(0, material - escolhido), 1), 'tirado_pausas_s': round(max(0, escolhido - dur), 1)}
+    return out, tempos
 
 def selecoes_texto(meta, n, anterior, pal, arqs, pasta):
     """Trechos que o editor marcou na timeline da versão anterior ([{t0, t1, texto}] em original_meta.selecoes_v{n-1}), já ligados às palavras e itens do plano."""

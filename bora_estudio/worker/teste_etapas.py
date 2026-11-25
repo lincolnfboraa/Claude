@@ -58,5 +58,13 @@ pl3 = motor.tres_etapas(meta, 3, pasta, pal, nomes, ['fala', 'fala'], ['a', 'b']
 r3 = meta['roteiro_v3']
 ok('ajuste parte da versão escolhida (v1)', r3['base'] == 1)
 ok('outro fechamento: troca só a parte 2 e mostra o que entrou no lugar', r3['trocas'][0]['antes'].endswith('isso?') and r3['trocas'][0]['depois'].startswith('O risco') and r3['partes'][0] == meta['roteiro_v1']['partes'][0])
+ras = meta['rastreio_v1']
+ok('rastreio por versão: cada trecho do mapa diz onde entrou ou em que etapa saiu', len(ras['trechos']) == 2 and ras['trechos'][1]['saiu_em'] == 'roteiro' and ras['trechos'][1]['motivo'] == 'fora do assunto' and ras['trechos'][0]['roteiro'] == [1])
+ok('tempo retirado: material, escolhido e prévia', set(ras['tempos']) >= {'material_s', 'escolhido_s', 'previa_s', 'tirado_roteiro_s', 'tirado_pausas_s'})
+mapa = json.load(open(os.path.join(pasta, 'mapa.json')))
+r = etapas.roteirizar(mapa, pal, nomes, ['fala', 'fala'], {}, {}, {}, modo={'tipo': 'limpar'})
+ok('modo só limpar pausas: falas na ordem gravada, sem bastidor e sem chamar a IA', [p['palavra_inicio'] for p in r['partes']] == [0] and r['partes'][0]['texto'].startswith('Quando'))
+chamadas.clear(); etapas.roteirizar(mapa, pal, nomes, ['fala', 'fala'], {}, {}, {}, modo={'tipo': 'resumir', 'segundos': 20})
+ok('modo resumir: pede o limite à IA', 'até 20 s' in chamadas[0][1])
 shutil.rmtree(T)
 print(f'\n{sum(R)} de {len(R)} testes passaram'); sys.exit(0 if all(R) else 1)
