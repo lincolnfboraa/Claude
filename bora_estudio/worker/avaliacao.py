@@ -7,12 +7,18 @@ CRITERIOS = ['gancho', 'storytelling', 'cortes', 'enquadramento', 'complemento']
 NOMES = {'gancho': 'Gancho', 'storytelling': 'Storytelling', 'cortes': 'Cortes', 'enquadramento': 'Enquadramento', 'complemento': 'Complemento'}
 _CRIT = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'motivo'],
          'properties': {'nota': {'type': 'number'}, 'motivo': {'type': 'string', 'description': 'por que essa nota, citando o que viu (frase, segundo, cena)'}}}
-ESQ = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'motivo', 'criterios', 'problemas', 'resumo'],
+ESQ = {'type': 'object', 'additionalProperties': False, 'required': ['nota', 'motivo', 'criterios', 'problemas', 'conferencia', 'resumo'],
        'properties': {'nota': {'type': 'number', 'description': '0 a 10, uma casa decimal'},
                       'motivo': {'type': 'string', 'description': 'por que essa nota final, olhando o vídeo como um todo (2 a 4 frases)'},
                       'criterios': {'type': 'object', 'additionalProperties': False, 'required': CRITERIOS, 'properties': {c: _CRIT for c in CRITERIOS}},
-                      'problemas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['segundo', 'problema'],
-                                                               'properties': {'segundo': {'type': 'number'}, 'problema': {'type': 'string'}}}},
+                      'problemas': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['segundo', 'fim', 'problema', 'mudanca_esperada', 'opcoes'],
+                                                               'properties': {'segundo': {'type': 'number'}, 'fim': {'type': 'number', 'description': 'segundo em que o trecho com problema termina'},
+                                                                              'problema': {'type': 'string', 'description': 'o que falhou e por quê'},
+                                                                              'mudanca_esperada': {'type': 'string', 'description': 'a mudança concreta que precisa aparecer na próxima versão'},
+                                                                              'opcoes': {'type': 'array', 'items': {'type': 'string'}, 'description': 'saídas possíveis se a mudança não puder ser feita (ex.: outra fala real, B-roll, cortar o trecho)'}}}},
+                      'conferencia': {'type': 'array', 'description': 'uma por mudança esperada informada no pedido (vazio se nenhuma)',
+                                      'items': {'type': 'object', 'additionalProperties': False, 'required': ['mudanca', 'aconteceu', 'comentario'],
+                                                'properties': {'mudanca': {'type': 'string'}, 'aconteceu': {'type': 'boolean'}, 'comentario': {'type': 'string'}}}},
                       'resumo': {'type': 'string', 'description': 'uma frase, em português simples'}}}
 
 RUBRICA = """Você é um editor sênior de Reels avaliando uma prévia antes de mostrar ao cliente. Avalie o vídeo como um TODO, no contexto do cliente, do objetivo do vídeo e do pedido do editor.
@@ -27,7 +33,8 @@ Critérios (0 a 10 cada, com motivo):
 Respeite o estilo APROVADO no DNA do cliente (ex.: legenda pequena minimalista branca com sombra leve, título sem caixa): não tire ponto por isso, só por erro real (texto ilegível, em cima do rosto, valor errado).
 No storytelling, só cobre o que existe nas gravações: se nenhum take tem orientação ou chamada, diga isso no motivo mas não desça abaixo de 6 só por esse motivo.
 A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro, gancho fraco) puxa a nota pra 6 ou menos.
-Em problemas, cite o segundo do vídeo (dos quadros) e o que está errado, curto. Responda só o JSON."""
+Em problemas, cite o trecho (segundo e fim), o que falhou e por quê, a mudança concreta que precisa aparecer na próxima versão e as opções se ela não for possível.
+Se o pedido trouxer 'Mudanças esperadas', confira CADA uma nesta versão (conferencia: aconteceu sim ou não, com o que viu) e não repita como problema novo o que já foi resolvido. Responda só o JSON."""
 
 def _folha(previa, saida, passo=2.0):
     dur = float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', previa], capture_output=True, text=True).stdout or 0)
@@ -38,7 +45,7 @@ def _folha(previa, saida, passo=2.0):
         if r.returncode == 0 and os.path.exists(saida): return saida, [round(i * passo, 1) for i in range(n)], dur
     return None, [], dur
 
-def avaliar(previa, pl, pal, pedido, verif, pasta, contexto=''):
+def avaliar(previa, pl, pal, pedido, verif, pasta, contexto='', esperado=()):
     """Devolve {nota, criterios, problemas, resumo, modelo} ou None."""
     import montagem
     jpg, tempos, dur = _folha(previa, os.path.join(pasta, 'avaliacao_folha.jpg'))
@@ -54,7 +61,8 @@ def avaliar(previa, pl, pal, pedido, verif, pasta, contexto=''):
              f"Falas usadas, na ordem (a 1ª é o gancho):\n" + '\n'.join(fala) + '\n\n' + ('B-roll:\n' + '\n'.join(br) + '\n\n' if br else '') +
              (f"Título: {tit.get('rotulo', '')} / {tit.get('tema', '')} / {tit.get('pergunta', '')}\n" if pl.get('usar_titulo') else '') +
              'Destaques: ' + ', '.join(str(d.get('texto') or '') for d in pl.get('destaques') or []) + '\n\n'
-             'Verificação automática: ' + '; '.join(f"{x['item']}: {x['detalhe']}" for x in verif or []))
+             'Verificação automática: ' + '; '.join(f"{x['item']}: {x['detalhe']}" for x in verif or []) +
+             ('\n\nMudanças esperadas nesta versão (confira cada uma):\n' + '\n'.join(f'- {m}' for m in esperado) if esperado else ''))
     img = base64.b64encode(open(jpg, 'rb').read()).decode()
     if plano.IA == 'gpt':
         from openai import OpenAI
@@ -70,5 +78,5 @@ def avaliar(previa, pl, pal, pedido, verif, pasta, contexto=''):
         out, modelo = json.loads(next(b.text for b in msg.content if b.type == 'text')), msg.model
     lim = lambda x: round(min(10.0, max(0.0, float(x))), 1)
     out['nota'] = lim(out['nota']); out['criterios'] = {c: {'nota': lim(v['nota']), 'motivo': v['motivo']} for c, v in out['criterios'].items()}
-    out['problemas'] = out['problemas'][:8]; out['modelo'] = modelo
+    out['problemas'] = out['problemas'][:8]; out['conferencia'] = out.get('conferencia') or []; out['modelo'] = modelo
     return out

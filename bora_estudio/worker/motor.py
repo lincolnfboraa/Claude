@@ -425,7 +425,7 @@ def concluir(pac, res, sb, pasta=None, nota=None):
 NOTA_MIN = float(os.environ.get('BORA_NOTA_MIN', '7.5'))     # abaixo disso (ou algum critério abaixo de 6) a prévia volta pra correção antes de chegar ao editor
 REVISOES = int(os.environ.get('BORA_REVISOES', '2'))           # rodadas de correção automática por versão
 
-def avaliar_previa(pac, res, sb, pasta=None):
+def avaliar_previa(pac, res, sb, pasta=None, esperado=()):
     """Nota de 0 a 10 da IA pra prévia (critérios com motivo e problemas com o segundo), ou None se não der pra avaliar."""
     if os.environ.get('BORA_NOTA_IA', '1') == '0': return None
     try:
@@ -439,7 +439,7 @@ def avaliar_previa(pac, res, sb, pasta=None):
         cli = (sb('GET', f"/rest/v1/clientes?id=eq.{pac['cliente_id']}&select=nome,segmento") or [{}])[0]
         dna = (sb('GET', f"/rest/v1/dna_ativo?cliente_id=eq.{pac['cliente_id']}&select=dna") or [{}])[0].get('dna') or {}
         contexto = f"cliente {cli.get('nome')} ({cli.get('segmento') or 'segmento não informado'}). DNA do cliente: " + json.dumps(dna, ensure_ascii=False)[:1800]
-        return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto)
+        return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto, esperado)
     except Exception as e:
         print('nota da IA:', str(e)[:150], flush=True); return None
 
@@ -495,26 +495,36 @@ def texto_correcao(nota):
     dica = ''
     if nota['criterios'].get('enquadramento', {}).get('nota', 10) < 7:
         dica = " Pessoas cortadas na borda: nesses trechos use quadro 'total' (sem zoom), principalmente com duas pessoas no quadro."
-    return (f"Revisão interna antes de entregar (nota {nota['nota']}): corrija TUDO abaixo e mantenha o que está bom. "
-            + ' | '.join(f"{round(p['segundo'])} s: {p['problema']}" for p in nota['problemas']) + ' | ' + ' | '.join(fracos) + dica)
+    return (f"Revisão interna antes de entregar (nota {nota['nota']}): faça estas mudanças e mantenha todo o resto igual. "
+            + ' | '.join(f"{round(p['segundo'])} a {round(p.get('fim', p['segundo']))} s: {p['problema']} -> MUDANÇA: {p.get('mudanca_esperada', '')}" for p in nota['problemas'])
+            + ' | ' + ' | '.join(fracos) + dica)
 
 def revisar_e_concluir(p, pac, res, etapa, sb, render):
-    """Antes de entregar: um editor sênior (IA) dá nota; se ficar abaixo do mínimo, refaz o plano com os problemas e renderiza de novo
-    (até REVISOES vezes). Entrega a melhor rodada e grava a nota dela. render(pac) -> res."""
-    pasta = os.path.join(TRAB, pac['projeto_id']); n = pac['n']; rodadas = []
+    """Antes de entregar: a IA dá nota e diz, por trecho, o que falhou e a MUDANÇA esperada. Abaixo do mínimo, corrige só esses trechos (ajuste pontual)
+    e a rodada seguinte confere uma a uma se as mudanças aconteceram. Entrega a melhor rodada; se nenhuma resolveu, marca 'Precisa de decisão editorial'
+    com os trechos e as opções. render(pac) -> res."""
+    pasta = os.path.join(TRAB, pac['projeto_id']); n = pac['n']; rodadas = []; esperado = []
     for k in range(REVISOES + 1):
         etapa('Revisão interna: um editor sênior está conferindo a prévia', 92 if k == 0 else 93)
-        nota = avaliar_previa(pac, res, sb)
+        nota = avaliar_previa(pac, res, sb, esperado=[f"{round(x['segundo'])} a {round(x.get('fim', x['segundo']))} s: {x.get('mudanca_esperada', '')}" for x in esperado])
         copia_p, copia_v = os.path.join(pasta, f'plano_v{n}_rodada{k}.json'), os.path.join(pasta, f'previa_v{n}_rodada{k}.mp4')
         shutil.copyfile(os.path.join(pasta, pac['plano']), copia_p); shutil.copyfile(os.path.join(pasta, res['arquivos'][0]), copia_v)
         rodadas.append((nota['nota'] if nota else -1, k, nota, dict(res), copia_p, copia_v))
         if passou(nota) or k == REVISOES: break
+        esperado = [x for x in nota.get('problemas') or [] if x.get('mudanca_esperada')]
         etapa(f"Revisão interna: nota {str(nota['nota']).replace('.', ',')}, corrigindo antes de te enviar ({k + 1}/{REVISOES})", 30)
         pac = preparar(p, etapa, sb, correcao=texto_correcao(nota))
         res = render(pac)
     _, k, nota, res, copia_p, copia_v = max(rodadas, key=lambda r: (r[0], r[1]))
     shutil.copyfile(copia_p, os.path.join(pasta, pac['plano'])); shutil.copyfile(copia_v, os.path.join(pasta, res['arquivos'][0]))
-    if nota: nota = {**nota, 'rodadas': [{'nota': r[0], 'rodada': r[1]} for r in rodadas], 'entregue': k}
+    if nota:
+        nota = {**nota, 'rodadas': [{'nota': r[0], 'rodada': r[1], 'conferencia': (r[2] or {}).get('conferencia') or []} for r in rodadas], 'entregue': k}
+        if not passou(nota):                                   # nenhuma rodada resolveu: o editor decide, com o trecho marcado e as opções
+            ult = rodadas[-1][2] or {}
+            nao = [c['mudanca'] for c in ult.get('conferencia') or [] if not c.get('aconteceu')]
+            nota['decisao_editorial'] = {'trechos': [{'inicio': x['segundo'], 'fim': x.get('fim', x['segundo']), 'problema': x['problema'],
+                                                      'mudanca_esperada': x.get('mudanca_esperada', ''), 'opcoes': x.get('opcoes') or []} for x in nota.get('problemas') or []],
+                                         'nao_resolvido': nao}
     concluir(pac, res, sb, nota=nota if nota else False)
 
 def executar(p, etapa, sb):

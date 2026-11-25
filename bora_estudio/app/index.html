@@ -531,9 +531,15 @@ function blocoNotas(id,n,m){const ia=m['nota_ia_v'+n],ed=m['nota_editor_v'+n],f=
  const cor=x=>x>=8?'var(--ok)':x>=6?'var(--beige)':'var(--warn)';
  const crit=ia?Object.entries(ia.criterios||{}).map(([k,v])=>{const o=typeof v==='object'?v:{nota:v,motivo:''};
   return `<div class="ln"><span style="width:34px;text-align:center;font-weight:700;color:${cor(o.nota)}">${f(o.nota)}</span><span class="tx"><b style="font-size:14px">${nm[k]||k}</b>${o.motivo?`<small style="white-space:normal">${esc(o.motivo)}</small>`:''}</span></div>`}).join(''):'';
- return `<h3 class="rot">Notas da v${n}</h3><div class="lst">
+ const de=ia&&ia.decisao_editorial;
+ const dec=de?`<div class="aviso" style="margin-top:14px"><b>Precisa de decisão editorial</b>Nenhuma rodada de correção resolveu estes trechos. Escolha uma saída e peça o ajuste.
+  ${(de.trechos||[]).map((x,k)=>`<div style="margin-top:10px"><b style="display:block">${Math.round(x.inicio)} a ${Math.round(x.fim)} s</b>${esc(x.problema)}${x.mudanca_esperada?`<br><i>Precisava: ${esc(x.mudanca_esperada)}</i>`:''}${(x.opcoes||[]).length?`<br>Opções: ${x.opcoes.map(esc).join(' · ')}`:''}</div>`).join('')}
+  <button class="pill sm" style="margin-top:12px" data-decmarca="${id}:${n}">Marcar esses trechos no ajuste</button></div>`:'';
+ const conf=ia&&(ia.rodadas||[]).some(r=>(r.conferencia||[]).length)?`<div class="ln"><span class="tx"><b style="font-size:14px">Conferência das correções</b>${ia.rodadas.filter(r=>(r.conferencia||[]).length).map(r=>`<small style="white-space:normal">Rodada ${r.rodada} (${String(r.nota).replace('.',',')}): ${r.conferencia.map(c=>(c.aconteceu?'✓ ':'✗ ')+esc(c.mudanca)).join('; ')}</small>`).join('')}</span></div>`:'';
+ return `<h3 class="rot">Notas da v${n}</h3>${dec}<div class="lst">
  <div class="ln"><span style="width:34px;text-align:center;font-weight:800;font-size:18px;color:${ia?cor(ia.nota):'var(--faint)'}">${ia?f(ia.nota):'·'}</span><span class="tx"><b>Nota da IA${ia?' · '+f(ia.nota)+' de 10':': ainda não saiu'}</b><small style="white-space:normal">${ia?esc(ia.motivo||ia.resumo):'Sai uns segundos depois da prévia. Versões antigas não têm.'}</small></span></div>
  ${crit}
+ ${conf}
  ${ia&&(ia.problemas||[]).length?`<div class="ln"><span class="tx"><b style="font-size:14px">Problemas apontados</b>${ia.problemas.map(p=>`<small style="white-space:normal">${Math.round(p.segundo)} s: ${esc(p.problema)}</small>`).join('')}</span></div>`:''}
  <div class="ln" style="display:block"><span class="tx"><b>Sua nota${ed?': '+f(ed.nota)+' de 10':''}</b>${ia&&ed?`<small>Diferença pra IA: ${f(Math.abs(ia.nota-ed.nota).toFixed(1))}</small>`:'<small>De 0 a 10: o quanto essa versão ficou pronta pra postar</small>'}</span>
  <div class="chips">${[0,1,2,3,4,5,6,7,8,9,10].map(k=>`<button class="chip" ${ed&&ed.nota===k?'style="background:var(--beige);color:#072740;font-weight:700"':''} data-nota="${id}:${n}:${k}">${k}</button>`).join('')}</div></div></div>
@@ -726,6 +732,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
   (async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token;
    const r=await fetch(`${EDITOR}/projeto/${d.descartar}/descartar`,{method:'POST',headers:{Authorization:'Bearer '+tok}});const j=await r.json();if(!r.ok)throw new Error(j.erro||'o servidor recusou');
    S.stack=[{v:S.tab}];await recarregar();toast('Vídeo descartado')}catch(e){toast('Não consegui descartar: '+e.message)}})()}
+ else if(d.decmarca){const[id,n]=d.decmarca.split(':');const ia=(vid(id).media||{})['nota_ia_v'+n];S.sel[id]=(ia.decisao_editorial.trechos||[]).map(x=>({t0:Math.max(0,Math.floor(x.inicio)),t1:Math.ceil(Math.max(x.fim,x.inicio+1)),texto:x.mudanca_esperada||x.problema}));S.parecer[id]='ajuste';reRender();toast('Trechos marcados. Ajuste o texto de cada um e envie')}
  else if(d.tl){const[id,t0]=d.tl.split(':'),t=+t0;S.sel[id]=S.sel[id]||[];const ini=S.selIni[id];
   if(ini==null||ini===undefined){S.selIni[id]=t}else{S.sel[id].push({t0:Math.min(ini,t),t1:Math.max(ini,t)+1,texto:''});S.selIni[id]=null}reRender()}
  else if(d.rmsel){const[id,k]=d.rmsel.split(':');S.sel[id].splice(+k,1);reRender()}
