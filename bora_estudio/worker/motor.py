@@ -562,7 +562,7 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
         m2['mapa'] = {'tema': mapa.get('tema'), 'ideias_centrais': mapa.get('ideias_centrais'),
                       'trechos': [{k: t.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'qualidade', 'obs_imagem', 'resumo')} for t in mapa.get('trechos') or []]}
         m2[f'roteiro_v{n}'] = {'ideia_central': rot.get('ideia_central'), 'promessa': rot.get('promessa_da_abertura'), 'validacao': rot.get('validacao'), 'problemas': rot.get('problemas') or [],
-                               'bastidores': rot.get('bastidores_considerados') or [], 'tipo_ajuste': tipo, 'base': custo['base'], 'trocas': trocas,
+                               'bastidores': rot.get('bastidores_considerados') or [], 'melhores': [{**x, 'texto': next((t.get('texto') for t in mapa.get('trechos') or [] if int(t['palavra_inicio']) == int(x['palavra_inicio'])), '')} for x in rot.get('melhores_falas') or []], 'tipo_ajuste': tipo, 'base': custo['base'], 'trocas': trocas,
                                'partes': [{k: p.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'motivo', 'obs_imagem')} for p in rot['partes']]}
         if correcao and m2.get(f'custo_v{n}'):          # rodadas da revisão interna somam ao custo da versão (não apagam o mapa e o roteiro)
             ant_c = m2[f'custo_v{n}']; custo = {**custo, 'etapas': (ant_c.get('etapas') or []) + custo['etapas'], 'segundos': round((ant_c.get('segundos') or 0) + custo['segundos'], 1)}

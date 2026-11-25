@@ -32,10 +32,13 @@ _PARTE = {'type': 'object', 'additionalProperties': False, 'required': ['papel',
           'properties': {'papel': {'type': 'string', 'enum': PAPEIS_ROTEIRO}, 'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                          'motivo': {'type': 'string', 'description': 'por que essa fala, nesse ponto da história'}}}
 ESQ_ROTEIRO = {'type': 'object', 'additionalProperties': False,
-    'required': ['ideia_central', 'promessa_da_abertura', 'partes', 'validacao', 'bastidores_considerados'],
+    'required': ['ideia_central', 'promessa_da_abertura', 'partes', 'validacao', 'bastidores_considerados', 'melhores_falas'],
     'properties': {'ideia_central': {'type': 'string'},
                    'promessa_da_abertura': {'type': 'string', 'description': 'a pergunta ou promessa que o gancho cria e que o vídeo precisa responder'},
                    'partes': {'type': 'array', 'items': _PARTE},
+                   'melhores_falas': {'type': 'array', 'description': 'cada fala da lista MELHORES FALAS: se entrou e, se não, por que (o motivo tem que ser de história, não de tamanho)',
+                                      'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'usou', 'motivo'],
+                                                'properties': {'palavra_inicio': {'type': 'integer'}, 'usou': {'type': 'boolean'}, 'motivo': {'type': 'string'}}}},
                    'bastidores_considerados': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False, 'required': ['palavra_inicio', 'usou', 'motivo'],
                                                'properties': {'palavra_inicio': {'type': 'integer'}, 'usou': {'type': 'boolean'}, 'motivo': {'type': 'string'}}},
                                                'description': 'cada trecho de bastidor do mapa: se entrou e por quê'},
@@ -116,13 +119,18 @@ def segundos_roteiro(rot, palavras):
 
 def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='', pedido='', exigidos=()):
     total = sum(len(p) for p in palavras)
+    peso = {'alta': 0, 'media': 1, 'baixa': 2}
+    melhores = sorted([t for t in (mapa or {}).get('trechos') or [] if t.get('qualidade') == 'boa' and t.get('papel') not in ('bastidor', 'erro', 'repeticao')],
+                      key=lambda t: (peso.get(t.get('emocao'), 1), int(t['palavra_inicio'])))[:14]
+    lista_melhores = '\n'.join(f"- palavras {t['palavra_inicio']}-{t['palavra_fim']} ({t.get('papel')}, {t.get('quem', '')}, emoção {t.get('emocao', '')}): {t.get('texto', t.get('resumo', ''))}" for t in melhores)
     quem = sorted({t.get('quem') for t in (mapa or {}).get('trechos') or [] if t.get('quem') and t.get('papel') not in ('bastidor', 'erro', 'repeticao')})
     base = (f"Transcrição numerada:\n{plano.numerar(palavras, nomes, papeis)}\n\nMAPA DOS ORIGINAIS (etapa 1):\n" + json.dumps(mapa, ensure_ascii=False) + '\n\n' +
             (f"Briefing: {briefing}\n\n" if briefing else '') + (f"Pedido do editor: {pedido}\n\n" if pedido else '') +
             ('Arquivos que TÊM que entrar: ' + ', '.join(nomes[i] for i in exigidos) + '\n\n' if exigidos else '') +
             'ETAPA 2, ROTEIRO: escolha a ideia central e monte as falas em sequência, só com fala real (intervalos de palavras do mapa ou da transcrição; frases inteiras). '
             'Estrutura: gancho que cria uma pergunta, contexto, desenvolvimento ou prova, ponte quando o assunto muda, fechamento que RESPONDE a abertura e conclui a ideia '
-            '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n'
+            '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n' +
+            ('MELHORES FALAS DO MAPA (qualidade boa, das mais fortes pras menos): parta delas para montar a história e responda cada uma em melhores_falas:\n' + lista_melhores + '\n' if lista_melhores else '') +
             'SEM DURAÇÃO FIXA: o tamanho do vídeo é consequência da estrutura, do contexto e do storytelling. Use todos os momentos que fortalecem a história e corte só o que não serve a ela.\n'
             'EMOÇÃO E PERSONAGENS: comece por um momento que prenda (história pessoal, humor, revelação, emoção alta no mapa) quando existir. '
             + (f'Falam no material: {", ".join(quem)}. Cada pessoa que fala tem um papel na história: use falas de cada uma, e quem aparece em tela precisa ter motivo pra estar ali. ' if len(quem) > 1 else '')
