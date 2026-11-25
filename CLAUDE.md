@@ -48,6 +48,11 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   sem IA no roteiro) ou resumir para X s (limite validado no roteiro).
 - **Rastreio por versão (rastreio_vN):** cada trecho do mapa diz se entrou na prévia (e em que segundo) ou em que etapa saiu (roteiro, plano, montagem) e por quê;
   mais o tempo: fala gravada, escolhida, prévia, tirado pela história e pelas pausas. O app mostra em "O que entrou e o que saiu".
+- **Livro de regras único (etapas.livro):** mapa, roteiro, plano e a NOTA leem o mesmo texto (regras do motor + DNA Global + DNA do cliente); a régua da nota vem por cima dele.
+- **Gancho e desfecho em par:** o roteiro escolhe primeiro a fala que abre a pergunta e o trecho que a responde (roteiro.par) e monta o resto entre os dois; pergunta e resposta
+  de pessoas diferentes ficam juntas. O código confere se abre no gancho e fecha no desfecho.
+- **Bastidor como cobertura:** trechos de bastidor dos takes de fala entram na lista de B-roll (só a imagem, a voz continua) pra cobrir fala boa com imagem fraca.
+- **Restaurar fala:** em "O que entrou e o que saiu", cada trecho que saiu tem "Restaurar fala"; vai no ajuste como pedido de roteiro com arquivo, intervalo e palavras.
 - **Vocabulário por cliente** (vocabulario.json ou campo 'vocabulario' do DNA): termos entram como dica pro Whisper e grafias erradas conhecidas são corrigidas (Mounjaro, Ozempic...).
 - Legenda minimal branca com sombra de ~35%, acima da interface do Reels, **sem pontos**.
 - Nunca cortar pedaço de palavra (ex.: "diabetes" virando "diabé"): finais fracos como "s" precisam ficar; conferir re-transcrevendo.

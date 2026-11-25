@@ -449,7 +449,10 @@ def avaliar_previa(pac, res, sb, pasta=None, esperado=()):
         cli = (sb('GET', f"/rest/v1/clientes?id=eq.{pac['cliente_id']}&select=nome,segmento") or [{}])[0]
         dna = (sb('GET', f"/rest/v1/dna_ativo?cliente_id=eq.{pac['cliente_id']}&select=dna") or [{}])[0].get('dna') or {}
         contexto = f"cliente {cli.get('nome')} ({cli.get('segmento') or 'segmento não informado'}). DNA do cliente: " + json.dumps(dna, ensure_ascii=False)[:1800]
-        return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto, esperado)
+        import etapas
+        regras = (sb('GET', '/rest/v1/regras_globais?id=eq.1&select=regras') or [{}])[0].get('regras') or {}
+        cli2 = (sb('GET', f"/rest/v1/clientes?id=eq.{pac['cliente_id']}&select=*") or [{}])[0]
+        return avaliacao.avaliar(previa, pl, pal, pedido, res.get('verif'), pasta, contexto, esperado, livro=etapas.livro(cli2, dna, regras))
     except Exception as e:
         print('nota da IA:', str(e)[:150], flush=True); return None
 
@@ -518,6 +521,17 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
         etapa('Etapa 1: estudando os originais (mapa)', 26)
         mapa = etapas.mapear(pal, nomes, papeis, cliente, dna, regras, briefing, falas, brolls, marcas_texto(meta, nomes, pal))
         json.dump(mapa, open(arq_mapa, 'w'), ensure_ascii=False, indent=1)
+    # bastidores dos takes de fala viram COBERTURA possível: a imagem cobre um trecho fraco (tremido, mal enquadrado) e a voz continua por baixo
+    por_arq = {}
+    for t in mapa.get('trechos') or []:
+        if t.get('papel') == 'bastidor' and t.get('arquivo') in nomes: por_arq.setdefault(nomes.index(t['arquivo']), []).append(t)
+    cobertura = []
+    for ai, ts in por_arq.items():
+        f = next((x for x in falas if x['n'] == ai + 1), None)
+        if not f or any(b.get('ai') == ai for b in brolls): continue
+        brolls.append({'n': len(brolls) + 1, 'ai': ai, 'nome': f"{nomes[ai]} (bastidor, só a imagem)", 'dur': f['dur'], 'jpg': f['jpg'], 'tempos': f['tempos'], 'tremor': None})
+        cobertura.append(f"B-roll {len(brolls)} = bastidores de {nomes[ai]}, use só estes intervalos como imagem (o som some): " + ', '.join(f"{t['inicio_s']}-{t['fim_s']} s ({t.get('obs_imagem') or t.get('resumo', '')})" for t in ts))
+    if cobertura: extra = (extra + '\n' if extra else '') + 'BASTIDOR COMO COBERTURA: quando uma fala boa tem imagem fraca (tremida, mal enquadrada, alguém cortado), cubra só a imagem com um bastidor que combine:\n' + '\n'.join(cobertura)
     ba = meta.get('base_ajuste') or {}
     base = int(ba['base']) if ba.get('para') == n and ba.get('base') else n - 1
     rot_b = os.path.join(pasta, f'roteiro_v{base}.json'); pl_b = os.path.join(pasta, f'plano_v{base}.json')
@@ -593,7 +607,7 @@ def rastrear(mapa, rot, pl, pal, arqs, pasta):
         elif ps: etapa_, motivo = 'render', 'cortado na montagem (pausa, borda ou palavra fora do trecho)'
         elif rp: etapa_, motivo = 'plano', 'o plano de edição não usou este trecho do roteiro'
         else: etapa_, motivo = 'roteiro', motivos.get(a) or ('erro/repetição' if t.get('papel') in ('erro', 'repeticao') else 'não escolhido pra história')
-        out.append({'arquivo': t.get('arquivo'), 'inicio_s': t.get('inicio_s'), 'fim_s': t.get('fim_s'), 'texto': t.get('texto', ''), 'papel': t.get('papel'), 'quem': t.get('quem'),
+        out.append({'palavras': [a, b], 'arquivo': t.get('arquivo'), 'inicio_s': t.get('inicio_s'), 'fim_s': t.get('fim_s'), 'texto': t.get('texto', ''), 'papel': t.get('papel'), 'quem': t.get('quem'),
                     'emocao': t.get('emocao'), 'roteiro': [k + 1 for k in rp], 'plano': [k + 1 for k in ps], 'na_previa': round(min(x['s'] for x in tk), 1) if tk else None,
                     'saiu_em': None if tk else etapa_, 'motivo': motivo})
     falado = lambda ws: sum(w['e'] - w['s'] for w in ws)

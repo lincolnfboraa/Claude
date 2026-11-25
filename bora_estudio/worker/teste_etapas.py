@@ -22,7 +22,7 @@ def falso(sistema, conteudo, esquema=None):
             {'palavra_inicio': 26, 'palavra_fim': 29, 'papel': 'bastidor', 'resumo': 'combinando gravação', 'qualidade': 'ruim', 'obs_imagem': 'os dois rindo'}]}
     if esquema is etapas.ESQ_ROTEIRO:
         fim = 25 if len([c for c in chamadas if c[0] is etapas.ESQ_ROTEIRO]) == 1 else 17      # 1ª: fecha no meio da frase ('a'); 2ª: fecha em 'isso?'
-        return {'ideia_central': 'c', 'promessa_da_abertura': 'p', 'bastidores_considerados': [{'palavra_inicio': 26, 'usou': False, 'motivo': 'fora do assunto'}],
+        return {'ideia_central': 'c', 'par': {'gancho_inicio': 0, 'gancho_fim': 8, 'desfecho_inicio': 15, 'desfecho_fim': 17, 'pergunta': 'p', 'resposta': 'r'}, 'promessa_da_abertura': 'p', 'bastidores_considerados': [{'palavra_inicio': 26, 'usou': False, 'motivo': 'fora do assunto'}],
                 'partes': [{'papel': 'gancho', 'palavra_inicio': 0, 'palavra_fim': 8, 'motivo': 'm'}, {'papel': 'prova', 'palavra_inicio': 9, 'palavra_fim': 14, 'motivo': 'm'},
                            {'papel': 'fechamento', 'palavra_inicio': 15 if fim == 17 else 18, 'palavra_fim': fim, 'motivo': 'm'}],
                 'validacao': {'abertura_respondida': True, 'ligacao_entre_falas': True, 'fechamento_conclui': True, 'comentario': ''}, '_uso': {'entrada': 1000, 'saida': 200}}

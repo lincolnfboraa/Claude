@@ -48,7 +48,7 @@ def _folha(previa, saida, passo=2.0):
         if r.returncode == 0 and os.path.exists(saida): return saida, [round(i * passo, 1) for i in range(n)], dur
     return None, [], dur
 
-def avaliar(previa, pl, pal, pedido, verif, pasta, contexto='', esperado=()):
+def avaliar(previa, pl, pal, pedido, verif, pasta, contexto='', esperado=(), livro=''):
     """Devolve {nota, criterios, problemas, resumo, modelo} ou None."""
     import montagem
     jpg, tempos, dur = _folha(previa, os.path.join(pasta, 'avaliacao_folha.jpg'))
@@ -69,13 +69,13 @@ def avaliar(previa, pl, pal, pedido, verif, pasta, contexto='', esperado=()):
     img = base64.b64encode(open(jpg, 'rb').read()).decode()
     if plano.IA == 'gpt':
         from openai import OpenAI
-        r = OpenAI(timeout=300).responses.create(model=plano.MODELO_GPT, instructions=RUBRICA, store=False, max_output_tokens=4000,
+        r = OpenAI(timeout=300).responses.create(model=plano.MODELO_GPT, instructions=(livro + '\n\n' if livro else '') + RUBRICA, store=False, max_output_tokens=4000,
             input=[{'role': 'user', 'content': [{'type': 'input_text', 'text': texto}, {'type': 'input_image', 'image_url': f'data:image/jpeg;base64,{img}', 'detail': 'high'}]}],
             text={'format': {'type': 'json_schema', 'name': 'avaliacao', 'schema': ESQ, 'strict': True}})
         out, modelo = json.loads(r.output_text), r.model
     else:
         import anthropic
-        msg = anthropic.Anthropic().messages.create(model=plano.MODELO, max_tokens=4000, system=RUBRICA,
+        msg = anthropic.Anthropic().messages.create(model=plano.MODELO, max_tokens=4000, system=(livro + '\n\n' if livro else '') + RUBRICA,
             output_config={'format': {'type': 'json_schema', 'schema': ESQ}},
             messages=[{'role': 'user', 'content': [{'type': 'text', 'text': texto}, {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/jpeg', 'data': img}}]}])
         out, modelo = json.loads(next(b.text for b in msg.content if b.type == 'text')), msg.model

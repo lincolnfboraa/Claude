@@ -32,8 +32,12 @@ _PARTE = {'type': 'object', 'additionalProperties': False, 'required': ['papel',
           'properties': {'papel': {'type': 'string', 'enum': PAPEIS_ROTEIRO}, 'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                          'motivo': {'type': 'string', 'description': 'por que essa fala, nesse ponto da história'}}}
 ESQ_ROTEIRO = {'type': 'object', 'additionalProperties': False,
-    'required': ['ideia_central', 'promessa_da_abertura', 'partes', 'validacao', 'bastidores_considerados', 'melhores_falas'],
+    'required': ['ideia_central', 'par', 'promessa_da_abertura', 'partes', 'validacao', 'bastidores_considerados', 'melhores_falas'],
     'properties': {'ideia_central': {'type': 'string'},
+                   'par': {'type': 'object', 'additionalProperties': False, 'required': ['gancho_inicio', 'gancho_fim', 'desfecho_inicio', 'desfecho_fim', 'pergunta', 'resposta'],
+                           'description': 'escolhido ANTES do resto: a fala que abre uma pergunta e o trecho gravado que entrega a resposta',
+                           'properties': {'gancho_inicio': {'type': 'integer'}, 'gancho_fim': {'type': 'integer'}, 'desfecho_inicio': {'type': 'integer'}, 'desfecho_fim': {'type': 'integer'},
+                                          'pergunta': {'type': 'string', 'description': 'a pergunta que o gancho abre'}, 'resposta': {'type': 'string', 'description': 'como o desfecho responde'}}},
                    'promessa_da_abertura': {'type': 'string', 'description': 'a pergunta ou promessa que o gancho cria e que o vídeo precisa responder'},
                    'partes': {'type': 'array', 'items': _PARTE},
                    'melhores_falas': {'type': 'array', 'description': 'cada fala da lista MELHORES FALAS: se entrou e, se não, por que (o motivo tem que ser de história, não de tamanho)',
@@ -63,6 +67,10 @@ def _chamar(sistema, conteudo, esquema, nome):
     u = r.get('_uso') or {}
     CUSTO.append({'etapa': nome, 'segundos': round(time.time() - t0, 1), 'entrada': u.get('entrada'), 'saida': u.get('saida'), 'modelo': r.get('_modelo')})
     return r
+
+def livro(cliente, dna, regras):
+    """O livro de regras único: o mesmo texto que mapa, roteiro, plano e nota leem (regras editoriais do motor + DNA Global + DNA do cliente)."""
+    return '\n\n'.join(_sistema(cliente, dna, regras))
 
 def _sistema(cliente, dna, regras, extra=''):
     return [plano.SISTEMA + ('\n\n' + extra if extra else ''),
@@ -138,7 +146,9 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
     base = (f"Transcrição numerada:\n{plano.numerar(palavras, nomes, papeis)}\n\nMAPA DOS ORIGINAIS (etapa 1):\n" + json.dumps(mapa, ensure_ascii=False) + '\n\n' +
             (f"Briefing: {briefing}\n\n" if briefing else '') + (f"Pedido do editor: {pedido}\n\n" if pedido else '') +
             ('Arquivos que TÊM que entrar: ' + ', '.join(nomes[i] for i in exigidos) + '\n\n' if exigidos else '') +
-            'ETAPA 2, ROTEIRO: escolha a ideia central e monte as falas em sequência, só com fala real (intervalos de palavras do mapa ou da transcrição; frases inteiras). '
+            'ETAPA 2, ROTEIRO: PRIMEIRO escolha o par (campo par): a fala que abre uma pergunta (gancho) e o trecho gravado que entrega a resposta (desfecho). '
+            'Só depois encaixe contexto, exemplo e desenvolvimento entre os dois. Quando uma pessoa passa a palavra a outra (pergunta, convite, \'né amor?\'), a resposta dela entra junto. '
+            'Escolha a ideia central e monte as falas em sequência, só com fala real (intervalos de palavras do mapa ou da transcrição; frases inteiras). '
             'Estrutura: gancho que cria uma pergunta, contexto, desenvolvimento ou prova, ponte quando o assunto muda, fechamento que RESPONDE a abertura e conclui a ideia '
             '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n' +
             ('MELHORES FALAS DO MAPA (qualidade boa, das mais fortes pras menos): parta delas para montar a história e responda cada uma em melhores_falas:\n' + lista_melhores + '\n' if lista_melhores else '') +
@@ -153,6 +163,11 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
         rot = _chamar(_sistema(cliente, dna, regras), texto, ESQ_ROTEIRO, 'roteiro' if not tentativa else 'roteiro (refeito)')
         rot['partes'] = [p for p in rot.get('partes') or [] if 0 <= int(p['palavra_inicio']) <= int(p['palavra_fim']) < total]
         problemas = _checar(rot, palavras)
+        par, ps = rot.get('par') or {}, rot.get('partes') or []
+        if par and ps:
+            cobre = lambda p, a, b: int(p['palavra_inicio']) <= int(b) and int(p['palavra_fim']) >= int(a)
+            if not cobre(ps[0], par['gancho_inicio'], par['gancho_fim']): problemas.append('o roteiro não abre com o gancho escolhido no par')
+            if not any(cobre(p, par['desfecho_inicio'], par['desfecho_fim']) for p in ps[-2:]): problemas.append('o roteiro não fecha com o desfecho escolhido no par (a resposta da pergunta do gancho)')
         seg = segundos_roteiro(rot, palavras)
         if len(quem) > 1:
             usados = {t.get('quem') for t in mapa.get('trechos') or [] for p in rot['partes'] if int(t['palavra_inicio']) <= int(p['palavra_fim']) and int(t['palavra_fim']) >= int(p['palavra_inicio'])}
