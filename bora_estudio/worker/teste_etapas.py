@@ -18,7 +18,7 @@ def falso(sistema, conteudo, esquema=None):
     txt = conteudo if isinstance(conteudo, str) else conteudo[0]['text']; chamadas.append((esquema, txt))
     if esquema is etapas.ESQ_MAPA:
         return {'tema': 'rim e coração', 'ideias_centrais': ['risco cardiovascular'], 'trechos': [
-            {'palavra_inicio': 0, 'palavra_fim': 8, 'papel': 'gancho', 'resumo': 'r', 'qualidade': 'boa', 'obs_imagem': 'close dela'},
+            {'palavra_inicio': 0, 'palavra_fim': 8, 'papel': 'gancho', 'quem': 'Fabiola', 'emocao': 'media', 'resumo': 'r', 'qualidade': 'boa', 'obs_imagem': 'close dela'},
             {'palavra_inicio': 26, 'palavra_fim': 29, 'papel': 'bastidor', 'resumo': 'combinando gravação', 'qualidade': 'ruim', 'obs_imagem': 'os dois rindo'}]}
     if esquema is etapas.ESQ_ROTEIRO:
         fim = 25 if len([c for c in chamadas if c[0] is etapas.ESQ_ROTEIRO]) == 1 else 17      # 1ª: fecha no meio da frase ('a'); 2ª: fecha em 'isso?'

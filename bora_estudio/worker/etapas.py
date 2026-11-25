@@ -19,9 +19,11 @@ ESQ_MAPA = {'type': 'object', 'additionalProperties': False, 'required': ['tema'
     'properties': {'tema': {'type': 'string', 'description': 'do que o material todo trata, em uma frase'},
                    'ideias_centrais': {'type': 'array', 'items': {'type': 'string'}, 'description': '2 ou 3 ideias centrais possíveis para o vídeo'},
                    'trechos': {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
-                       'required': ['palavra_inicio', 'palavra_fim', 'papel', 'resumo', 'qualidade', 'obs_imagem'],
+                       'required': ['palavra_inicio', 'palavra_fim', 'papel', 'quem', 'emocao', 'resumo', 'qualidade', 'obs_imagem'],
                        'properties': {'palavra_inicio': {'type': 'integer'}, 'palavra_fim': {'type': 'integer'},
                                       'papel': {'type': 'string', 'enum': PAPEIS_MAPA},
+                                      'quem': {'type': 'string', 'description': 'quem fala (ex.: Fabiola, o marido cardiologista, os dois)'},
+                                      'emocao': {'type': 'string', 'enum': ['alta', 'media', 'baixa'], 'description': 'história pessoal, humor, surpresa, revelação = alta'},
                                       'resumo': {'type': 'string', 'description': 'o que é dito, curto'},
                                       'qualidade': {'type': 'string', 'enum': ['boa', 'media', 'ruim'], 'description': 'fala limpa e completa = boa; hesitação, frase cortada ou erro = ruim'},
                                       'obs_imagem': {'type': 'string', 'description': 'o que acontece na imagem nesse trecho (quem aparece, plano, gente passando, câmera), vazio se nada a notar'}}}}}}
@@ -74,7 +76,7 @@ def origem(palavras, nomes, a, b):
 def mapear(palavras, nomes, papeis, cliente, dna, regras, briefing='', falas=(), brolls=(), marcas=''):
     texto = (f"Transcrição numerada de TODOS os originais:\n{plano.numerar(palavras, nomes, papeis)}\n\n" + (f"Briefing: {briefing}\n\n" if briefing else '') +
              (marcas + '\n\n' if marcas else '') +
-             'ETAPA 1, MAPA DOS ORIGINAIS: estude o material antes de qualquer decisão. Divida as falas em trechos (frases ou ideias completas) e diga o papel de cada um, '
+             'ETAPA 1, MAPA DOS ORIGINAIS: estude TODO o material antes de qualquer decisão. Divida as falas em trechos (frases ou ideias completas) e diga o papel de cada um, quem fala, a emoção, '
              'a qualidade (hesitação, frase cortada, repetição = ruim) e o que a imagem mostra naquele momento (use as folhas de quadros). Conversas fora do assunto, '
              'combinações de gravação e erros são bastidor, erro ou repeticao. Não monte o vídeo ainda.')
     r = _chamar(_sistema(cliente, dna, regras), plano._conteudo(texto, brolls, falas), ESQ_MAPA, 'mapa')
@@ -96,20 +98,49 @@ def _checar(rot, palavras):
     if not v.get('fechamento_conclui'): problemas.append('o fechamento não conclui a ideia: ' + v.get('comentario', ''))
     return problemas
 
+def duracao_alvo(dna, briefing=''):
+    """(mínimo, máximo) em segundos a partir do DNA ('30 a 60 s...', aprovados maiores contam) e do briefing."""
+    import re
+    txt = ' '.join(str(x) for x in ((dna or {}).get('duracao') or '', briefing or ''))
+    ns = [int(x) for x in re.findall(r'(\d{2,3})\s*(?:a|s|seg|-|,|\))', txt)]
+    if not ns: return 45, 90
+    return max(35, min(ns)), max(max(ns), 60)
+
+def segundos_roteiro(rot, palavras):
+    import montagem
+    G = montagem.indice_global(palavras); tot = 0.0
+    for p in rot.get('partes') or []:
+        a, b = int(p['palavra_inicio']), int(p['palavra_fim'])
+        tot += palavras[G[b][0]][G[b][1]]['e'] - palavras[G[a][0]][G[a][1]]['s']
+    return tot * 0.88                                                 # pausas cortadas no render
+
 def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='', pedido='', exigidos=()):
     total = sum(len(p) for p in palavras)
+    dmin, dmax = duracao_alvo(dna, briefing)
+    quem = sorted({t.get('quem') for t in (mapa or {}).get('trechos') or [] if t.get('quem') and t.get('papel') not in ('bastidor', 'erro', 'repeticao')})
     base = (f"Transcrição numerada:\n{plano.numerar(palavras, nomes, papeis)}\n\nMAPA DOS ORIGINAIS (etapa 1):\n" + json.dumps(mapa, ensure_ascii=False) + '\n\n' +
             (f"Briefing: {briefing}\n\n" if briefing else '') + (f"Pedido do editor: {pedido}\n\n" if pedido else '') +
             ('Arquivos que TÊM que entrar: ' + ', '.join(nomes[i] for i in exigidos) + '\n\n' if exigidos else '') +
             'ETAPA 2, ROTEIRO: escolha a ideia central e monte as falas em sequência, só com fala real (intervalos de palavras do mapa ou da transcrição; frases inteiras). '
             'Estrutura: gancho que cria uma pergunta, contexto, desenvolvimento ou prova, ponte quando o assunto muda, fechamento que RESPONDE a abertura e conclui a ideia '
-            '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?')
+            '(chamada se existir). Prefira trechos de qualidade boa. Responda cada bastidor do mapa. Valide honestamente: a abertura é respondida? as falas se ligam? o fechamento conclui?\n'
+            f'DURAÇÃO: o vídeo final deve ter entre {dmin} e {dmax} s de fala. Use o material: um bom vídeo aproveita os melhores momentos, não o mínimo. Nunca encurte só por encurtar.\n'
+            'EMOÇÃO E PERSONAGENS: comece por um momento que prenda (história pessoal, humor, revelação, emoção alta no mapa) quando existir. '
+            + (f'Falam no material: {", ".join(quem)}. Cada pessoa que fala tem um papel na história: use falas de cada uma, e quem aparece em tela precisa ter motivo pra estar ali. ' if len(quem) > 1 else '')
+            + 'Bastidor com emoção (riso, cumplicidade, erro engraçado) pode entrar como respiro ou fechamento se combinar com o tom do cliente.')
     rot, problemas = None, []
     for tentativa in (0, 1):
         texto = base + (('\n\nO roteiro anterior falhou na validação: ' + '; '.join(problemas) + '. Corrija: troque a fala que não liga, inclua uma ponte gravada ou escolha outro fechamento que conclua.') if problemas else '')
         rot = _chamar(_sistema(cliente, dna, regras), texto, ESQ_ROTEIRO, 'roteiro' if not tentativa else 'roteiro (refeito)')
         rot['partes'] = [p for p in rot.get('partes') or [] if 0 <= int(p['palavra_inicio']) <= int(p['palavra_fim']) < total]
         problemas = _checar(rot, palavras)
+        seg = segundos_roteiro(rot, palavras)
+        if seg < dmin * 0.9: problemas.append(f'o roteiro tem só {seg:.0f} s de fala, abaixo do mínimo de {dmin} s: use mais do material (histórias, a fala de cada pessoa, exemplos)')
+        if len(quem) > 1:
+            usados = {t.get('quem') for t in mapa.get('trechos') or [] for p in rot['partes'] if int(t['palavra_inicio']) <= int(p['palavra_fim']) and int(t['palavra_fim']) >= int(p['palavra_inicio'])}
+            faltam = [q for q in quem if q not in usados]
+            if faltam: problemas.append('quem fala no material e ficou sem nenhuma fala: ' + ', '.join(faltam))
+        rot['segundos'] = round(seg, 1)
         if not problemas: break
     rot['problemas'] = problemas                                   # sobra = vai pro editor decidir (o fluxo segue, mas avisa)
     return completar(rot, palavras, nomes, mapa)
