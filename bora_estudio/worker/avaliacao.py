@@ -24,6 +24,8 @@ Critérios (0 a 10 cada, com motivo):
 - cortes: cortes assertivos: sem frase cortada no meio, sem palavra comida, sem repetição, sem pausa longa, ritmo bom, sem trecho em que outra pessoa entra no quadro ou alguém troca produto na frente de quem fala.
 - enquadramento: ninguém cortado na lateral, respiro acima da cabeça, zoom coerente (sem pular de escala sem motivo), câmera firme.
 - complemento: o conjunto que apoia a fala: B-roll no momento certo e firme, legenda legível e sem erro (valores, nomes), destaques poucos e bem colocados (nada em cima do rosto), cores e identidade do cliente.
+Respeite o estilo APROVADO no DNA do cliente (ex.: legenda pequena minimalista branca com sombra leve, título sem caixa): não tire ponto por isso, só por erro real (texto ilegível, em cima do rosto, valor errado).
+No storytelling, só cobre o que existe nas gravações: se nenhum take tem orientação ou chamada, diga isso no motivo mas não desça abaixo de 6 só por esse motivo.
 A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro, gancho fraco) puxa a nota pra 6 ou menos.
 Em problemas, cite o segundo do vídeo (dos quadros) e o que está errado, curto. Responda só o JSON."""
 
