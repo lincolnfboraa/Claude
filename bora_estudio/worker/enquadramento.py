@@ -111,7 +111,7 @@ def rostos_no_tempo(video, largura=360, passo=1.0):
     """Rostos ao longo do take, um quadro por segundo (passo). Devolve [[t, [[x, y, w, h], ...]], ...] normalizado no quadro em pé, ou [] (motivo em ULTIMO_ERRO)."""
     try:
         cv2 = _cv2()
-        if cv2 is None: ULTIMO_ERRO[0] = 'OpenCV não carregou'; return []
+        if cv2 is None: ULTIMO_ERRO[0] = 'OpenCV não carregou: ' + ULTIMO_ERRO[0]; return []
         import montagem
         W0, H0, transf, _ = montagem.sondar(video); dur = _duracao(video)
         tm = 'zscale=t=linear:npl=1000,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p,' if transf in ('arib-std-b67', 'smpte2084') else ''
