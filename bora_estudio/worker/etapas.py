@@ -116,6 +116,19 @@ def quem_pelo_som(mapa, palavras, f0, limiar):
         elif t.get('voz') == 'as duas vozes': t['quem'] = ' e '.join(x for x in (nome.get('voz aguda'), nome.get('voz grave')) if x) or 'os dois'
     return mapa
 
+def fechar_frases(rot, palavras, limite=45):
+    """Nenhuma fala termina no meio da frase: cada parte que acaba sem ponto vai até o fim da frase no mesmo arquivo (até 'limite' palavras)."""
+    import montagem
+    G = montagem.indice_global(palavras)
+    for p in rot.get('partes') or []:
+        b = int(p['palavra_fim']); ai = G[b][0]
+        for k in range(b, min(len(G), b + limite)):
+            if G[k][0] != ai: break
+            if palavras[ai][G[k][1]]['w'].rstrip()[-1:] in '.?!':
+                if k != b: p['palavra_fim'] = k; p['estendida'] = True
+                break
+    return rot
+
 def _checar(rot, palavras):
     """Validação por código além da da IA: partes válidas e o fechamento termina em frase completa."""
     import montagem
@@ -196,6 +209,8 @@ def roteirizar(mapa, palavras, nomes, papeis, cliente, dna, regras, briefing='',
         if limite and seg > limite * 1.15: problemas.append(f'o roteiro tem {seg:.0f} s de fala, acima do limite de {limite:.0f} s pedido pelo editor')
         rot['segundos'] = round(seg, 1)
         if not problemas: break
+    fechar_frases(rot, palavras)                                   # garantia por código: nenhuma fala termina pela metade
+    problemas = [x for x in problemas if 'no meio da frase' not in x] + [x for x in _checar(rot, palavras) if 'no meio da frase' in x]
     rot['problemas'] = problemas                                   # sobra = vai pro editor decidir (o fluxo segue, mas avisa)
     return completar(rot, palavras, nomes, mapa)
 
@@ -243,7 +258,7 @@ def ajustar_roteiro(rot, mapa, palavras, nomes, papeis, cliente, dna, regras, pe
         partes = rot.get('partes') or []
         trocas = [t for t in trocas if not (t['acao'] == 'remover' and 0 <= int(t['parte']) < len(partes) and forte(partes[int(t['parte'])]))]
     novo, feitas = aplicar_trocas(rot, trocas)
-    novo = completar(novo, palavras, nomes, mapa)
+    novo = completar(fechar_frases(novo, palavras), palavras, nomes, mapa)
     for f in feitas:                                               # mostra qual fala entrou no lugar
         if '_nova' in f: f['depois'] = novo['partes'][min(f.pop('_nova'), len(novo['partes']) - 1)].get('texto', '')
         if '_add' in f: f.pop('_add'); f['depois'] = f['depois'] or '(nova parte)'
