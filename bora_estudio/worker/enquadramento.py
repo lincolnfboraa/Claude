@@ -9,31 +9,20 @@ ULTIMO_ERRO = ['']
 LIB = os.path.join(os.environ.get('BORA_TRABALHO', '/trabalho'), '_pylib')
 N_QUADROS = 6
 
+_CV = []
 def _cv2():
-    """OpenCV que funciona de verdade (com CascadeClassifier). Um 'cv2' quebrado no caminho (pasta solta, instalação pela metade) é ignorado
-    e o OpenCV é instalado de novo no volume de trabalho."""
-    import importlib, shutil as _sh
-    def bom():
-        sys.modules.pop('cv2', None); importlib.invalidate_caches()
-        try:
-            import cv2
-            if hasattr(cv2, 'CascadeClassifier') and hasattr(cv2, 'data'): return cv2
-            ULTIMO_ERRO[0] = 'cv2 sem CascadeClassifier em ' + str(getattr(cv2, '__file__', None) or list(getattr(cv2, '__path__', [])))[:120]
-        except Exception as e: ULTIMO_ERRO[0] = 'cv2: ' + str(e)[:120]
-        return None
-    c = bom()
-    if c: return c
-    if LIB in sys.path: sys.path.remove(LIB)
-    sys.path.insert(0, LIB); c = bom()
-    if c: return c
+    """OpenCV da imagem (instalado no Dockerfile). Importa uma vez só por processo: reimportar um cv2 que falhou deixa o módulo pela metade
+    ('partially initialized'). Uma cópia antiga em _pylib (instalação em tempo de execução de versões anteriores) é tirada do caminho."""
+    if _CV: return _CV[0]
+    while LIB in sys.path: sys.path.remove(LIB)
+    c = None
     try:
-        _sh.rmtree(os.path.join(LIB, 'cv2'), ignore_errors=True)
-        subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', '--no-cache-dir', '--upgrade', '--target', LIB, 'opencv-python-headless==4.10.0.84'], capture_output=True, timeout=600, check=True)
-    except Exception as e:
-        ULTIMO_ERRO[0] = 'instalação do OpenCV falhou: ' + str(e)[:100]; print('enquadramento:', ULTIMO_ERRO[0], flush=True); return None
-    c = bom()
-    if not c: print('enquadramento: OpenCV continua sem funcionar:', ULTIMO_ERRO[0], flush=True)
-    return c
+        import cv2
+        if hasattr(cv2, 'CascadeClassifier') and hasattr(cv2, 'data'): c = cv2
+        else: ULTIMO_ERRO[0] = 'cv2 sem CascadeClassifier em ' + str(getattr(cv2, '__file__', ''))[:120]
+    except Exception as e: ULTIMO_ERRO[0] = 'cv2: ' + str(e)[:150]
+    if c is None: print('enquadramento: OpenCV indisponível:', ULTIMO_ERRO[0], flush=True)
+    _CV.append(c); return c
 
 def _duracao(v):
     return float(subprocess.run(['ffprobe', '-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', v], capture_output=True, text=True).stdout.strip() or 0)
