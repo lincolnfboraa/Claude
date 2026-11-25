@@ -532,7 +532,7 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
         sel = selecoes_texto(meta, n, ant, pal, arqs, pasta)
         if sel: pedido += '\n' + sel
         etapa(f'Etapa 2: ajustando o roteiro a partir da v{base}', 28)
-        tipo, rot, trocas, resumo_aj = etapas.ajustar_roteiro(rot0, mapa, pal, nomes, papeis, cliente, dna, regras, pedido)
+        tipo, rot, trocas, resumo_aj = etapas.ajustar_roteiro(rot0, mapa, pal, nomes, papeis, cliente, dna, regras, pedido, interno=bool(correcao))
         etapa('Etapa 3: plano de edição (só o que mudou)', 32)
         extra2 = extra + ('\n' + etapas.texto_roteiro_para_plano(rot) if tipo == 'roteiro' else '')
         pl = plano_ia.ajustar(pal, nomes, cliente, dna, regras, ant, pedido, brolls, falas, papeis, extra2) or plano_ia.gerar(
@@ -560,7 +560,7 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
     try:                                                # as três entregas ficam no projeto (o app mostra e deixa corrigir o roteiro)
         m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
         m2['mapa'] = {'tema': mapa.get('tema'), 'ideias_centrais': mapa.get('ideias_centrais'),
-                      'trechos': [{k: t.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'qualidade', 'obs_imagem', 'resumo')} for t in mapa.get('trechos') or []]}
+                      'trechos': [{k: t.get(k) for k in ('papel', 'quem', 'emocao', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'qualidade', 'obs_imagem', 'resumo')} for t in mapa.get('trechos') or []]}
         m2[f'roteiro_v{n}'] = {'ideia_central': rot.get('ideia_central'), 'promessa': rot.get('promessa_da_abertura'), 'validacao': rot.get('validacao'), 'problemas': rot.get('problemas') or [],
                                'bastidores': rot.get('bastidores_considerados') or [], 'melhores': [{**x, 'texto': next((t.get('texto') for t in mapa.get('trechos') or [] if int(t['palavra_inicio']) == int(x['palavra_inicio'])), '')} for x in rot.get('melhores_falas') or []], 'tipo_ajuste': tipo, 'base': custo['base'], 'trocas': trocas,
                                'partes': [{k: p.get(k) for k in ('papel', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'motivo', 'obs_imagem')} for p in rot['partes']]}
@@ -635,7 +635,7 @@ def revisar_e_concluir(p, pac, res, etapa, sb, render):
         etapa(f"Revisão interna: nota {str(nota['nota']).replace('.', ',')}, corrigindo antes de te enviar ({k + 1}/{REVISOES})", 30)
         pac = preparar(p, etapa, sb, correcao=texto_correcao(nota))
         res = render(pac)
-    _, k, nota, res, copia_p, copia_v, snap = max(rodadas, key=lambda r: (r[0], r[1]))
+    _, k, nota, res, copia_p, copia_v, snap = max(rodadas, key=lambda r: (r[0], -r[1]))      # empate: a rodada mais antiga (a correção não melhorou)
     shutil.copyfile(copia_p, os.path.join(pasta, pac['plano'])); shutil.copyfile(copia_v, os.path.join(pasta, res['arquivos'][0]))
     rot_k = os.path.join(pasta, f'roteiro_v{n}_rodada{k}.json')
     if os.path.exists(rot_k): shutil.copyfile(rot_k, os.path.join(pasta, f'roteiro_v{n}.json'))

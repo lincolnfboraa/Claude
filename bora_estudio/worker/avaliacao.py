@@ -34,6 +34,7 @@ Respeite o estilo APROVADO no DNA do cliente (ex.: legenda pequena minimalista b
 Confira se a ÚLTIMA fala fecha a ideia (frase completa, não termina no meio nem numa constatação solta) antes da cartela final; se não fechar, é problema grave de storytelling, com o trecho e a mudança.
 Use a verificação 'Legenda legível sobre a imagem' (mede o fundo real): onde ela acusar fundo claro, aponte o trecho.
 No storytelling, só cobre o que existe nas gravações: se nenhum take tem orientação ou chamada, diga isso no motivo mas não desça abaixo de 6 só por esse motivo.
+História pessoal, humor e emoção são o que prende: nunca peça para remover; se parecem soltos, peça a ordem certa ou uma ponte.
 A nota final NÃO é a média: um problema grave (pessoa cortada, pedido do editor ignorado, alguém atravessando o quadro, gancho fraco) puxa a nota pra 6 ou menos.
 Em problemas, cite o trecho (segundo e fim), o que falhou e por quê, a mudança concreta que precisa aparecer na próxima versão e as opções se ela não for possível.
 Se o pedido trouxer 'Mudanças esperadas', confira CADA uma nesta versão (conferencia: aconteceu sim ou não, com o que viu) e não repita como problema novo o que já foi resolvido. Responda só o JSON."""

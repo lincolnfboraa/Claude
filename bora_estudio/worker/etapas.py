@@ -177,17 +177,23 @@ def aplicar_trocas(rot, trocas):
     out += [n for kk, n in novas_fim if kk < 0 or kk >= len(partes)]
     return {**rot, 'partes': out}, feitas
 
-def ajustar_roteiro(rot, mapa, palavras, nomes, papeis, cliente, dna, regras, pedido):
+def ajustar_roteiro(rot, mapa, palavras, nomes, papeis, cliente, dna, regras, pedido, interno=False):
     """Classifica o pedido e, se for de roteiro, troca só as partes citadas (o resto travado)."""
     lista = '\n'.join(f"[{k}] {p['papel']} ({p.get('arquivo')} {p.get('inicio_s')} a {p.get('fim_s')} s, palavras {p['palavra_inicio']}-{p['palavra_fim']}): {p.get('texto', '')}"
                       for k, p in enumerate(rot.get('partes') or []))
     texto = (f"Transcrição numerada:\n{plano.numerar(palavras, nomes, papeis)}\n\nMAPA:\n{json.dumps(mapa, ensure_ascii=False)}\n\nROTEIRO ATUAL (aprovado em tudo que o pedido não cita):\n{lista}\n\n"
              f"Pedido do editor: {pedido}\n\nClassifique o pedido. Se for de roteiro, troque SÓ as partes citadas, com fala real (frases inteiras), e mantenha as outras exatamente iguais. "
-             'Um novo fechamento tem que concluir a ideia e responder a abertura.')
+             'Um novo fechamento tem que concluir a ideia e responder a abertura.' +
+             (' CORREÇÃO INTERNA: não remova história pessoal, humor ou momento de emoção alta; se ela parece interromper, mude a ordem ou inclua uma ponte gravada.' if interno else ''))
     r = _chamar(_sistema(cliente, dna, regras), texto, ESQ_AJ_ROTEIRO, 'ajuste do roteiro')
     if r.get('tipo') != 'roteiro': return r.get('tipo'), rot, [], r.get('resumo', '')
     total = sum(len(p) for p in palavras)
     trocas = [t for t in r.get('trocas') or [] if not t.get('nova') or 0 <= int(t['nova']['palavra_inicio']) <= int(t['nova']['palavra_fim']) < total]
+    if interno:                                                   # a revisão interna não tira emoção nem a fala de alguém que só aparece ali
+        fortes = [t for t in (mapa or {}).get('trechos') or [] if t.get('emocao') == 'alta']
+        def forte(p): return any(int(t['palavra_inicio']) <= int(p['palavra_fim']) and int(t['palavra_fim']) >= int(p['palavra_inicio']) for t in fortes)
+        partes = rot.get('partes') or []
+        trocas = [t for t in trocas if not (t['acao'] == 'remover' and 0 <= int(t['parte']) < len(partes) and forte(partes[int(t['parte'])]))]
     novo, feitas = aplicar_trocas(rot, trocas)
     novo = completar(novo, palavras, nomes, mapa)
     for f in feitas:                                               # mostra qual fala entrou no lugar
