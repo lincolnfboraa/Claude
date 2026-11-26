@@ -326,7 +326,7 @@ def preparar(p, etapa, sb, correcao=None):
             sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'cores_texto': {**(proj.get('cores_texto') or {}), **novas}})
         pac.update({'plano': f'plano_v{n}.json', 'altura': 854})
     elif tipo == 'final':
-        planos = sorted(glob.glob(os.path.join(pasta, 'plano_v*.json')), key=lambda x: int(x.rsplit('_v', 1)[1].split('.')[0]))
+        planos = sorted((x for x in glob.glob(os.path.join(pasta, 'plano_v*.json')) if re.fullmatch(r'plano_v\d+\.json', os.path.basename(x))), key=lambda x: int(re.search(r'_v(\d+)\.json$', x).group(1)))   # ignora as cópias plano_vN_rodadaK.json
         if not planos: raise RuntimeError('não encontrei o plano aprovado deste projeto')
         pl = json.load(open(planos[-1]))
         if not pl.get('_anexos') and meta.get('anexos'):
