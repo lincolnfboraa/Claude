@@ -147,6 +147,7 @@ button:focus-visible,textarea:focus-visible,select:focus-visible,input:focus-vis
 .lst{border-radius:22px;background:var(--cell);overflow:hidden}
 .ln{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:12px 16px;position:relative}
 .ln+.ln{border-top:1px solid var(--line)}
+.rd{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);position:relative}.rd.on{border-color:var(--orange,#FF5E16)}.rd.on::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--orange,#FF5E16)}
 .ln .tx{flex:1;min-width:0}.ln b{display:block;font-weight:500;font-size:15px}
 .ln small{display:block;color:var(--sub);font-size:13px;margin-top:1px}
 .ln .mini-capa{width:44px;height:56px;border-radius:10px;flex:none;overflow:hidden}
@@ -525,7 +526,7 @@ function miniTpl(t){const L=S.cores.leg,D=S.cores.dest,C=S.cores.caixa||'#1E2A47
  if(t==='nenhum')return `<span style="font-size:5px;color:${L};margin-top:40%">só legenda</span>`;
  return `<b style="font-size:11px;color:${L}">IA</b><span style="font-size:5px;color:${L};opacity:.7">segue o DNA</span>`}
 const Q4K=[['leve','Leve','uns 4 Mbps (era o padrão antigo, perde detalhe)'],['alta','Alta (recomendada)','uns 8 a 12 Mbps, bom pra postar'],['maxima','Máxima','uns 15 a 25 Mbps, melhor pra editar depois']];
-function blocoQ4k(){return `<h3 class="rot">Qualidade do 4K</h3><div class="lst">${Q4K.map(([k,n,d])=>`<button class="ln" data-q4k="${k}"><span class="tx"><b>${n}</b><small>${d}</small></span><span class="dot ${S.q4k===k?'ok':''}" style="${S.q4k===k?'background:var(--l,#FF5E16)':'opacity:.35'}"></span></button>`).join('')}</div>
+function blocoQ4k(){return `<h3 class="rot">Qualidade do 4K</h3><div class="lst">${Q4K.map(([k,n,d])=>`<button class="ln" data-q4k="${k}"><span class="tx"><b>${n}</b><small>${d}</small></span><span class="rd${S.q4k===k?' on':''}"></span></button>`).join('')}</div>
  <p class="nota">Os valores são estimativas e variam com o vídeo; o tamanho real aparece quando o 4K fica pronto.</p>`}
 function blocoTimeline(id,tl){const u=TLURL[tl.path];if(!u){sb.storage.from('previas').createSignedUrl(tl.path,3600).then(({data})=>{if(data){TLURL[tl.path]=data.signedUrl;reRender()}});}
  const sel=S.sel[id]||[],ini=S.selIni[id],na=t=>sel.findIndex(x=>t>=x.t0&&t<x.t1),cw=Math.round(tl.w*0.62),ch=Math.round(tl.h*0.62);
