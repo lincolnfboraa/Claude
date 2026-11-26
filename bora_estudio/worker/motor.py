@@ -318,7 +318,6 @@ def preparar(p, etapa, sb, correcao=None):
             m3[f'enquadramento_v{n}'] = {nomes[int(k)] if int(k) < len(nomes) else k: v for k, v in ESTADO_ROSTOS.items()}; sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m3})
         except Exception as e: print('estado do enquadramento:', str(e)[:100], flush=True)
         json.dump(pl, open(os.path.join(pasta, f'plano_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
-        import re
         novas = {k: v for k, v in {'leg': (pl.get('cores') or {}).get('legenda', ''), 'dest': (pl.get('cores') or {}).get('destaque', '')}.items()
                  if re.fullmatch(r'#[0-9A-Fa-f]{6}', (v or '').strip())}
         if novas:                                       # cor pedida no feedback vale desta versão em diante
