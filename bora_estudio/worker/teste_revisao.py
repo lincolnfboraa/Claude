@@ -1,3 +1,4 @@
+import os; os.environ.setdefault("BORA_APROVAR_ROTEIRO", "0")
 """Revisão interna: prévia abaixo da nota mínima volta pra correção antes de chegar ao editor; entrega a melhor rodada."""
 import json, os, shutil, sys, tempfile
 T = tempfile.mkdtemp(); os.environ['BORA_TRABALHO'] = T

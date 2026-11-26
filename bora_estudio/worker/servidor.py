@@ -2,7 +2,7 @@
 """Editor do Bora Studio no VPS. Recebe pedidos do n8n (POST /pedido), processa um por vez e devolve tudo pro Supabase:
 porcentagem e etapa em projetos.original_meta, prévia/final no Storage, status em versoes/projetos.
 Variáveis: SUPABASE_URL, SUPABASE_SECRET, ANTHROPIC_API_KEY, BORA_TOKEN."""
-import hashlib, hmac, json, os, queue, time, subprocess, threading, traceback, urllib.error, urllib.parse, urllib.request
+import re, hashlib, hmac, json, os, queue, time, subprocess, threading, traceback, urllib.error, urllib.parse, urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 URL, KEY, TOKEN = os.environ['SUPABASE_URL'].rstrip('/'), os.environ['SUPABASE_SECRET'], os.environ['BORA_TOKEN']
@@ -76,6 +76,8 @@ def processar(p):
                         else {'transcricao': 'VPS', 'previa': 'VPS', 'ia': 'VPS', 'segundos': round(time.time() - t0)})
         avisar(p, True)
     except Exception as e:
+        if type(e).__name__ == 'AguardaAprovacao':        # roteiro pronto, esperando o editor aprovar (não é erro; o app libera ao aprovar)
+            print('aguardando a aprovação do roteiro:', pid, flush=True); return
         if pid in DESCARTADOS: print('projeto descartado durante a edição:', pid, flush=True); return
         if 'credit balance' in str(e).lower():         # sem crédito na Anthropic: o painel e o celular avisam
             IA_SEM_SALDO[0] = time.time()
@@ -637,6 +639,35 @@ class H(BaseHTTPRequestHandler):
             except PermissionError as e: return self._r(403, {'erro': str(e)})
             except Exception as e: traceback.print_exc(); return self._r(502, {'erro': 'Biblioteca: ' + str(e)[:150]})
             self.send_response(200); self.send_header('Content-Type', mime); self.send_header('Cache-Control', 'private, max-age=3600')
+            self.send_header('Content-Length', str(len(dados))); self.end_headers(); self.wfile.write(dados); return
+        if u.path == '/trecho':                            # pedaço curto do ORIGINAL pra ouvir/ver na aprovação do roteiro (480p, cacheado)
+            if not usuario_da_equipe(self.headers.get('Authorization')): return self._r(401, {'erro': 'login'})
+            q = urllib.parse.parse_qs(u.query)
+            try:
+                pid = q['p'][0]; nome = os.path.basename(q['a'][0]); t0 = max(0.0, float(q['i'][0])); t1 = float(q['f'][0])
+                if t1 <= t0 or t1 - t0 > 90 or not re.fullmatch(r'[\w-]+', pid): return self._r(400, {'erro': 'intervalo'})
+                d = pasta(pid); ref = [x for x in os.listdir(d) if x.startswith('original_') and x.endswith(('.mov', '.mp4', '.MOV', '.MP4'))]
+                orig = None
+                try:
+                    mt = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+                    nomes = {os.path.basename(c.get('caminho') or ''): c.get('nome') for c in (mt.get('arquivos') or [])}
+                except Exception: nomes = {}
+                for x in ref:
+                    if nomes.get(x) == nome or x == nome: orig = os.path.join(d, x)
+                if not orig and len(ref) == 1: orig = os.path.join(d, ref[0])
+                if not orig: return self._r(404, {'erro': 'original não encontrado'})
+                os.makedirs(os.path.join(d, 'trechos'), exist_ok=True)
+                out = os.path.join(d, 'trechos', f'{os.path.basename(orig)}_{int(t0*10)}_{int(t1*10)}.mp4')
+                if not os.path.exists(out):
+                    r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{t0:.2f}', '-t', f'{t1-t0:.2f}', '-i', orig, '-vf', 'zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=hable,zscale=t=bt709:m=bt709:r=tv,scale=-2:480,format=yuv420p',
+                                        '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', out], capture_output=True, timeout=120)
+                    if r.returncode or not os.path.exists(out):    # sem zscale: cai no recorte simples
+                        r = subprocess.run(['ffmpeg', '-v', 'error', '-y', '-ss', f'{t0:.2f}', '-t', f'{t1-t0:.2f}', '-i', orig, '-vf', 'scale=-2:480,format=yuv420p', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '26', '-c:a', 'aac', '-movflags', '+faststart', out], capture_output=True, timeout=120)
+                        if r.returncode: return self._r(502, {'erro': 'ffmpeg: ' + r.stderr.decode()[-150:]})
+                dados = open(out, 'rb').read()
+            except (KeyError, ValueError, IndexError): return self._r(400, {'erro': 'parâmetros'})
+            except Exception as e: traceback.print_exc(); return self._r(502, {'erro': str(e)[:150]})
+            self.send_response(200); self.send_header('Content-Type', 'video/mp4'); self.send_header('Cache-Control', 'private, max-age=3600')
             self.send_header('Content-Length', str(len(dados))); self.end_headers(); self.wfile.write(dados); return
         if u.path == '/push/chave':
             import avisos; return self._r(200, {'chave': avisos.chave_publica()})

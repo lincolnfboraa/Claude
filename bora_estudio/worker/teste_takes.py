@@ -1,3 +1,4 @@
+import os; os.environ.setdefault("BORA_APROVAR_ROTEIRO", "0")
 """Take pedido pelo editor (anexo com o mesmo nome de um original, ou citado no pedido) tem que entrar no storytelling."""
 import os, sys
 import motor, plano

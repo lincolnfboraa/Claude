@@ -82,3 +82,9 @@ Siga sempre o padrão aprovado em `fabiola_reels_energeticos/PADRAO_PRODUCAO.md`
   somada DEPOIS do ganho da voz. A voz continua sem EQ nem compressor. Os sons vêm do Drive (Bora Claude/Biblioteca/SoundFX); trocar por BORA_SFX_WHOOSH e BORA_SFX_POP no bora.env.
 - Respostas em português, linguagem natural, sem travessões.
 - **Testes antes de subir:** ajustes de layout, visual ou texto do app sobem direto, sem teste. Teste completo do motor (testes_regras.py, teste_completo.py e, se mexer no Acer, teste_render_externo.py) só quando a mudança pode comprometer uma entrega: montagem do vídeo, imagem, áudio, 4K, fila ou envio de arquivos.
+- **Aprovação do roteiro obrigatória (Diretor Bora, fase A):** na primeira versão (sem ajuste), depois de mapa e roteiro o motor PARA (`motor.AguardaAprovacao`, não é erro) e grava
+  `diagnostico_vN`, `roteiro_vN` (com palavra_inicio/fim), `fora_vN` (falas boas que ficaram de fora) e `aprovacao={versao, estado:'aguardando'}`. Nada de plano nem render antes.
+  No app o editor vê o diagnóstico, cada fala (arquivo, intervalo, motivo), assiste ao trecho do original (rota `/trecho`, 480p, cacheada), remove, restaura e reordena (exceto "só limpar pausas"), e aprova.
+  A aprovação grava `roteiro_aprovado_vN` e libera a fila; o motor aplica exatamente essa lista (sem refazer pela IA) e segue pro plano. Reinício do servidor não repete a IA (lê roteiro_vN.json).
+  `BORA_APROVAR_ROTEIRO=0` ou `original_meta.edicao_direta` pulam a pausa. Ajustes de versões seguintes não pausam.
+

@@ -205,6 +205,9 @@ def pecas(plano, arquivos, palavras, pasta):
         a = borda_inicio(envs[ai], pw[k0]['s']); b = borda_fim(envs[ai], pw[k1]['e'])
         for x, y in tirar_pausas(a, b, envs[ai], pw[k0:k1 + 1]):
             fa, fb = round(x * FPS), round(y * FPS)
+            for pai, pfa, pfb, _q in out:                    # a folga das bordas nunca repete som já usado ('vvocê'): corta na emenda
+                if pai == ai and pfa <= fa < pfb: fa = pfb
+                if pai == ai and pfa < fb <= pfb and fa < pfa: fb = pfa
             if fb - fa < 2: continue
             x, y = fa / FPS, fb / FPS
             for k in range(k0, k1 + 1):

@@ -484,6 +484,7 @@ const V={
   <div class="player" id="vid">${capa(v)}${a.previa?`<button class="play" data-play="${v.id}" aria-label="Reproduzir">${SV(I.play)}</button>`:''}
    <div class="leg"><b>${esc(v.tema)} · v${a.n||1}</b><span>${esc(v.dur)}</span></div></div>
   ${m.aviso?`<div class="aviso"><b>Atenção</b>${esc(m.aviso)}</div>`:''}
+  ${m.aprovacao&&m.aprovacao.estado==='aguardando'?blocoAprovacao(id,m):''}
   ${v.st==='run'||semFinal?`<div class="produzindo">${anel(pct(v),64)}<span class="tx"><b>${esc(fase(v))}</b><small>${/^Erro/.test(fase(v))?'O editor não vai repetir sozinho':pct(v)!=null?(esc(detalhe(v))||'O app atualiza sozinho'):'Aguardando a vez na fila do editor'}</small></span></div>${/^Erro/.test(fase(v))?`<button class="pill full" style="margin-top:12px" data-tentar="${v.id}">${SV(I.refaz)}Tentar de novo</button>`:''}`:''}
   ${v.st==='wait'?`<h3 class="rot">Seu parecer</h3><div class="parecer">
     <button class="opc ok ${p==='ok'?'sel':''}" data-parecer="${id}:ok">${SV(I.ok)}Aprovado</button><button class="opc ${p==='ajuste'?'sel':''}" data-parecer="${id}:ajuste">${SV(I.refaz)}Precisa de ajustes</button></div>
@@ -539,6 +540,31 @@ function blocoRastreio(id,n,r,pode){const t=r.tempos||{},fora=(r.trechos||[]).fi
  return `<h3 class="rot">O que entrou e o que saiu</h3><div class="lst">
  <button class="ln" data-rastab="${id}"><span class="tx"><b style="font-size:14px">${f(t.material_s)} s de fala gravada · prévia com ${f(t.previa_s)} s</b><small style="white-space:normal">${f(t.tirado_roteiro_s)} s ficaram de fora pela história · ${f(t.tirado_pausas_s)} s de pausas cortadas · ${fora.length} trecho(s) bons não usados</small></span><span class="seta">${ab?'⌃':'›'}</span></button>
  ${ab?(r.trechos||[]).map((x,k)=>`<div class="ln"><span style="width:22px;text-align:center;font-weight:700;color:${x.na_previa!=null?'var(--ok)':'var(--faint)'}">${x.na_previa!=null?'✓':'·'}</span><span class="tx"><b style="font-size:13px">${esc(x.arquivo||'')} ${fmtT(x.inicio_s)} a ${fmtT(x.fim_s)}${x.quem?' · '+esc(x.quem):''}${x.emocao==='alta'?' · emoção alta':''}</b><small style="white-space:normal;opacity:1;color:inherit">"${esc((x.texto||'').slice(0,140))}"</small><small style="white-space:normal">${x.na_previa!=null?'Na prévia aos '+String(x.na_previa).replace('.',',')+' s':'Saiu no '+(et[x.saiu_em]||x.saiu_em)+': '+esc(x.motivo||'')}</small>${x.na_previa==null&&pode?((S.restaurar[id]||[]).some(y=>y.k===k)?`<small style="color:var(--ok)">Vai voltar no próximo ajuste</small>`:`<button class="pill sm" style="margin-top:6px" data-restaura="${id}:${n}:${k}">Restaurar fala</button>`):''}</span></div>`).join(''):''}</div>`}
+function aprLista(id,m){const n=m.aprovacao.versao;if(!S.apr)S.apr={};if(!S.apr[id]||S.apr[id].n!==n){const r=m['roteiro_v'+n]||{};S.apr[id]={n,partes:(r.partes||[]).map(x=>({...x})),fora:(m['fora_v'+n]||[]).map(x=>({...x})),clip:null}}return S.apr[id]}
+function blocoAprovacao(id,m){const E=aprLista(id,m),d=m['diagnostico_v'+E.n]||{},r=m['roteiro_v'+E.n]||{},livre=m.modo!=='limpar';
+ const chk=(b,t)=>`<span style="color:${b?'var(--ok)':'var(--warn)'}">${b?'✓':'✗'} ${t}</span>`,val=r.validacao||{};
+ const tot=E.partes.reduce((a,x)=>a+Math.max(0,(x.fim_s||0)-(x.inicio_s||0)),0);
+ const parte=(x,k,fora)=>`<div class="ln" style="display:block"><span class="tx"><b style="font-size:13px">${fora?'':(k+1)+'. '}${PAPEL[x.papel]||x.papel||'Trecho'} · ${esc(x.arquivo||'')} ${fmtT(x.inicio_s)} a ${fmtT(x.fim_s)}${x.quem?' · '+esc(x.quem):''}</b>
+   <small style="white-space:normal;opacity:1;color:inherit">"${esc(x.texto||'')}"</small>${x.motivo?`<small style="white-space:normal">Por quê: ${esc(x.motivo)}</small>`:''}${x.obs_imagem?`<small style="white-space:normal">Imagem: ${esc(x.obs_imagem)}</small>`:''}</span>
+   <div class="chips" style="margin-top:6px"><button class="chip" data-aprplay="${id}:${fora?'f':'p'}${k}">Ver no original</button>
+   ${fora?`<button class="chip" data-aprres="${id}:${k}">Restaurar</button>`:`<button class="chip" data-aprrm="${id}:${k}">Remover</button>${livre&&k>0?`<button class="chip" data-aprmv="${id}:${k}:-1">Subir</button>`:''}${livre&&k<E.partes.length-1?`<button class="chip" data-aprmv="${id}:${k}:1">Descer</button>`:''}`}</div>
+   ${E.clip&&E.clip.k===(fora?'f':'p')+k?`<div id="aprv">${E.clip.erro?`<small style="color:var(--warn)">${esc(E.clip.erro)}</small>`:E.clip.url?`<video src="${E.clip.url}" controls autoplay playsinline style="width:100%;margin-top:6px;border-radius:10px"></video>`:'<small>Carregando o trecho do original…</small>'}</div>`:''}</div>`;
+ return `<h3 class="rot">Aprove o roteiro antes de editar</h3>
+ <div class="aviso"><b>Nada foi renderizado ainda</b>Confira a análise e as falas. Só depois da sua aprovação o editor monta o plano e o vídeo.</div>
+ <div class="lst"><div class="ln" style="display:block"><span class="tx"><b style="font-size:14px">Diagnóstico</b>
+  ${d.tema?`<small style="white-space:normal">Tema: ${esc(d.tema)}</small>`:''}
+  ${(d.ideias_centrais||[]).length?`<small style="white-space:normal">Ideias: ${d.ideias_centrais.map(esc).join(' · ')}</small>`:''}
+  ${(d.arquivos||[]).map(a=>`<small style="white-space:normal">${esc(a.nome)} · ${a.duracao_s!=null?Math.round(a.duracao_s)+' s':''} · ${a.palavras} palavras · ${a.papel==='ambiente'?'ambiente':'fala'}</small>`).join('')}
+  ${Object.keys(d.trechos_por_papel||{}).length?`<small style="white-space:normal">Trechos: ${Object.entries(d.trechos_por_papel).map(([k,v])=>v+' '+k).join(' · ')}</small>`:''}
+  ${(d.avisos||[]).map(x=>`<small style="white-space:normal;color:var(--warn)">! ${esc(x)}</small>`).join('')}
+  ${d.aviso_identidade?`<small style="white-space:normal">${esc(d.aviso_identidade)}</small>`:''}</span></div>
+ <div class="ln" style="display:block"><span class="tx"><b style="font-size:14px">${esc(r.ideia_central||'Roteiro')}</b>
+  <small style="white-space:normal">${E.partes.length} falas · cerca de ${Math.round(tot)} s de fala · ${chk(val.abertura_respondida,'abertura respondida')} · ${chk(val.ligacao_entre_falas,'falas ligadas')} · ${chk(val.fechamento_conclui,'fechamento conclui')}</small>
+  ${(r.problemas||[]).map(x=>`<small style="white-space:normal;color:var(--warn)">! ${esc(x)}</small>`).join('')}</span></div>
+ ${E.partes.map((x,k)=>parte(x,k,false)).join('')}
+ ${E.fora.length?`<div class="ln"><span class="tx"><b style="font-size:14px">Ficou de fora (pode restaurar)</b></span></div>${E.fora.map((x,k)=>parte(x,k,true)).join('')}`:''}</div>
+ <button class="pill full" style="margin-top:14px" data-aprok="${id}" ${E.partes.length?'':'disabled'}>${SV(I.ok)}Aprovar roteiro e seguir pro plano</button>
+ <small style="display:block;opacity:.6;margin:6px 0 14px">Se quiser outra história, peça o ajuste depois da prévia. Aqui você só confirma, remove, restaura ou reordena.</small>`}
 function blocoRoteiro(id,n,r,custo,pode){const corr=(S.corrRot[id]||{}),aberto=S.rotAberto===id;
  const val=r.validacao||{},chk=(b,t)=>`<span style="color:${b?'var(--ok)':'var(--warn)'}">${b?'✓':'✗'} ${t}</span>`;
  const tk=custo?(custo.etapas||[]).reduce((a,e)=>a+(e.entrada||0)+(e.saida||0),0):0;
@@ -781,6 +807,19 @@ document.addEventListener('click',e=>{const b=e.target.closest('button,#dim');if
  else if(d.modo){const ms=$('#modoseg');if(ms)S.modo.segundos=+ms.value;S.modo={tipo:d.modo,segundos:S.modo.segundos};reRender()}
  else if(d.restaura){const[id,n,k]=d.restaura.split(':');const x=(vid(id).media['rastreio_v'+n].trechos||[])[+k];(S.restaurar[id]=S.restaurar[id]||[]).push({k:+k,...x});S.parecer[id]='ajuste';reRender();toast('Fala marcada pra voltar. Envie o ajuste')}
  else if(d.rastab){S.rastAberto=S.rastAberto===d.rastab?null:d.rastab;reRender()}
+ else if(d.aprplay){const[id,k]=d.aprplay.split(':'),E=S.apr[id],x=k[0]==='f'?E.fora[+k.slice(1)]:E.partes[+k.slice(1)];
+  if(E.clip&&E.clip.k===k){if(E.clip.url)URL.revokeObjectURL(E.clip.url);E.clip=null;return reRender()}
+  E.clip={k};reRender();(async()=>{try{const tok=(await sb.auth.getSession()).data.session.access_token,t0=Math.max(0,x.inicio_s-0.3);
+   const r=await fetch(`${EDITOR}/trecho?p=${id}&a=${encodeURIComponent(x.arquivo)}&i=${t0}&f=${x.fim_s+0.3}`,{headers:{Authorization:'Bearer '+tok}});
+   if(!r.ok)throw new Error((await r.json().catch(()=>({}))).erro||r.status);E.clip={k,url:URL.createObjectURL(await r.blob())}}catch(e){E.clip={k,erro:'Não abriu o trecho: '+e.message}}reRender()})()}
+ else if(d.aprrm){const[id,k]=d.aprrm.split(':'),E=S.apr[id];if(E.partes.length<2)return toast('O roteiro precisa de ao menos uma fala');E.clip=null;E.fora.push(E.partes.splice(+k,1)[0]);reRender()}
+ else if(d.aprres){const[id,k]=d.aprres.split(':'),E=S.apr[id],x=E.fora.splice(+k,1)[0];E.clip=null;
+  const pos=E.partes.findIndex(y=>y.palavra_inicio>x.palavra_inicio&&y.arquivo===x.arquivo);if(pos<0)E.partes.push(x);else E.partes.splice(pos,0,x);reRender()}
+ else if(d.aprmv){const[id,k,dir]=d.aprmv.split(':'),E=S.apr[id],i=+k,j=i+ +dir;if(j<0||j>=E.partes.length)return;E.clip=null;[E.partes[i],E.partes[j]]=[E.partes[j],E.partes[i]];reRender()}
+ else if(d.aprok){(async()=>{try{const id=d.aprok,E=S.apr[id],{data}=await sb.from('projetos').select('original_meta').eq('id',id).single(),m={...(data.original_meta||{})};
+   m['roteiro_aprovado_v'+E.n]=E.partes.map(x=>({palavra_inicio:x.palavra_inicio,palavra_fim:x.palavra_fim,papel:x.papel}));
+   m.aprovacao={...(m.aprovacao||{}),estado:'aprovado',em:new Date().toISOString()};m.andamento='Na fila do editor';m.progresso=null;m.andamento_versao=null;
+   await q(sb.from('projetos').update({original_meta:m}).eq('id',id));delete S.apr[id];await recarregar();toast('Roteiro aprovado. O editor segue pro plano')}catch(e){toast('Não consegui aprovar: '+e.message)}})()}
  else if(d.rotab){S.rotAberto=S.rotAberto===d.rotab?null:d.rotab;reRender()}
  else if(d.corr){const[id,k]=d.corr.split(':');(S.corrRot[id]=S.corrRot[id]||{})[k]='';S.parecer[id]='ajuste';reRender()}
  else if(d.corrrm){const[id,k]=d.corrrm.split(':');delete S.corrRot[id][k];reRender()}

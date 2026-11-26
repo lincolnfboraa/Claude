@@ -1,3 +1,4 @@
+import os; os.environ.setdefault("BORA_APROVAR_ROTEIRO", "0")
 """Teste do storytelling: marcas de repetição, regras do prompt, gancho (título exato x ideia) e vocabulário do cliente."""
 import os, subprocess, sys, tempfile, types
 os.environ['BORA_TRABALHO'] = tempfile.mkdtemp()

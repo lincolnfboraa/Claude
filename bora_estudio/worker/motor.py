@@ -283,6 +283,7 @@ def preparar(p, etapa, sb, correcao=None):
                 try:
                     pl = tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, feedbacks, brolls, falas, exigidos, anexos_ia,
                                      '\n'.join(x for x in (pedido_gancho, pedido_sens.strip()) if x), correcao, etapa, sb, pid, anterior)
+                except AguardaAprovacao: raise
                 except Exception as e:
                     import traceback; traceback.print_exc(); print('três etapas falhou, usando o plano direto:', str(e)[:150], flush=True); pl = None
             if pl is None and anterior and os.environ.get('BORA_AJUSTE_PONTUAL', '1') != '0' and not any(a.get('versao') == n - 1 for a in anexos_ia):      # ajuste PONTUAL: só muda o que o pedido cita, o resto fica travado
@@ -509,6 +510,79 @@ def onde_entraram(pl, meta, nomes, pal, arqs, pasta):
                     'motivo': '' if onde is not None else (r.get('motivo') or 'a IA não explicou')})
     return out
 
+class AguardaAprovacao(Exception):
+    """O roteiro foi montado e espera a aprovação do editor: o fluxo para aqui (sem erro) e continua quando ele aprovar."""
+
+def aprovacao_necessaria(meta, anterior, correcao):
+    """Aprovação do roteiro obrigatória na primeira versão (padrão); 'edicao_direta' no projeto, ou BORA_APROVAR_ROTEIRO=0, pula."""
+    return os.environ.get('BORA_APROVAR_ROTEIRO', '1') != '0' and not (meta or {}).get('edicao_direta') and anterior is None and not correcao
+
+def diagnostico(nomes, papeis, pal, arqs, mapa, rot, limiar, meta):
+    """Resumo do que foi REALMENTE medido e identificado no material (sem exemplo fixo): arquivos, tema, estrutura, pontos de atenção."""
+    from collections import Counter
+    tr = (mapa or {}).get('trechos') or []; por_papel = Counter(t.get('papel') for t in tr); quem = Counter(t.get('quem') for t in tr if t.get('quem'))
+    arquivos = []
+    for i, a in enumerate(arqs):
+        try: d = round(montagem.duracao(a), 1)
+        except Exception: d = None
+        arquivos.append({'nome': nomes[i], 'papel': papeis[i], 'duracao_s': d, 'palavras': len(pal[i]), 'cor': (meta.get('arquivos') or [{}] * (i + 1))[i].get('cor') if i < len(meta.get('arquivos') or []) else None})
+    avisos = []
+    if any(x.get('cor') and 'SDR' in x['cor'] for x in arquivos): avisos.append('Os vídeos chegaram em SDR (sem HDR). No iPhone, envie o original: Opções > Atual.')
+    if limiar and len(quem) > 1: avisos.append('Parece haver mais de uma pessoa falando (pela altura da voz). Confirme quem é quem: ' + ', '.join(sorted(quem)) + '.')
+    n_ruim = sum(1 for t in tr if t.get('qualidade') == 'ruim')
+    if n_ruim: avisos.append(f'{n_ruim} trecho(s) com fala pouco limpa (hesitação, frase cortada ou erro). Veja se algum precisa ficar.')
+    if por_papel.get('bastidor'): avisos.append(f"{por_papel['bastidor']} trecho(s) parecem bastidor (conversa fora do assunto). Ficam de fora, a menos que você restaure.")
+    fim = (rot.get('partes') or [{}])[-1].get('texto', '')
+    if fim and fim.rstrip()[-1:] not in '.?!': avisos.append('A última fala do roteiro não termina em frase completa.')
+    for pr in rot.get('problemas') or []: avisos.append(pr)
+    return {'tema': (mapa or {}).get('tema'), 'ideias_centrais': (mapa or {}).get('ideias_centrais') or [], 'arquivos': arquivos,
+            'trechos_por_papel': dict(por_papel), 'quem_pistas': dict(quem), 'vozes_distintas': bool(limiar), 'avisos': avisos,
+            'aviso_identidade': 'Quem fala é estimado pela voz e pelo conteúdo; confirme antes de aprovar.' if len(quem) > 1 else ''}
+
+def fora_do_roteiro(mapa, rot):
+    """Trechos de fala boa do mapa que NÃO entraram no roteiro (pra restaurar na aprovação)."""
+    usados = [(int(p['palavra_inicio']), int(p['palavra_fim'])) for p in rot.get('partes') or []]
+    out = []
+    for t in (mapa or {}).get('trechos') or []:
+        a, b = int(t['palavra_inicio']), int(t['palavra_fim'])
+        if t.get('papel') in ('erro', 'repeticao'): continue
+        if any(x <= b and a <= y for x, y in usados): continue
+        out.append({'palavra_inicio': a, 'palavra_fim': b, 'arquivo': t.get('arquivo'), 'inicio_s': t.get('inicio_s'), 'fim_s': t.get('fim_s'), 'texto': t.get('texto', ''),
+                    'papel': t.get('papel'), 'quem': t.get('quem'), 'qualidade': t.get('qualidade')})
+    return out
+
+def aplicar_aprovado(rot, aprovado, mapa, palavras, nomes):
+    """O roteiro que o editor aprovou (partes na ordem final, com remoções e restaurações) vira o roteiro oficial. Nada é refeito pela IA."""
+    atuais = {(int(p['palavra_inicio']), int(p['palavra_fim'])): p for p in rot.get('partes') or []}
+    novas = []
+    for a in aprovado or []:
+        k = (int(a['palavra_inicio']), int(a['palavra_fim']))
+        p = dict(atuais.get(k) or {'papel': a.get('papel') or 'desenvolvimento', 'palavra_inicio': k[0], 'palavra_fim': k[1], 'motivo': 'restaurada pelo editor'})
+        if a.get('papel'): p['papel'] = a['papel']
+        novas.append(p)
+    if not novas: raise RuntimeError('o roteiro aprovado ficou sem nenhuma fala')
+    rot = {**rot, 'partes': novas, 'aprovado_pelo_editor': True}
+    return etapas_completar(rot, palavras, nomes, mapa)
+
+def etapas_completar(rot, palavras, nomes, mapa):
+    import etapas; return etapas.completar(rot, palavras, nomes, mapa)
+
+def salvar_pausa(pid, n, pasta, meta, nomes, papeis, pal, arqs, mapa, rot, limiar, sb):
+    """Guarda diagnóstico, roteiro e trechos de fora no projeto e marca 'aguardando aprovação' (o app mostra a tela de aprovação)."""
+    json.dump(rot, open(os.path.join(pasta, f'roteiro_v{n}.json'), 'w'), ensure_ascii=False, indent=1)
+    m2 = sb('GET', f'/rest/v1/projetos?id=eq.{pid}&select=original_meta')[0]['original_meta'] or {}
+    m2['mapa'] = {'tema': mapa.get('tema'), 'ideias_centrais': mapa.get('ideias_centrais'),
+                  'trechos': [{k: t.get(k) for k in ('papel', 'quem', 'emocao', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'qualidade', 'obs_imagem', 'resumo')} for t in mapa.get('trechos') or []]}
+    m2[f'roteiro_v{n}'] = {'ideia_central': rot.get('ideia_central'), 'promessa': rot.get('promessa_da_abertura'), 'par': rot.get('par'), 'validacao': rot.get('validacao'),
+                           'problemas': rot.get('problemas') or [], 'bastidores': rot.get('bastidores_considerados') or [], 'melhores': rot.get('melhores_falas') or [],
+                           'partes': [{k: p.get(k) for k in ('papel', 'palavra_inicio', 'palavra_fim', 'arquivo', 'inicio_s', 'fim_s', 'texto', 'motivo', 'obs_imagem')} for p in rot['partes']],
+                           'segundos_estimados': rot.get('segundos')}
+    m2[f'diagnostico_v{n}'] = diagnostico(nomes, papeis, pal, arqs, mapa, rot, limiar, meta)
+    m2[f'fora_v{n}'] = fora_do_roteiro(mapa, rot)
+    m2['aprovacao'] = {'versao': n, 'estado': 'aguardando', 'desde': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}
+    m2['andamento'] = 'Aguardando a sua aprovação do roteiro'; m2['progresso'] = None
+    sb('PATCH', f'/rest/v1/projetos?id=eq.{pid}', {'original_meta': m2})
+
 def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, feedbacks, brolls, falas, exigidos, anexos_ia, extra, correcao, etapa, sb, pid, anterior=None):
     """Mapa dos originais (uma vez por projeto) -> roteiro com falas literais (validado antes do render) -> plano de edição.
     Ajuste parte da versão escolhida (original_meta.base_ajuste = {para: n, base: k}; padrão a anterior): só texto preserva áudio e cortes;
@@ -567,9 +641,19 @@ def tres_etapas(meta, n, pasta, pal, nomes, papeis, arqs, cliente, dna, regras, 
         else:
             pl = etapas.segmentos_do_roteiro(rot, pl)
     else:
-        etapa('Etapa 2: roteiro com as falas em sequência', 28)
-        pedido = '\n'.join(x for x in (extra, correcao or '') if x)
-        rot = etapas.roteirizar(mapa, pal, nomes, papeis, cliente, dna, regras, briefing, pedido, sorted(exigidos), meta.get('modo'))
+        precisa = aprovacao_necessaria(meta, anterior, correcao); apr = meta.get('aprovacao') or {}
+        rot_arq = os.path.join(pasta, f'roteiro_v{n}.json')
+        if precisa and apr.get('versao') == n and os.path.exists(rot_arq):          # já montado antes: não chama a IA de novo
+            rot = json.load(open(rot_arq))
+            if apr.get('estado') != 'aprovado': raise AguardaAprovacao()
+            rot = aplicar_aprovado(rot, meta.get(f'roteiro_aprovado_v{n}'), mapa, pal, nomes)
+        else:
+            etapa('Etapa 2: roteiro com as falas em sequência', 28)
+            pedido = '\n'.join(x for x in (extra, correcao or '') if x)
+            rot = etapas.roteirizar(mapa, pal, nomes, papeis, cliente, dna, regras, briefing, pedido, sorted(exigidos), meta.get('modo'))
+            if precisa:                                                              # PARA aqui: o editor revisa o diagnóstico e o roteiro antes de qualquer render
+                salvar_pausa(pid, n, pasta, meta, nomes, papeis, pal, arqs, mapa, rot, plano_ia.VOZES.get('limiar'), sb)
+                raise AguardaAprovacao()
         etapa('Etapa 3: plano de edição', 32)
         pl = plano_ia.gerar(pal, nomes, cliente, dna, regras, '\n'.join(x for x in (briefing, extra, etapas.texto_roteiro_para_plano(rot)) if x),
                             None, feedbacks, anexos_ia, papeis, brolls, exigidos=exigidos, falas=falas)

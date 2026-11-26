@@ -1,3 +1,4 @@
+import os; os.environ.setdefault("BORA_APROVAR_ROTEIRO", "0")
 """Ajuste pontual: a IA devolve só mudanças; o resto do plano fica igual. Trechos marcados na timeline viram palavras e itens do plano."""
 import json, sys
 import plano

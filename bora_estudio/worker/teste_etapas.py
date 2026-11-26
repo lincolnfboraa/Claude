@@ -1,3 +1,4 @@
+import os; os.environ.setdefault("BORA_APROVAR_ROTEIRO", "0")
 """Três etapas: mapa -> roteiro validado -> plano; ajuste só de texto preserva cortes; troca de fechamento troca só a parte e mostra o que entrou."""
 import json, os, sys, tempfile, shutil
 T = tempfile.mkdtemp(); os.environ['BORA_TRABALHO'] = T
